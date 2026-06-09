@@ -1,0 +1,26 @@
+{
+  "Report": {
+    "Strategy": "Dengeli",
+    "TopCount": 20,
+    "DetailedCount": 10,
+    "OutputDirectory": "reports"
+  },
+  "Send": {
+    "EmailEnabled": true,
+    "TelegramEnabled": false
+  },
+  "Email": {
+    "SmtpServer": "smtp.gmail.com",
+    "Port": 587,
+    "UseSsl": true,
+    "From": "",
+    "To": [],
+    "SubjectPrefix": "BIST Bulut Rapor",
+    "CredentialPath": "",
+    "AttachCsv": true
+  },
+  "Telegram": {
+    "BotToken": "",
+    "ChatId": ""
+  }
+}
