@@ -1,0 +1,67 @@
+name: BIST Cloud Report
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 18:15 Europe/Istanbul. GitHub Actions cron uses UTC.
+    - cron: "15 15 * * 1-5"
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  run-report:
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    env:
+      BIST_EMAIL_FROM: ${{ secrets.BIST_EMAIL_FROM }}
+      BIST_EMAIL_TO: ${{ secrets.BIST_EMAIL_TO }}
+      BIST_SMTP_USERNAME: ${{ secrets.BIST_SMTP_USERNAME }}
+      BIST_SMTP_PASSWORD: ${{ secrets.BIST_SMTP_PASSWORD }}
+      BIST_SMTP_SERVER: ${{ secrets.BIST_SMTP_SERVER }}
+      BIST_SMTP_PORT: ${{ secrets.BIST_SMTP_PORT }}
+      BIST_SMTP_USE_SSL: ${{ secrets.BIST_SMTP_USE_SSL }}
+      BIST_TELEGRAM_BOT_TOKEN: ${{ secrets.BIST_TELEGRAM_BOT_TOKEN }}
+      BIST_TELEGRAM_CHAT_ID: ${{ secrets.BIST_TELEGRAM_CHAT_ID }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore bot state
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            data/last_scan.json
+            data/model_portfolios.json
+          key: bist-state-${{ github.run_id }}
+          restore-keys: |
+            bist-state-
+
+      - name: Run daily report
+        shell: powershell
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\GunlukRapor.ps1 -SettingsPath .\config\report_settings.cloud.json
+
+      - name: Upload report artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bist-report-${{ github.run_id }}
+          path: |
+            reports\*.html
+            reports\*.csv
+            reports\GunlukRapor.log
+          if-no-files-found: warn
+
+      - name: Save bot state
+        if: always()
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            data/last_scan.json
+            data/model_portfolios.json
+          key: bist-state-${{ github.run_id }}
