@@ -1,0 +1,28 @@
+{
+  "Report": {
+    "Strategy": "Dengeli",
+    "TopCount": 20,
+    "DetailedCount": 10,
+    "OutputDirectory": "reports"
+  },
+  "Send": {
+    "EmailEnabled": false,
+    "TelegramEnabled": false
+  },
+  "Email": {
+    "SmtpServer": "smtp.gmail.com",
+    "Port": 587,
+    "UseSsl": true,
+    "From": "your-address@gmail.com",
+    "To": [
+      "your-phone-or-mail@example.com"
+    ],
+    "SubjectPrefix": "BIST Gunluk Rapor",
+    "CredentialPath": "config/smtp_credential.xml",
+    "AttachCsv": true
+  },
+  "Telegram": {
+    "BotToken": "",
+    "ChatId": ""
+  }
+}
