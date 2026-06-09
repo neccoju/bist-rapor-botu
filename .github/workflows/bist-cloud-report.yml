@@ -2,6 +2,12 @@ name: BIST Cloud Report
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/bist-cloud-report.yml
+      - CloudRapor.ps1.b64
   schedule:
     # 18:15 Europe/Istanbul. GitHub Actions cron uses UTC.
     - cron: "15 15 * * 1-5"
@@ -9,6 +15,9 @@ on:
 permissions:
   contents: read
   actions: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   run-report:
