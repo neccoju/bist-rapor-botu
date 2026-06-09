@@ -2,13 +2,21 @@
 
 GitHub Actions uzerinde calisan BIST bulut raporu.
 
-Bu repodaki bulut surumu telefon/bilgisayar acik olmadan rapor uretmek icindir. Workflow her hafta ici 18:15 Turkiye saati civari otomatik calisir; istersen GitHub uygulamasindan veya mobil tarayicidan elle de calistirabilirsin.
+Bu surum artik masaustundeki gunluk rapor motoruyla ayni mantigi calistirir: `GunlukRapor.ps1` ve `BistScanner.Core.psm1` runtime paketi workflow basinda acilir, rapor uretilir ve mail/artifact olarak verilir.
+
+## Bulutta Gelen Bolumler
+
+- Makro Gorunum: BIST trendi, banka relatif gucu, USD/TRY, Turkiye 5Y CDS, TR10Y, DXY, VIX ve izleme notlari.
+- Anlik Giris Firsati: temel filtre + haftalik MACD histogram ivmesi + 52 hafta konumu + BIST rejimi.
+- Top Radar: skor, gorus, teyit etiketi, eksik teyitler, temel/teknik/makro kolonlari.
+- Sektor Rotasyonu: gunluk, haftalik, 1 ay, 3 ay ve 1 yil sektor/BIST100 farklari.
+- Model Portfoyler: dengeli, deger, momentum ve kalite portfoyleri; state cache ile ay sonu yeniden dengeleme mantigi korunur.
 
 ## Dosyalar
 
 - `.github/workflows/bist-cloud-report.yml`: Bulut calisma plani.
-- `CloudRapor.ps1.b64`: Workflow calisirken `CloudRapor.ps1` dosyasina acilir ve raporu uretir.
-- `config/report_settings.cloud.json`: Bulut icin ornek ayar dosyasi.
+- `runtime/full-bist-report-runtime.zip.b64.part*`: Masaustundeki tam gunluk rapor runtime paketi.
+- `config/report_settings.cloud.json`: Bulut ayarlari.
 - `config/report_settings.example.json`: Lokal ayar ornegi.
 - `reports/`: Workflow calistiktan sonra artifact olarak HTML/CSV rapor uretir.
 
@@ -39,4 +47,4 @@ Opsiyonel:
 
 ## Not
 
-Bu ilk bulut surumu, masaustundeki tam botun hafifletilmis calisan rapor motorudur. TradingView BIST taramasi yapar, skor hesaplar, HTML/CSV rapor uretir ve mail atar. Masaustundeki tum ileri ekranlari ve iOS Scriptable surumu ayri dosyalar olarak gelistirilmeye devam edilebilir.
+Bu rapor sayisal taramadir, yatirim tavsiyesi degildir. Ucretsiz kaynaklar gecikmeli, eksik veya zaman zaman erisilemez olabilir; islem karari oncesi KAP, Borsa Istanbul, TCMB ve lisansli veri kaynaklariyla kontrol gerekir.
