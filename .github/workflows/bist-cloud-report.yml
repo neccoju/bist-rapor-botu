@@ -7,7 +7,7 @@ on:
       - main
     paths:
       - .github/workflows/bist-cloud-report.yml
-      - runtime/full-bist-report-runtime.zip.b64.part*
+      - runtime/full-bist-report-runtime.zip.b64.chunk*
   schedule:
     # 18:15 Europe/Istanbul. GitHub Actions cron uses UTC.
     - cron: "15 15 * * 1-5"
@@ -22,7 +22,7 @@ env:
 jobs:
   run-report:
     runs-on: windows-latest
-    timeout-minutes: 60
+    timeout-minutes: 75
 
     env:
       BIST_EMAIL_FROM: ${{ secrets.BIST_EMAIL_FROM }}
@@ -42,14 +42,25 @@ jobs:
       - name: Restore full desktop report runtime
         shell: powershell
         run: |
-          $parts = Get-ChildItem -LiteralPath .\runtime -Filter 'full-bist-report-runtime.zip.b64.part*' | Sort-Object Name
-          if ($parts.Count -lt 1) { throw 'Runtime package parts not found.' }
+          $expectedPartCount = 18
+          $expectedPayloadChars = 68032
+          $parts = Get-ChildItem -LiteralPath .\runtime -Filter 'full-bist-report-runtime.zip.b64.chunk*' | Sort-Object Name
+          if ($parts.Count -ne $expectedPartCount) {
+            throw "Runtime package chunk count is $($parts.Count), expected $expectedPartCount."
+          }
+
           $payload = ($parts | ForEach-Object { (Get-Content -Raw -LiteralPath $_.FullName).Trim() }) -join ''
+          if ($payload.Length -ne $expectedPayloadChars) {
+            throw "Runtime package payload length is $($payload.Length), expected $expectedPayloadChars."
+          }
+
           $zipPath = Join-Path $PWD 'full-bist-report-runtime.zip'
           [IO.File]::WriteAllBytes($zipPath, [Convert]::FromBase64String($payload))
           Expand-Archive -LiteralPath $zipPath -DestinationPath $PWD -Force
+
           if (-not (Test-Path .\GunlukRapor.ps1)) { throw 'GunlukRapor.ps1 package restore failed.' }
           if (-not (Test-Path .\BistScanner.Core.psm1)) { throw 'BistScanner.Core.psm1 package restore failed.' }
+          if (-not (Test-Path .\config\report_settings.cloud.json)) { throw 'Cloud report settings package restore failed.' }
 
       - name: Restore bot state
         uses: actions/cache/restore@v4
