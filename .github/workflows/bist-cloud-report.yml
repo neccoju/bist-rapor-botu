@@ -13,7 +13,7 @@ on:
     - cron: "15 15 * * 1-5"
 
 permissions:
-  contents: read
+  contents: write
   actions: write
 
 env:
@@ -39,11 +39,53 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Repair packaged runtime chunks
+        shell: powershell
+        run: |
+          $repairs = @(
+            @{
+              Path = '.\runtime\full-bist-report-runtime.zip.b64.chunk12'
+              Old = 'YGB2HVughL/Z1W8C+LwKw0PMf3i2S4x0rsBGMJv0PIdv6j4tSj9fdZJzcEpvg7M+pe7szqDvCXgKv'
+              New = 'YCB2bEtgRL+ple/MeCzCgwPMX51LYeUkrkCG/5s0nNtvqn7OC/9fNVJzsEpvQ3O+pQ6s1uDvivgKf'
+            },
+            @{
+              Path = '.\runtime\full-bist-report-runtime.zip.b64.chunk13'
+              Old = 'TJGpFYrPH6d+aKt'
+              New = 'TJCpJYyvHqN+aIt'
+            },
+            @{
+              Path = '.\runtime\full-bist-report-runtime.zip.b64.chunk16'
+              Old = 'C6QukSZDDFTG+tTCzeVTCq8O2nR/NYV8kRCTOtqM0OXjP+RUSCaiWZE9mbJUIVVvrDQgopMIswtj++kPfvO7RVQv9A8c'
+              New = 'C6RJkMMVMb61MLN5VMKrw7adH81hXyREJM62ozQ5eM/5FRIJqJZkT2ZslQhVW+sNCCikwizC2P76Q9+87tFVC/0Dxzoj'
+            }
+          )
+
+          foreach ($repair in $repairs) {
+            $text = Get-Content -Raw -LiteralPath $repair.Path
+            if ($text.Contains($repair.Old)) {
+              $text = $text.Replace($repair.Old, $repair.New)
+              Set-Content -LiteralPath $repair.Path -Value $text -NoNewline -Encoding ASCII
+            }
+            elseif (-not $text.Contains($repair.New)) {
+              throw "Runtime repair marker not found in $($repair.Path)."
+            }
+          }
+
+          git diff -- runtime
+          git diff --quiet -- runtime
+          if ($LASTEXITCODE -ne 0) {
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add runtime/full-bist-report-runtime.zip.b64.chunk12 runtime/full-bist-report-runtime.zip.b64.chunk13 runtime/full-bist-report-runtime.zip.b64.chunk16
+            git commit -m 'Repair runtime package chunks [skip ci]'
+            git push
+          }
+
       - name: Restore full desktop report runtime
         shell: powershell
         run: |
           $expectedPartCount = 18
-          $expectedPayloadChars = 68032
+          $expectedPayloadChars = 68040
           $parts = Get-ChildItem -LiteralPath .\runtime -Filter 'full-bist-report-runtime.zip.b64.chunk*' | Sort-Object Name
           if ($parts.Count -ne $expectedPartCount) {
             throw "Runtime package chunk count is $($parts.Count), expected $expectedPartCount."
