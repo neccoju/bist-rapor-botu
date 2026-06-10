@@ -63,6 +63,11 @@ jobs:
           if (-not (Test-Path .\BistScanner.Core.psm1)) { throw 'BistScanner.Core.psm1 package restore failed.' }
           if (-not (Test-Path .\config\report_settings.cloud.json)) { throw 'Cloud report settings package restore failed.' }
 
+      - name: Apply portfolio report detail overlay
+        shell: powershell
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\patches\Apply-PortfolioReportDetail.ps1
+
       - name: Restore bot state
         uses: actions/cache/restore@v5
         with:
