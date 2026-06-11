@@ -170,6 +170,47 @@ function Get-InstantEntryOpportunities {
         -Name 'anlik giris fonksiyon limiti'
 }
 
+if ($coreText -notmatch 'function Get-TcmbUsdTryRates[\s\S]{0,500}\$MaxElapsedSec') {
+    $tcmbRatesFunction = @'
+function Get-TcmbUsdTryRates {
+    param(
+        [datetime[]]$Dates,
+        [int]$TimeoutSec = 15,
+        [int]$MaxElapsedSec = 20
+    )
+
+    $rates = @{}
+    $startedAt = Get-Date
+    foreach ($date in @($Dates | Sort-Object -Unique)) {
+        if ($MaxElapsedSec -gt 0 -and ((Get-Date) - $startedAt).TotalSeconds -ge $MaxElapsedSec) {
+            break
+        }
+
+        $key = $date.Date.ToString('yyyy-MM-dd')
+        if (-not $rates.ContainsKey($key)) {
+            $rates[$key] = Get-TcmbUsdTryRate -Date $date -TimeoutSec $TimeoutSec
+        }
+    }
+
+    return $rates
+}
+
+function Get-ArrayValue
+'@
+
+    $coreText = Add-LiteralRegexReplacement `
+        -InputText $coreText `
+        -Pattern '(?s)function Get-TcmbUsdTryRates \{.*?\r?\n\}\r?\n\r?\nfunction Get-ArrayValue' `
+        -Replacement $tcmbRatesFunction `
+        -Name 'tcmb toplu kur sure limitli fonksiyon'
+
+    $coreText = Add-LiteralRegexReplacement `
+        -InputText $coreText `
+        -Pattern '(?m)^    \$usdTryRates = Get-TcmbUsdTryRates -Dates @\(\$quarterEndDates\)$' `
+        -Replacement '    $usdTryRates = Get-TcmbUsdTryRates -Dates @($quarterEndDates) -TimeoutSec ([Math]::Min(3, $TimeoutSec)) -MaxElapsedSec 20' `
+        -Name 'tcmb toplu kur hizli kullanim'
+}
+
 if ($text -match 'Send-MailMessage @mailParams') {
     $emailSendBlock = @'
     $port = [int](Get-EnvironmentValue -Names @('BIST_SMTP_PORT', 'SMTP_PORT') -Default ([string](Get-ConfigValue -Object $Settings.Email -Name 'Port' -Default 587)))

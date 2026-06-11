@@ -265,11 +265,17 @@ function Get-TcmbUsdTryRate {
 function Get-TcmbUsdTryRates {
     param(
         [datetime[]]$Dates,
-        [int]$TimeoutSec = 15
+        [int]$TimeoutSec = 15,
+        [int]$MaxElapsedSec = 20
     )
 
     $rates = @{}
+    $startedAt = Get-Date
     foreach ($date in @($Dates | Sort-Object -Unique)) {
+        if ($MaxElapsedSec -gt 0 -and ((Get-Date) - $startedAt).TotalSeconds -ge $MaxElapsedSec) {
+            break
+        }
+
         $key = $date.Date.ToString('yyyy-MM-dd')
         if (-not $rates.ContainsKey($key)) {
             $rates[$key] = Get-TcmbUsdTryRate -Date $date -TimeoutSec $TimeoutSec
@@ -2301,7 +2307,7 @@ function Invoke-BistStockScan {
         }
     }
 
-    $usdTryRates = Get-TcmbUsdTryRates -Dates @($quarterEndDates)
+    $usdTryRates = Get-TcmbUsdTryRates -Dates @($quarterEndDates) -TimeoutSec ([Math]::Min(3, $TimeoutSec)) -MaxElapsedSec 20
     $enrichedStocks = foreach ($stock in $stocks) {
         Add-QuarterlyFinancials -Stock $stock -UsdTryRates $usdTryRates
     }
