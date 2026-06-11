@@ -1,8 +1,12 @@
-{
+﻿{
   "Report": {
     "Strategy": "Dengeli",
     "TopCount": 20,
     "DetailedCount": 10,
+    "MacroTimeoutSec": 6,
+    "InstantEntryCandidateLimit": 40,
+    "InstantEntryTimeoutSec": 5,
+    "InstantEntryMaxElapsedSec": 75,
     "OutputDirectory": "reports"
   },
   "Send": {
