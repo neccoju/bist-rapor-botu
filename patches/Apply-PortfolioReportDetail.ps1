@@ -143,7 +143,7 @@ function Get-InstantEntryOpportunities {
     $coreText = Add-LiteralRegexReplacement `
         -InputText $coreText `
         -Pattern '(?m)^            -LowerIsBetter \$instrument\.LowerIsBetter$' `
-        -Replacement ("            -LowerIsBetter `$instrument.LowerIsBetter " + '``' + [Environment]::NewLine + "            -TimeoutSec `$TimeoutSec") `
+        -Replacement ("            -LowerIsBetter `$instrument.LowerIsBetter " + '`' + [Environment]::NewLine + "            -TimeoutSec `$TimeoutSec") `
         -Name 'macro investing timeout kullanimi'
 
     $coreText = Add-LiteralRegexReplacement `
