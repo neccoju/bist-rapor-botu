@@ -617,10 +617,18 @@ if ($text -notmatch '\$portfolioHoldingRows = Get-ModelPortfolioHoldingRows') {
 }
 
 if ($text -notmatch '\$instantEntryPortfolioSummaryRows = Get-InstantEntryPortfolioSummaryRows') {
+    $instantPortfolioRowsBlock = @'
+    $instantEntryPortfolioSummaryRows = Get-InstantEntryPortfolioSummaryRows -Portfolio $updatedInstantEntryPortfolio
+    $instantEntryPortfolioHoldingRows = Get-InstantEntryPortfolioHoldingRows -Portfolio $updatedInstantEntryPortfolio
+    $instantEntryPortfolioTransactionRows = Get-InstantEntryPortfolioTransactionRows -Portfolio $updatedInstantEntryPortfolio -Count 30
+
+    $topRows | Export-Csv
+'@
+
     $text = Add-LiteralRegexReplacement `
         -InputText $text `
-        -Pattern '(?m)^    \$portfolioDistributionPieHtml = New-ModelPortfolioDistributionPieChartsHtml -PortfolioSet \$updatedPortfolioSet$' `
-        -Replacement "    `$portfolioDistributionPieHtml = New-ModelPortfolioDistributionPieChartsHtml -PortfolioSet `$updatedPortfolioSet`r`n    `$instantEntryPortfolioSummaryRows = Get-InstantEntryPortfolioSummaryRows -Portfolio `$updatedInstantEntryPortfolio`r`n    `$instantEntryPortfolioHoldingRows = Get-InstantEntryPortfolioHoldingRows -Portfolio `$updatedInstantEntryPortfolio`r`n    `$instantEntryPortfolioTransactionRows = Get-InstantEntryPortfolioTransactionRows -Portfolio `$updatedInstantEntryPortfolio -Count 30" `
+        -Pattern '(?m)^    \$topRows \| Export-Csv' `
+        -Replacement $instantPortfolioRowsBlock `
         -Name 'anlik firsat portfoyu rapor satirlari'
 }
 
