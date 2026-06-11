@@ -651,6 +651,487 @@ function Get-ModelPortfolioTransactionRows {
         })
 }
 
+function Test-InstantEntryPortfolioBuyCandidate {
+    param(
+        $Opportunity,
+        [double]$MinScore = 90
+    )
+
+    if ($null -eq $Opportunity) { return $false }
+
+    $score = Get-NumberValue -Object $Opportunity -Name 'EntryOpportunityScore'
+    $price = Get-NumberValue -Object $Opportunity -Name 'Price'
+    if ($null -eq $score -or $score -lt $MinScore) { return $false }
+    if ($null -eq $price -or $price -le 0) { return $false }
+
+    $rangeBucket = [string](Get-ObjectPropertyValue -Object $Opportunity -Name 'Range52Bucket')
+    if ($rangeBucket -eq '52H Range 0-10') { return $false }
+
+    $rsi = Get-NumberValue -Object $Opportunity -Name 'RSI'
+    if ($null -ne $rsi -and ($rsi -lt 40 -or $rsi -gt 67)) { return $false }
+
+    $relativeVolume = Get-NumberValue -Object $Opportunity -Name 'RelativeVolume'
+    if ($null -ne $relativeVolume -and $relativeVolume -lt 0.75) { return $false }
+
+    $label = [string](Get-ObjectPropertyValue -Object $Opportunity -Name 'WeeklyHistogramLabel')
+    $zeroCross = [bool](Get-ObjectPropertyValue -Object $Opportunity -Name 'WeeklyHistogramZeroCross')
+    $recentZeroCross = [bool](Get-ObjectPropertyValue -Object $Opportunity -Name 'WeeklyHistogramRecentZeroCross')
+    $strongLabels = @(
+        'Sıfır üstüne yeni dönüş',
+        'Sifir ustune yeni donus',
+        'Pozitif ivme'
+    )
+
+    return [bool]($zeroCross -or $recentZeroCross -or $label -in $strongLabels)
+}
+
+function New-InstantEntryPortfolioTransaction {
+    param(
+        [int]$Sequence,
+        [datetime]$ExecutionDate,
+        [string]$Action,
+        [string]$Symbol,
+        [string]$Company,
+        $Price,
+        $Quantity,
+        $AmountTL,
+        $SignalScore,
+        [string]$SignalLabel,
+        [string]$Note
+    )
+
+    return [pscustomobject][ordered]@{
+        Sequence = $Sequence
+        ExecutionDate = $ExecutionDate.ToString('o')
+        ExecutionDateText = $ExecutionDate.ToString('dd.MM.yyyy HH:mm')
+        Action = $Action
+        Symbol = $Symbol
+        Company = $Company
+        Price = if ($null -ne $Price) { [Math]::Round([double]$Price, 4) } else { $null }
+        Quantity = if ($null -ne $Quantity) { [Math]::Round([double]$Quantity, 6) } else { $null }
+        AmountTL = if ($null -ne $AmountTL) { [Math]::Round([double]$AmountTL, 2) } else { $null }
+        SignalScore = if ($null -ne $SignalScore) { [Math]::Round([double]$SignalScore, 1) } else { $null }
+        SignalLabel = $SignalLabel
+        Note = $Note
+    }
+}
+
+function Get-StockLookup {
+    param([object[]]$Stocks)
+
+    $stockMap = @{}
+    foreach ($stock in @($Stocks)) {
+        $symbol = [string](Get-ObjectPropertyValue -Object $stock -Name 'Symbol')
+        if (-not [string]::IsNullOrWhiteSpace($symbol)) {
+            $stockMap[$symbol] = $stock
+        }
+    }
+
+    return $stockMap
+}
+
+function Update-InstantEntryPortfolioValuation {
+    param(
+        $Portfolio,
+        [object[]]$Stocks,
+        [datetime]$AsOf
+    )
+
+    $stockMap = Get-StockLookup -Stocks $Stocks
+    $holdings = [System.Collections.Generic.List[object]]::new()
+    $totalInvested = 0.0
+    $totalValue = 0.0
+
+    foreach ($holding in @(Get-ObjectPropertyValue -Object $Portfolio -Name 'Holdings')) {
+        $symbol = [string](Get-ObjectPropertyValue -Object $holding -Name 'Symbol')
+        if ([string]::IsNullOrWhiteSpace($symbol)) { continue }
+
+        $stock = if ($stockMap.ContainsKey($symbol)) { $stockMap[$symbol] } else { $null }
+        $freshPrice = Get-NumberValue -Object $stock -Name 'Price'
+        $priceIsFresh = $null -ne $freshPrice -and $freshPrice -gt 0
+        $currentPrice = if ($priceIsFresh) {
+            [double]$freshPrice
+        }
+        else {
+            $storedPrice = Get-NumberValue -Object $holding -Name 'CurrentPrice'
+            if ($null -ne $storedPrice -and $storedPrice -gt 0) { [double]$storedPrice } else { 0.0 }
+        }
+
+        $quantity = Get-NumberValue -Object $holding -Name 'Quantity'
+        $costBasis = Get-NumberValue -Object $holding -Name 'CostBasisTL'
+        if ($null -eq $quantity) { $quantity = 0.0 }
+        if ($null -eq $costBasis) { $costBasis = 0.0 }
+
+        $currentValue = [double]$quantity * [double]$currentPrice
+        $gain = $currentValue - [double]$costBasis
+        $gainPct = if ([double]$costBasis -gt 0) { ($gain / [double]$costBasis) * 100.0 } else { 0.0 }
+        $averageBuyPrice = if ([double]$quantity -gt 0) { [double]$costBasis / [double]$quantity } else { $null }
+        $totalInvested += [double]$costBasis
+        $totalValue += $currentValue
+
+        [void]$holdings.Add([pscustomobject][ordered]@{
+                Symbol = $symbol
+                Company = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $holding -Name 'Company')
+                SectorTR = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $holding -Name 'SectorTR')
+                Quantity = [Math]::Round([double]$quantity, 6)
+                CostBasisTL = [Math]::Round([double]$costBasis, 2)
+                AverageBuyPrice = if ($null -ne $averageBuyPrice) { [Math]::Round([double]$averageBuyPrice, 4) } else { $null }
+                CurrentPrice = [Math]::Round([double]$currentPrice, 4)
+                CurrentValueTL = [Math]::Round($currentValue, 2)
+                WeightPct = 0.0
+                UnrealizedGainTL = [Math]::Round($gain, 2)
+                UnrealizedGainPct = [Math]::Round($gainPct, 2)
+                FirstBuyAt = Get-ObjectPropertyValue -Object $holding -Name 'FirstBuyAt'
+                FirstBuyAtText = Get-ObjectPropertyValue -Object $holding -Name 'FirstBuyAtText'
+                LastBuyAt = Get-ObjectPropertyValue -Object $holding -Name 'LastBuyAt'
+                LastBuyAtText = Get-ObjectPropertyValue -Object $holding -Name 'LastBuyAtText'
+                BuyCount = Get-ObjectPropertyValue -Object $holding -Name 'BuyCount'
+                LastSignalScore = Get-ObjectPropertyValue -Object $holding -Name 'LastSignalScore'
+                LastSignalLabel = Get-ObjectPropertyValue -Object $holding -Name 'LastSignalLabel'
+                LastReason = Get-ObjectPropertyValue -Object $holding -Name 'LastReason'
+                PriceIsFresh = $priceIsFresh
+            })
+    }
+
+    foreach ($holding in $holdings) {
+        $holding.WeightPct = if ($totalValue -gt 0) {
+            [Math]::Round(([double]$holding.CurrentValueTL / $totalValue) * 100.0, 2)
+        }
+        else {
+            0.0
+        }
+    }
+
+    $createdAt = Get-ObjectPropertyValue -Object $Portfolio -Name 'CreatedAt'
+    if ($null -eq $createdAt -or [string]::IsNullOrWhiteSpace([string]$createdAt)) {
+        $createdAt = $AsOf.ToString('o')
+    }
+    $dailyBudget = Get-NumberValue -Object $Portfolio -Name 'DailyBudgetTL'
+    $minScore = Get-NumberValue -Object $Portfolio -Name 'MinBuyScore'
+    $maxBuys = Get-ObjectPropertyValue -Object $Portfolio -Name 'MaxBuysPerDay'
+    $lastBuyDate = Get-ObjectPropertyValue -Object $Portfolio -Name 'LastBuyDate'
+    $lastBuyDateText = Get-ObjectPropertyValue -Object $Portfolio -Name 'LastBuyDateText'
+    $transactions = @(Get-ObjectPropertyValue -Object $Portfolio -Name 'Transactions')
+    $gain = $totalValue - $totalInvested
+    $returnPct = if ($totalInvested -gt 0) { ($gain / $totalInvested) * 100.0 } else { 0.0 }
+
+    return [pscustomobject][ordered]@{
+        Version = 1
+        CreatedAt = $createdAt
+        UpdatedAt = $AsOf.ToString('o')
+        LastValuationAt = $AsOf.ToString('o')
+        LastValuationAtText = $AsOf.ToString('dd.MM.yyyy HH:mm')
+        DailyBudgetTL = if ($null -ne $dailyBudget) { [Math]::Round([double]$dailyBudget, 2) } else { 5000.0 }
+        MinBuyScore = if ($null -ne $minScore) { [Math]::Round([double]$minScore, 1) } else { 90.0 }
+        MaxBuysPerDay = if ($null -ne $maxBuys -and -not [string]::IsNullOrWhiteSpace([string]$maxBuys)) { [int]$maxBuys } else { 3 }
+        TotalInvestedTL = [Math]::Round($totalInvested, 2)
+        CurrentValueTL = [Math]::Round($totalValue, 2)
+        TotalGainTL = [Math]::Round($gain, 2)
+        TotalReturnPct = [Math]::Round($returnPct, 2)
+        LastBuyDate = $lastBuyDate
+        LastBuyDateText = $lastBuyDateText
+        StatusNote = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $Portfolio -Name 'StatusNote')
+        Notes = 'Anlık giriş fırsatı portföyü teorik modeldir. Her gün 18:15 kapanış taramasında yalnızca çok güçlü sinyal varsa günlük bütçe ile alım kaydı oluşturur; gerçek emir göndermez.'
+        Holdings = @($holdings | Sort-Object CurrentValueTL -Descending)
+        Transactions = $transactions
+    }
+}
+
+function Update-InstantEntrySignalPortfolio {
+    param(
+        $Portfolio,
+        [object[]]$Opportunities,
+        [object[]]$Stocks,
+        [datetime]$AsOf,
+        [double]$DailyBudgetTL = 5000,
+        [double]$MinBuyScore = 90,
+        [int]$MaxBuysPerDay = 3
+    )
+
+    if ($null -eq $Portfolio -or $null -eq (Get-ObjectPropertyValue -Object $Portfolio -Name 'Holdings')) {
+        $Portfolio = [pscustomobject][ordered]@{
+            Version = 1
+            CreatedAt = $AsOf.ToString('o')
+            UpdatedAt = $AsOf.ToString('o')
+            DailyBudgetTL = [Math]::Round($DailyBudgetTL, 2)
+            MinBuyScore = [Math]::Round($MinBuyScore, 1)
+            MaxBuysPerDay = $MaxBuysPerDay
+            TotalInvestedTL = 0.0
+            CurrentValueTL = 0.0
+            TotalGainTL = 0.0
+            TotalReturnPct = 0.0
+            LastBuyDate = $null
+            LastBuyDateText = $null
+            StatusNote = 'Portföy yeni oluşturuldu.'
+            Holdings = @()
+            Transactions = @()
+        }
+    }
+
+    $Portfolio.DailyBudgetTL = [Math]::Round($DailyBudgetTL, 2)
+    $Portfolio.MinBuyScore = [Math]::Round($MinBuyScore, 1)
+    $Portfolio.MaxBuysPerDay = $MaxBuysPerDay
+    $valuedPortfolio = Update-InstantEntryPortfolioValuation -Portfolio $Portfolio -Stocks $Stocks -AsOf $AsOf
+
+    $transactions = [System.Collections.Generic.List[object]]::new()
+    foreach ($transaction in @(Get-ObjectPropertyValue -Object $valuedPortfolio -Name 'Transactions')) {
+        [void]$transactions.Add($transaction)
+    }
+
+    $holdingsBySymbol = @{}
+    foreach ($holding in @(Get-ObjectPropertyValue -Object $valuedPortfolio -Name 'Holdings')) {
+        $symbol = [string](Get-ObjectPropertyValue -Object $holding -Name 'Symbol')
+        if (-not [string]::IsNullOrWhiteSpace($symbol)) {
+            $holdingsBySymbol[$symbol] = $holding
+        }
+    }
+
+    $todayKey = $AsOf.ToString('yyyy-MM-dd')
+    $alreadyBoughtToday = @(
+        $transactions | Where-Object {
+            $action = [string](Get-ObjectPropertyValue -Object $_ -Name 'Action')
+            if ($action -ne 'AL') {
+                $false
+            }
+            else {
+                $dateValue = Get-ObjectPropertyValue -Object $_ -Name 'ExecutionDate'
+                try { ([datetime]$dateValue).ToString('yyyy-MM-dd') -eq $todayKey } catch { $false }
+            }
+        }
+    ).Count -gt 0
+
+    $statusNote = ''
+    if ($alreadyBoughtToday) {
+        $statusNote = 'Bugün bu portföy için daha önce alım kaydı oluştu; tekrar 5.000 TL kullanılmadı.'
+    }
+    else {
+        $maxBuys = [Math]::Max(1, [Math]::Min(3, $MaxBuysPerDay))
+        $buyCandidates = @(
+            @($Opportunities) |
+                Where-Object { Test-InstantEntryPortfolioBuyCandidate -Opportunity $_ -MinScore $MinBuyScore } |
+                Sort-Object @{ Expression = { Get-NumberValue -Object $_ -Name 'EntryOpportunityScore' }; Descending = $true } |
+                Select-Object -First $maxBuys
+        )
+
+        if ($buyCandidates.Count -eq 0) {
+            $statusNote = ('Bugün çok güçlü anlık giriş sinyali yok; {0:N0} TL günlük alım hakkı kullanılmadı.' -f $DailyBudgetTL)
+        }
+        else {
+            $sequence = $transactions.Count + 1
+            $remainingBudget = [Math]::Round($DailyBudgetTL, 2)
+            $boughtSymbols = [System.Collections.Generic.List[string]]::new()
+
+            for ($index = 0; $index -lt $buyCandidates.Count; $index++) {
+                $candidate = $buyCandidates[$index]
+                $symbol = [string](Get-ObjectPropertyValue -Object $candidate -Name 'Symbol')
+                $company = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $candidate -Name 'Company')
+                $sector = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $candidate -Name 'SectorTR')
+                $price = Get-NumberValue -Object $candidate -Name 'Price'
+                if ([string]::IsNullOrWhiteSpace($symbol) -or $null -eq $price -or $price -le 0) {
+                    continue
+                }
+
+                $amount = if ($index -eq ($buyCandidates.Count - 1)) {
+                    $remainingBudget
+                }
+                else {
+                    [Math]::Round($DailyBudgetTL / $buyCandidates.Count, 2)
+                }
+                $remainingBudget = [Math]::Round($remainingBudget - $amount, 2)
+                if ($amount -le 0) { continue }
+
+                $quantity = [double]$amount / [double]$price
+                $existing = if ($holdingsBySymbol.ContainsKey($symbol)) { $holdingsBySymbol[$symbol] } else { $null }
+                $oldQuantity = Get-NumberValue -Object $existing -Name 'Quantity'
+                $oldCost = Get-NumberValue -Object $existing -Name 'CostBasisTL'
+                $oldBuyCount = Get-ObjectPropertyValue -Object $existing -Name 'BuyCount'
+                if ($null -eq $oldQuantity) { $oldQuantity = 0.0 }
+                if ($null -eq $oldCost) { $oldCost = 0.0 }
+                if ($null -eq $oldBuyCount -or [string]::IsNullOrWhiteSpace([string]$oldBuyCount)) { $oldBuyCount = 0 }
+
+                $newQuantity = [double]$oldQuantity + $quantity
+                $newCost = [double]$oldCost + [double]$amount
+                $currentValue = $newQuantity * [double]$price
+                $gain = $currentValue - $newCost
+                $gainPct = if ($newCost -gt 0) { ($gain / $newCost) * 100.0 } else { 0.0 }
+                $averageBuyPrice = if ($newQuantity -gt 0) { $newCost / $newQuantity } else { $null }
+                $firstBuyAt = Get-ObjectPropertyValue -Object $existing -Name 'FirstBuyAt'
+                $firstBuyAtText = Get-ObjectPropertyValue -Object $existing -Name 'FirstBuyAtText'
+                if ($null -eq $firstBuyAt -or [string]::IsNullOrWhiteSpace([string]$firstBuyAt)) {
+                    $firstBuyAt = $AsOf.ToString('o')
+                    $firstBuyAtText = $AsOf.ToString('dd.MM.yyyy HH:mm')
+                }
+
+                $score = Get-NumberValue -Object $candidate -Name 'EntryOpportunityScore'
+                $label = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $candidate -Name 'WeeklyHistogramLabel')
+                $reason = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $candidate -Name 'Reason')
+                $holdingsBySymbol[$symbol] = [pscustomobject][ordered]@{
+                    Symbol = $symbol
+                    Company = $company
+                    SectorTR = $sector
+                    Quantity = [Math]::Round($newQuantity, 6)
+                    CostBasisTL = [Math]::Round($newCost, 2)
+                    AverageBuyPrice = if ($null -ne $averageBuyPrice) { [Math]::Round($averageBuyPrice, 4) } else { $null }
+                    CurrentPrice = [Math]::Round([double]$price, 4)
+                    CurrentValueTL = [Math]::Round($currentValue, 2)
+                    WeightPct = 0.0
+                    UnrealizedGainTL = [Math]::Round($gain, 2)
+                    UnrealizedGainPct = [Math]::Round($gainPct, 2)
+                    FirstBuyAt = $firstBuyAt
+                    FirstBuyAtText = $firstBuyAtText
+                    LastBuyAt = $AsOf.ToString('o')
+                    LastBuyAtText = $AsOf.ToString('dd.MM.yyyy HH:mm')
+                    BuyCount = ([int]$oldBuyCount + 1)
+                    LastSignalScore = if ($null -ne $score) { [Math]::Round([double]$score, 1) } else { $null }
+                    LastSignalLabel = $label
+                    LastReason = $reason
+                    PriceIsFresh = $true
+                }
+
+                [void]$transactions.Add((New-InstantEntryPortfolioTransaction `
+                            -Sequence $sequence `
+                            -ExecutionDate $AsOf `
+                            -Action 'AL' `
+                            -Symbol $symbol `
+                            -Company $company `
+                            -Price $price `
+                            -Quantity $quantity `
+                            -AmountTL $amount `
+                            -SignalScore $score `
+                            -SignalLabel $label `
+                            -Note ('Günlük anlık fırsat bütçesiyle alındı. {0}' -f $reason)))
+                $sequence++
+                [void]$boughtSymbols.Add(('{0} {1:N0} TL' -f $symbol, $amount))
+            }
+
+            if ($boughtSymbols.Count -gt 0) {
+                $statusNote = 'Bugünkü alım: ' + ($boughtSymbols -join ', ') + '.'
+                $valuedPortfolio.LastBuyDate = $todayKey
+                $valuedPortfolio.LastBuyDateText = $AsOf.ToString('dd.MM.yyyy HH:mm')
+            }
+            else {
+                $statusNote = ('Aday bulundu ama fiyat/sembol eksikliği nedeniyle {0:N0} TL günlük alım hakkı kullanılmadı.' -f $DailyBudgetTL)
+            }
+        }
+    }
+
+    $finalHoldings = [System.Collections.Generic.List[object]]::new()
+    $totalInvested = 0.0
+    $totalValue = 0.0
+    foreach ($holding in @($holdingsBySymbol.Values | Sort-Object CurrentValueTL -Descending)) {
+        $totalInvested += [double](Get-NumberValue -Object $holding -Name 'CostBasisTL')
+        $totalValue += [double](Get-NumberValue -Object $holding -Name 'CurrentValueTL')
+        [void]$finalHoldings.Add($holding)
+    }
+
+    foreach ($holding in $finalHoldings) {
+        $holding.WeightPct = if ($totalValue -gt 0) {
+            [Math]::Round(([double]$holding.CurrentValueTL / $totalValue) * 100.0, 2)
+        }
+        else {
+            0.0
+        }
+    }
+
+    $totalGain = $totalValue - $totalInvested
+    $totalReturnPct = if ($totalInvested -gt 0) { ($totalGain / $totalInvested) * 100.0 } else { 0.0 }
+    $lastBuyDate = Get-ObjectPropertyValue -Object $valuedPortfolio -Name 'LastBuyDate'
+    $lastBuyDateText = Get-ObjectPropertyValue -Object $valuedPortfolio -Name 'LastBuyDateText'
+
+    return [pscustomobject][ordered]@{
+        Version = 1
+        CreatedAt = Get-ObjectPropertyValue -Object $valuedPortfolio -Name 'CreatedAt'
+        UpdatedAt = $AsOf.ToString('o')
+        LastValuationAt = $AsOf.ToString('o')
+        LastValuationAtText = $AsOf.ToString('dd.MM.yyyy HH:mm')
+        DailyBudgetTL = [Math]::Round($DailyBudgetTL, 2)
+        MinBuyScore = [Math]::Round($MinBuyScore, 1)
+        MaxBuysPerDay = $MaxBuysPerDay
+        TotalInvestedTL = [Math]::Round($totalInvested, 2)
+        CurrentValueTL = [Math]::Round($totalValue, 2)
+        TotalGainTL = [Math]::Round($totalGain, 2)
+        TotalReturnPct = [Math]::Round($totalReturnPct, 2)
+        LastBuyDate = $lastBuyDate
+        LastBuyDateText = $lastBuyDateText
+        StatusNote = $statusNote
+        Notes = 'Anlık giriş fırsatı portföyü teorik modeldir. Her gün 18:15 kapanış taramasında yalnızca çok güçlü sinyal varsa günlük bütçe ile alım kaydı oluşturur; gerçek emir göndermez.'
+        Holdings = $finalHoldings.ToArray()
+        Transactions = $transactions.ToArray()
+    }
+}
+
+function Get-InstantEntryPortfolioSummaryRows {
+    param($Portfolio)
+
+    return @(
+        [pscustomobject][ordered]@{
+            'Günlük Alım Hakkı' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $Portfolio -Name 'DailyBudgetTL') -Format 'N2' -Suffix ' TL'
+            'Minimum Sinyal Skoru' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $Portfolio -Name 'MinBuyScore') -Format 'N1'
+            'Toplam Yatırım' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $Portfolio -Name 'TotalInvestedTL') -Format 'N2' -Suffix ' TL'
+            'Güncel Değer' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $Portfolio -Name 'CurrentValueTL') -Format 'N2' -Suffix ' TL'
+            'Açık Kar/Zarar' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $Portfolio -Name 'TotalGainTL') -Format 'N2' -Suffix ' TL'
+            'Getiri' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $Portfolio -Name 'TotalReturnPct') -Format 'N2' -Suffix '%'
+            'Son Alım' = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $Portfolio -Name 'LastBuyDateText')
+            Durum = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $Portfolio -Name 'StatusNote')
+        }
+    )
+}
+
+function Get-InstantEntryPortfolioHoldingRows {
+    param($Portfolio)
+
+    return @(
+        @(Get-ObjectPropertyValue -Object $Portfolio -Name 'Holdings') | ForEach-Object {
+            [pscustomobject][ordered]@{
+                Sembol = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Symbol')
+                Şirket = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Company')
+                Sektör = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'SectorTR')
+                Adet = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'Quantity') -Format 'N4'
+                'Ort. Maliyet' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'AverageBuyPrice') -Format 'N2' -Suffix ' TL'
+                'Güncel Fiyat' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'CurrentPrice') -Format 'N2' -Suffix ' TL'
+                Maliyet = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'CostBasisTL') -Format 'N2' -Suffix ' TL'
+                'Güncel Değer' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'CurrentValueTL') -Format 'N2' -Suffix ' TL'
+                Ağırlık = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'WeightPct') -Format 'N2' -Suffix '%'
+                'Anlık Getiri' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'UnrealizedGainPct') -Format 'N2' -Suffix '%'
+                'Alım Sayısı' = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'BuyCount')
+                'İlk Alım' = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'FirstBuyAtText')
+                'Son Alım' = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'LastBuyAtText')
+                'Son Sinyal' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'LastSignalScore') -Format 'N1'
+                Etiket = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'LastSignalLabel')
+                Gerekçe = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'LastReason')
+            }
+        }
+    )
+}
+
+function Get-InstantEntryPortfolioTransactionRows {
+    param(
+        $Portfolio,
+        [int]$Count = 30
+    )
+
+    return @(
+        @(Get-ObjectPropertyValue -Object $Portfolio -Name 'Transactions') |
+            Sort-Object @{ Expression = { [int](Get-ObjectPropertyValue -Object $_ -Name 'Sequence') }; Descending = $true } |
+            Select-Object -First $Count |
+            ForEach-Object {
+                [pscustomobject][ordered]@{
+                    Sıra = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Sequence')
+                    Tarih = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'ExecutionDateText')
+                    İşlem = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Action')
+                    Sembol = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Symbol')
+                    Şirket = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Company')
+                    Fiyat = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'Price') -Format 'N2' -Suffix ' TL'
+                    Adet = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'Quantity') -Format 'N4'
+                    Tutar = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'AmountTL') -Format 'N2' -Suffix ' TL'
+                    'Sinyal Skoru' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'SignalScore') -Format 'N1'
+                    Etiket = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'SignalLabel')
+                    Not = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Note')
+                }
+            }
+    )
+}
+
 function Save-JsonFile {
     param(
         [string]$Path,
@@ -794,6 +1275,9 @@ $macroTimeoutSec = [int](Get-ConfigValue -Object $settings.Report -Name 'MacroTi
 $instantEntryCandidateLimit = [int](Get-ConfigValue -Object $settings.Report -Name 'InstantEntryCandidateLimit' -Default 40)
 $instantEntryTimeoutSec = [int](Get-ConfigValue -Object $settings.Report -Name 'InstantEntryTimeoutSec' -Default 5)
 $instantEntryMaxElapsedSec = [int](Get-ConfigValue -Object $settings.Report -Name 'InstantEntryMaxElapsedSec' -Default 75)
+$instantEntryPortfolioDailyBudgetTL = [double](Get-ConfigValue -Object $settings.Report -Name 'InstantEntryPortfolioDailyBudgetTL' -Default 5000)
+$instantEntryPortfolioMinBuyScore = [double](Get-ConfigValue -Object $settings.Report -Name 'InstantEntryPortfolioMinBuyScore' -Default 90)
+$instantEntryPortfolioMaxBuysPerDay = [int](Get-ConfigValue -Object $settings.Report -Name 'InstantEntryPortfolioMaxBuysPerDay' -Default 3)
 $outputDirectory = Resolve-ReportPath -Path ([string](Get-ConfigValue -Object $settings.Report -Name 'OutputDirectory' -Default 'reports'))
 if (-not (Test-Path $outputDirectory)) {
     [void](New-Item -ItemType Directory -Path $outputDirectory -Force)
@@ -847,6 +1331,23 @@ try {
             -TimeoutSec $instantEntryTimeoutSec `
             -MaxElapsedSec $instantEntryMaxElapsedSec)
     Write-TimingLog -Step 'Anlik giris firsati' -StartedAt $stageStartedAt
+
+    $stageStartedAt = Get-Date
+    $instantEntryPortfolioPath = Join-Path $PSScriptRoot 'data\instant_entry_portfolio.json'
+    $instantEntryPortfolio = $null
+    if (Test-Path $instantEntryPortfolioPath) {
+        $instantEntryPortfolio = Get-Content -Path $instantEntryPortfolioPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    }
+    $updatedInstantEntryPortfolio = Update-InstantEntrySignalPortfolio `
+        -Portfolio $instantEntryPortfolio `
+        -Opportunities $entryOpportunities `
+        -Stocks $stocks `
+        -AsOf $runAt `
+        -DailyBudgetTL $instantEntryPortfolioDailyBudgetTL `
+        -MinBuyScore $instantEntryPortfolioMinBuyScore `
+        -MaxBuysPerDay $instantEntryPortfolioMaxBuysPerDay
+    Save-JsonFile -Path $instantEntryPortfolioPath -Value $updatedInstantEntryPortfolio -Depth 10
+    Write-TimingLog -Step 'Anlik firsat portfoyu' -StartedAt $stageStartedAt
 
     $topRows = @($scored | Select-Object -First $topCount | ForEach-Object {
             [pscustomobject][ordered]@{
@@ -1003,6 +1504,9 @@ try {
     $portfolioTransactionRows = Get-ModelPortfolioTransactionRows -PortfolioSet $updatedPortfolioSet -PerPortfolio 12
     $portfolioHoldingGroupsHtml = New-ModelPortfolioHoldingGroupsHtml -PortfolioSet $updatedPortfolioSet -HoldingRows $portfolioHoldingRows
     $portfolioDistributionPieHtml = New-ModelPortfolioDistributionPieChartsHtml -PortfolioSet $updatedPortfolioSet
+    $instantEntryPortfolioSummaryRows = Get-InstantEntryPortfolioSummaryRows -Portfolio $updatedInstantEntryPortfolio
+    $instantEntryPortfolioHoldingRows = Get-InstantEntryPortfolioHoldingRows -Portfolio $updatedInstantEntryPortfolio
+    $instantEntryPortfolioTransactionRows = Get-InstantEntryPortfolioTransactionRows -Portfolio $updatedInstantEntryPortfolio -Count 30
 
     $topRows | Export-Csv -Path $csvPath -NoTypeInformation -Delimiter ';' -Encoding UTF8
 
@@ -1015,6 +1519,7 @@ try {
         "Lider: $($leader.Symbol) | Skor $($leader.Score) | $($leader.Signal)",
         "Makro: $($macroSnapshot.Status)",
         "Anlik giris radari: " + $(if ($entryOpportunities.Count -gt 0) { (($entryOpportunities | ForEach-Object { "$($_.Symbol)($($_.EntryOpportunityScore))" }) -join ', ') } else { 'bugun uygun aday yok' }),
+        "Anlik firsat portfoyu: $($updatedInstantEntryPortfolio.StatusNote) Deger $($updatedInstantEntryPortfolio.CurrentValueTL) TL, getiri $($updatedInstantEntryPortfolio.TotalReturnPct)%",
         "Model portfoyler: " + ((@($updatedPortfolioSet.Portfolios) | ForEach-Object { "$($_.Strategy): " + ((@($_.Holdings) | ForEach-Object Symbol) -join ',') }) -join ' | '),
         "HTML rapor: $htmlPath"
     ) -join [Environment]::NewLine
@@ -1079,6 +1584,13 @@ $(New-HtmlTable -Rows $macroRows)
 <h2>Anlık Giriş Fırsatı</h2>
 <p class="muted">Bu bölüm, temeli geçen hisselerde skor 85+ ve backtestte fake oranını düşüren teknik koşulu arar: MACD yeni sıfır kesişimi veya pozitif ivme + 52H %20-50 bandı. Liste sayısı sabit değildir; bugün koşul yoksa boş gelebilir.</p>
 $(New-HtmlTable -Rows $entryOpportunityRows)
+<h2>Anlık Fırsat Portföyü</h2>
+<p class="muted">Bu portföy, her gün 18:15 kapanış çalışmasında yalnızca çok güçlü anlık giriş sinyali varsa teorik alım kaydı oluşturur. Günlük bütçe $([string]::Format('{0:N0}', $instantEntryPortfolioDailyBudgetTL)) TL; aynı gün tekrar çalışırsa ikinci kez alım yapmaz.</p>
+$(New-HtmlTable -Rows $instantEntryPortfolioSummaryRows)
+<h3>Anlık Fırsat Açık Pozisyonları</h3>
+$(New-HtmlTable -Rows $instantEntryPortfolioHoldingRows)
+<h3>Anlık Fırsat Alış Geçmişi</h3>
+$(New-HtmlTable -Rows $instantEntryPortfolioTransactionRows)
 <h2>Tüm Teyitli / Teknik Teyitli Adaylar</h2>
 <p class="muted">Bu tablo, temel ve teknik bacakları birlikte güçlü olanları öne alır. Liste boş ise bugün tüm koşulları aynı anda sağlayan aday yok demektir; bu durumda kademeli giriş yerine teyit beklemek daha disiplinlidir.</p>
 $(New-HtmlTable -Rows $confirmedRows)

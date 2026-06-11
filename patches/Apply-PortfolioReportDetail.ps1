@@ -35,6 +35,23 @@ function Add-LiteralRegexReplacement {
     )
 }
 
+if ($text -notmatch 'InstantEntryPortfolio\.Helpers\.ps1') {
+    $helperImport = @'
+Import-Module $modulePath -Force
+
+$instantEntryPortfolioHelpers = Join-Path $PSScriptRoot 'patches\InstantEntryPortfolio.Helpers.ps1'
+if (Test-Path $instantEntryPortfolioHelpers) {
+    . $instantEntryPortfolioHelpers
+}
+'@
+
+    $text = Add-LiteralRegexReplacement `
+        -InputText $text `
+        -Pattern '(?m)^Import-Module \$modulePath -Force$' `
+        -Replacement $helperImport `
+        -Name 'anlik firsat portfoyu helper import'
+}
+
 if ($coreText -notmatch 'MaxElapsedSec') {
     $instantEntryFunction = @'
 function Get-InstantEntryOpportunities {
@@ -252,6 +269,14 @@ if ($text -notmatch 'InstantEntryMaxElapsedSec') {
         -Name 'rapor performans ayarlari'
 }
 
+if ($text -notmatch 'InstantEntryPortfolioDailyBudgetTL') {
+    $text = Add-LiteralRegexReplacement `
+        -InputText $text `
+        -Pattern '(?m)^\$instantEntryMaxElapsedSec = \[int\]\(Get-ConfigValue -Object \$settings\.Report -Name ''InstantEntryMaxElapsedSec'' -Default 75\)$' `
+        -Replacement "`$instantEntryMaxElapsedSec = [int](Get-ConfigValue -Object `$settings.Report -Name 'InstantEntryMaxElapsedSec' -Default 75)`r`n`$instantEntryPortfolioDailyBudgetTL = [double](Get-ConfigValue -Object `$settings.Report -Name 'InstantEntryPortfolioDailyBudgetTL' -Default 5000)`r`n`$instantEntryPortfolioMinBuyScore = [double](Get-ConfigValue -Object `$settings.Report -Name 'InstantEntryPortfolioMinBuyScore' -Default 90)`r`n`$instantEntryPortfolioMaxBuysPerDay = [int](Get-ConfigValue -Object `$settings.Report -Name 'InstantEntryPortfolioMaxBuysPerDay' -Default 3)" `
+        -Name 'anlik firsat portfoyu ayarlari'
+}
+
 if ($text -notmatch 'Canli BIST taramasi') {
     $text = Add-LiteralRegexReplacement `
         -InputText $text `
@@ -309,6 +334,35 @@ if ($text -notmatch 'Canli BIST taramasi') {
         -Pattern '(?m)^    \$result = "OK \$\(\$runAt\.ToString\(''s''\)\)' `
         -Replacement "    Write-TimingLog -Step 'Toplam rapor suresi' -StartedAt `$reportStartedAt`r`n    `$result = `"OK `$(`$runAt.ToString('s'))" `
         -Name 'toplam timing'
+}
+
+if ($text -notmatch 'instant_entry_portfolio\.json') {
+    $instantPortfolioStateBlock = @'
+    Write-TimingLog -Step 'Anlik giris firsati' -StartedAt $stageStartedAt
+
+    $stageStartedAt = Get-Date
+    $instantEntryPortfolioPath = Join-Path $PSScriptRoot 'data\instant_entry_portfolio.json'
+    $instantEntryPortfolio = $null
+    if (Test-Path $instantEntryPortfolioPath) {
+        $instantEntryPortfolio = Get-Content -Path $instantEntryPortfolioPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    }
+    $updatedInstantEntryPortfolio = Update-InstantEntrySignalPortfolio `
+        -Portfolio $instantEntryPortfolio `
+        -Opportunities $entryOpportunities `
+        -Stocks $stocks `
+        -AsOf $runAt `
+        -DailyBudgetTL $instantEntryPortfolioDailyBudgetTL `
+        -MinBuyScore $instantEntryPortfolioMinBuyScore `
+        -MaxBuysPerDay $instantEntryPortfolioMaxBuysPerDay
+    Save-JsonFile -Path $instantEntryPortfolioPath -Value $updatedInstantEntryPortfolio -Depth 10
+    Write-TimingLog -Step 'Anlik firsat portfoyu' -StartedAt $stageStartedAt
+'@
+
+    $text = Add-LiteralRegexReplacement `
+        -InputText $text `
+        -Pattern "(?m)^    Write-TimingLog -Step 'Anlik giris firsati' -StartedAt \`$stageStartedAt$" `
+        -Replacement $instantPortfolioStateBlock `
+        -Name 'anlik firsat portfoyu state akisi'
 }
 
 if ($text -notmatch 'function Get-ModelPortfolioHoldingRows') {
@@ -560,6 +614,46 @@ if ($text -notmatch '\$portfolioHoldingRows = Get-ModelPortfolioHoldingRows') {
         -Pattern '(?s)    \$portfolioRows = @\(\$updatedPortfolioSet\.Portfolios \| ForEach-Object \{.*?    \$topRows \| Export-Csv' `
         -Replacement $portfolioRowsBlock `
         -Name 'portfoy satir bloklari'
+}
+
+if ($text -notmatch '\$instantEntryPortfolioSummaryRows = Get-InstantEntryPortfolioSummaryRows') {
+    $text = Add-LiteralRegexReplacement `
+        -InputText $text `
+        -Pattern '(?m)^    \$portfolioDistributionPieHtml = New-ModelPortfolioDistributionPieChartsHtml -PortfolioSet \$updatedPortfolioSet$' `
+        -Replacement "    `$portfolioDistributionPieHtml = New-ModelPortfolioDistributionPieChartsHtml -PortfolioSet `$updatedPortfolioSet`r`n    `$instantEntryPortfolioSummaryRows = Get-InstantEntryPortfolioSummaryRows -Portfolio `$updatedInstantEntryPortfolio`r`n    `$instantEntryPortfolioHoldingRows = Get-InstantEntryPortfolioHoldingRows -Portfolio `$updatedInstantEntryPortfolio`r`n    `$instantEntryPortfolioTransactionRows = Get-InstantEntryPortfolioTransactionRows -Portfolio `$updatedInstantEntryPortfolio -Count 30" `
+        -Name 'anlik firsat portfoyu rapor satirlari'
+}
+
+if ($text -notmatch 'Anlik firsat portfoyu:') {
+    $telegramLine = @'
+        "Anlik giris radari: " + $(if ($entryOpportunities.Count -gt 0) { (($entryOpportunities | ForEach-Object { "$($_.Symbol)($($_.EntryOpportunityScore))" }) -join ', ') } else { 'bugun uygun aday yok' }),
+        "Anlik firsat portfoyu: $($updatedInstantEntryPortfolio.StatusNote) Deger $($updatedInstantEntryPortfolio.CurrentValueTL) TL, getiri $($updatedInstantEntryPortfolio.TotalReturnPct)%",
+'@
+
+    $text = Add-LiteralRegexReplacement `
+        -InputText $text `
+        -Pattern '(?m)^        "Anlik giris radari: " \+ \$\(if \(\$entryOpportunities\.Count -gt 0\) \{ \(\(\$entryOpportunities \| ForEach-Object \{ "\$\(\$_\.Symbol\)\(\$\(\$_\.EntryOpportunityScore\)\)" \}\) -join '', ''\) \} else \{ ''bugun uygun aday yok'' \}\),$' `
+        -Replacement $telegramLine `
+        -Name 'telegram anlik firsat portfoyu satiri'
+}
+
+if ($text -notmatch '<h2>Anlık Fırsat Portföyü</h2>') {
+    $instantPortfolioHtml = @'
+$(New-HtmlTable -Rows $entryOpportunityRows)
+<h2>Anlık Fırsat Portföyü</h2>
+<p class="muted">Bu portföy, her gün 18:15 kapanış çalışmasında yalnızca çok güçlü anlık giriş sinyali varsa teorik alım kaydı oluşturur. Günlük bütçe $([string]::Format('{0:N0}', $instantEntryPortfolioDailyBudgetTL)) TL; aynı gün tekrar çalışırsa ikinci kez alım yapmaz.</p>
+$(New-HtmlTable -Rows $instantEntryPortfolioSummaryRows)
+<h3>Anlık Fırsat Açık Pozisyonları</h3>
+$(New-HtmlTable -Rows $instantEntryPortfolioHoldingRows)
+<h3>Anlık Fırsat Alış Geçmişi</h3>
+$(New-HtmlTable -Rows $instantEntryPortfolioTransactionRows)
+'@
+
+    $text = Add-LiteralRegexReplacement `
+        -InputText $text `
+        -Pattern '\$\(New-HtmlTable -Rows \$entryOpportunityRows\)' `
+        -Replacement $instantPortfolioHtml `
+        -Name 'anlik firsat portfoyu html bloklari'
 }
 
 if ($text -notmatch '<h2>Model Portfoy Aktif Hisse Detaylari</h2>') {

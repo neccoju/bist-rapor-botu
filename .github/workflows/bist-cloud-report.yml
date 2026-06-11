@@ -7,6 +7,8 @@ on:
       - main
     paths:
       - .github/workflows/bist-cloud-report.yml
+      - patches/**
+      - config/**
       - runtime/full-bist-report-runtime.zip.b64.chunk*
   schedule:
     # 18:15 Europe/Istanbul. GitHub Actions cron uses UTC.
@@ -74,6 +76,7 @@ jobs:
           path: |
             data/last_scan.json
             data/model_portfolios.json
+            data/instant_entry_portfolio.json
           key: bist-state-${{ github.run_id }}
           restore-keys: |
             bist-state-
@@ -99,6 +102,7 @@ jobs:
             reports\GunlukRapor.log
             data\last_scan.json
             data\model_portfolios.json
+            data\instant_entry_portfolio.json
           if-no-files-found: warn
 
       - name: Save bot state
@@ -109,4 +113,5 @@ jobs:
           path: |
             data/last_scan.json
             data/model_portfolios.json
+            data/instant_entry_portfolio.json
           key: bist-state-${{ github.run_id }}
