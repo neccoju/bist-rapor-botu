@@ -10,7 +10,7 @@ on:
       - runtime/full-bist-report-runtime.zip.b64.chunk*
   schedule:
     # 18:15 Europe/Istanbul. GitHub Actions cron uses UTC.
-    - cron: "15 15 * * 1-5"
+    - cron: "15 15 * * *"
 
 permissions:
   contents: read

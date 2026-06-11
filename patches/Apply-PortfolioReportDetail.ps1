@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
@@ -168,6 +168,7 @@ if ($text -match 'Send-MailMessage @mailParams') {
         }
         $message.Subject = $Subject
         $message.SubjectEncoding = [Text.Encoding]::UTF8
+        $message.HeadersEncoding = [Text.Encoding]::UTF8
         $message.Body = $HtmlBody
         $message.BodyEncoding = [Text.Encoding]::UTF8
         $message.IsBodyHtml = $true
@@ -213,6 +214,34 @@ function Write-TimingLog {
         -Pattern '(?m)^\$settings = Load-ReportSettings' `
         -Replacement ($timingBlock + '$settings = Load-ReportSettings') `
         -Name 'timing helper'
+}
+
+if ($text -notmatch '\.pie-grid') {
+    $portfolioCss = @'
+.badge { display: inline-block; padding: 4px 8px; border-radius: 999px; background: #dcfce7; color: #166534; font-weight: 700; font-size: 12px; }
+.portfolio-group { margin: 18px 0 26px 0; }
+.portfolio-group h3 { margin: 0 0 4px 0; }
+.pie-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 12px; }
+.pie-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; background: #ffffff; }
+.pie-card h3 { margin: 0 0 10px 0; font-size: 16px; }
+.pie-layout { display: grid; grid-template-columns: 108px 1fr; gap: 12px; align-items: center; }
+.pie-chart { width: 108px; height: 108px; border-radius: 50%; border: 1px solid #cbd5e1; }
+.pie-legend { display: grid; gap: 6px; }
+.pie-legend-item { display: grid; grid-template-columns: 14px 1fr auto; gap: 7px; align-items: center; font-size: 12px; }
+.swatch { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
+'@
+
+    $text = Add-LiteralRegexReplacement `
+        -InputText $text `
+        -Pattern '(?m)^\.badge \{ display: inline-block; padding: 4px 8px; border-radius: 999px; background: #dcfce7; color: #166534; font-weight: 700; font-size: 12px; \}$' `
+        -Replacement $portfolioCss `
+        -Name 'portfoy grafik css'
+
+    $text = Add-LiteralRegexReplacement `
+        -InputText $text `
+        -Pattern '(?m)^\.card \{ display: block; \}$' `
+        -Replacement ".card { display: block; }`r`n.pie-layout { grid-template-columns: 96px 1fr; }`r`n.pie-chart { width: 96px; height: 96px; }" `
+        -Name 'mobil portfoy grafik css'
 }
 
 if ($text -notmatch 'InstantEntryMaxElapsedSec') {
@@ -398,6 +427,102 @@ function Get-ModelPortfolioTransactionRows {
         })
 }
 
+function New-ModelPortfolioHoldingGroupsHtml {
+    param(
+        $PortfolioSet,
+        [object[]]$HoldingRows
+    )
+
+    if ($null -eq $PortfolioSet -or $null -eq $HoldingRows -or $HoldingRows.Count -eq 0) {
+        return '<p class="muted">Aktif hisse detayı için veri yok.</p>'
+    }
+
+    $blocks = @($PortfolioSet.Portfolios | ForEach-Object {
+            $portfolio = $_
+            $portfolioName = [string](Get-ObjectPropertyValue -Object $portfolio -Name 'Name')
+            $strategy = [string](Get-ObjectPropertyValue -Object $portfolio -Name 'Strategy')
+            $valueText = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $portfolio -Name 'CurrentValueTL') -Format 'N2' -Suffix ' TL'
+            $returnText = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $portfolio -Name 'TotalReturnPct') -Format 'N2' -Suffix '%'
+            $rows = @(
+                $HoldingRows |
+                    Where-Object { [string](Get-ObjectPropertyValue -Object $_ -Name 'Portfoy') -eq $portfolioName } |
+                    Select-Object * -ExcludeProperty Portfoy
+            )
+
+            @"
+<section class="portfolio-group">
+<h3>$(ConvertTo-HtmlText $portfolioName)</h3>
+<p class="muted">Strateji: $(ConvertTo-HtmlText $strategy) | Güncel değer: $(ConvertTo-HtmlText $valueText) | Toplam getiri: $(ConvertTo-HtmlText $returnText)</p>
+$(New-HtmlTable -Rows $rows)
+</section>
+"@
+        })
+
+    return ($blocks -join [Environment]::NewLine)
+}
+
+function New-ModelPortfolioDistributionPieChartsHtml {
+    param($PortfolioSet)
+
+    if ($null -eq $PortfolioSet -or $null -eq $PortfolioSet.Portfolios) {
+        return '<p class="muted">Portföy dağılım grafiği için veri yok.</p>'
+    }
+
+    $colors = @('#2563eb', '#16a34a', '#f97316', '#dc2626', '#7c3aed', '#0891b2', '#ca8a04', '#be185d')
+    $culture = [Globalization.CultureInfo]::InvariantCulture
+    $cards = @($PortfolioSet.Portfolios | ForEach-Object {
+            $portfolio = $_
+            $portfolioName = [string](Get-ObjectPropertyValue -Object $portfolio -Name 'Name')
+            $holdings = @(Get-ObjectPropertyValue -Object $portfolio -Name 'Holdings')
+            if ($holdings.Count -eq 0) {
+                return @"
+<section class="pie-card">
+<h3>$(ConvertTo-HtmlText $portfolioName)</h3>
+<p class="muted">Dağılım için aktif hisse yok.</p>
+</section>
+"@
+            }
+
+            $weightValues = @($holdings | ForEach-Object {
+                    $weight = Get-NumberValue -Object $_ -Name 'WeightPct'
+                    if ($null -ne $weight -and $weight -gt 0) { [double]$weight } else { 0.0 }
+                })
+            $totalWeight = ($weightValues | Measure-Object -Sum).Sum
+            if ($null -eq $totalWeight -or $totalWeight -le 0) {
+                $totalWeight = [double]$holdings.Count
+                $weightValues = @(1..$holdings.Count | ForEach-Object { 1.0 })
+            }
+
+            $start = 0.0
+            $segments = [System.Collections.Generic.List[string]]::new()
+            $legendItems = [System.Collections.Generic.List[string]]::new()
+            for ($index = 0; $index -lt $holdings.Count; $index++) {
+                $holding = $holdings[$index]
+                $symbol = [string](Get-ObjectPropertyValue -Object $holding -Name 'Symbol')
+                $weightPct = ([double]$weightValues[$index] / [double]$totalWeight) * 100.0
+                $end = $start + ($weightPct * 3.6)
+                $color = $colors[$index % $colors.Count]
+                [void]$segments.Add(('{0} {1}deg {2}deg' -f $color, $start.ToString('0.###', $culture), $end.ToString('0.###', $culture)))
+                [void]$legendItems.Add(('<div class="pie-legend-item"><span class="swatch" style="background:{0}"></span><span>{1}</span><b>{2}</b></div>' -f $color, (ConvertTo-HtmlText $symbol), (Format-ReportNumber -Value $weightPct -Format 'N1' -Suffix '%')))
+                $start = $end
+            }
+
+            $gradient = $segments -join ', '
+            $legendHtml = $legendItems -join [Environment]::NewLine
+            @"
+<section class="pie-card">
+<h3>$(ConvertTo-HtmlText $portfolioName)</h3>
+<div class="pie-layout">
+<div class="pie-chart" style="background: conic-gradient($gradient);"></div>
+<div class="pie-legend">$legendHtml</div>
+</div>
+</section>
+"@
+        })
+
+    return '<div class="pie-grid">' + (($cards) -join [Environment]::NewLine) + '</div>'
+}
+
 '@
 
     $text = Add-LiteralRegexReplacement `
@@ -424,6 +549,8 @@ if ($text -notmatch '\$portfolioHoldingRows = Get-ModelPortfolioHoldingRows') {
         })
     $portfolioHoldingRows = Get-ModelPortfolioHoldingRows -PortfolioSet $updatedPortfolioSet
     $portfolioTransactionRows = Get-ModelPortfolioTransactionRows -PortfolioSet $updatedPortfolioSet -PerPortfolio 12
+    $portfolioHoldingGroupsHtml = New-ModelPortfolioHoldingGroupsHtml -PortfolioSet $updatedPortfolioSet -HoldingRows $portfolioHoldingRows
+    $portfolioDistributionPieHtml = New-ModelPortfolioDistributionPieChartsHtml -PortfolioSet $updatedPortfolioSet
 
     $topRows | Export-Csv
 '@
@@ -437,13 +564,16 @@ if ($text -notmatch '\$portfolioHoldingRows = Get-ModelPortfolioHoldingRows') {
 
 if ($text -notmatch '<h2>Model Portfoy Aktif Hisse Detaylari</h2>') {
     $modelPortfolioHtml = @'
-<h2>Model Portfoyler</h2>
+<h2>Model Portföyler</h2>
 <p class="muted">Portföyler her çalışmada sadece değerlenir; ay sonu son işlem günü 18:10 sonrası tamamlanmış dönem varsa yeniden sıralanır ve AL/SAT/EŞİTLEME işlemleri state dosyasına yazılır.</p>
 $(New-HtmlTable -Rows $portfolioRows)
-<h2>Model Portfoy Aktif Hisse Detaylari</h2>
+<h2>Model Portföy Hisse Dağılımı</h2>
+<p class="muted">Her model portföydeki güncel hisse ağırlıkları pasta grafik olarak gösterilir.</p>
+$portfolioDistributionPieHtml
+<h2>Model Portföy Aktif Hisse Detayları</h2>
 <p class="muted">İlk alış fiyatı işlem geçmişindeki ilk AL kaydından, satış fiyatı varsa ilk SAT/EŞİTLEME SAT kaydından gelir. Rebalance getirisi son portföy ayarlamasından bu yana, ilk alıştan getiri ilk AL fiyatına göre hesaplanır.</p>
-$(New-HtmlTable -Rows $portfolioHoldingRows)
-<h2>Model Portfoy Son Islemler</h2>
+$portfolioHoldingGroupsHtml
+<h2>Model Portföy Son İşlemler</h2>
 <p class="muted">Her portföy için son 12 işlem gösterilir; ilk kurulum, AL, SAT ve ay sonu eşitleme kayıtları fiyat/adet/tutar/not alanlarıyla izlenir.</p>
 $(New-HtmlTable -Rows $portfolioTransactionRows)
 '@
