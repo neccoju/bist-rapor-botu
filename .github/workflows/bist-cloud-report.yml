@@ -22,7 +22,7 @@ env:
 jobs:
   run-report:
     runs-on: windows-2025
-    timeout-minutes: 75
+    timeout-minutes: 30
 
     env:
       BIST_EMAIL_FROM: ${{ secrets.BIST_EMAIL_FROM }}
