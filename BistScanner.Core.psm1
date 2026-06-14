@@ -993,7 +993,12 @@ function Get-MacroSnapshot {
         [void]$metrics.Add($snapshot)
     }
 
-    $supportive = @($metrics | Where-Object { $_.Status -match 'Pozitif|Destekleyici|sakin|lehine|düşük|azalıyor' }).Count
+    # TCMB EVDS (anahtar $env:BIST_EVDS_API_KEY varsa): faiz + TÜFE
+    foreach ($evdsMetric in @(Get-EvdsMacroMetrics -TimeoutSec $TimeoutSec)) {
+        [void]$metrics.Add($evdsMetric)
+    }
+
+    $supportive = @($metrics | Where-Object { $_.Status -match 'Pozitif|Destekleyici|sakin|lehine|düşük|azalıyor|ılımlı|düşüyor' }).Count
     $pressure = @($metrics | Where-Object { $_.Status -match 'baskı|yüksek|Zayıf|artıyor' }).Count
     $overall = if ($supportive -gt ($pressure + 1)) {
         'Makro zemin destekleyici'
@@ -3249,25 +3254,36 @@ function Get-ModelPortfolioDefinitions {
             Id = 'Dengeli'
             Name = 'Dengeli Model Portföy'
             Strategy = 'Dengeli'
+            RankBy = 'Score'
             Description = 'Makro/sektör bağlamı, trend, değerleme, kalite, bilanço, momentum ve likiditeyi dengeli ağırlıklarla bir arada değerlendirir.'
         },
         [pscustomobject][ordered]@{
             Id = 'Deger'
             Name = 'Değer Model Portföyü'
             Strategy = 'Değer'
+            RankBy = 'Score'
             Description = 'F/K, PD/DD ve finans dışı hisselerde FD/FAVÖK ağırlıklı değerleme puanını öne çıkarır; kârlılık, makro/sektör bağlamı, likidite ve risk tabanı değer tuzağı riskini azaltmak için korunur.'
         },
         [pscustomobject][ordered]@{
             Id = 'Momentum'
             Name = 'Momentum Model Portföyü'
             Strategy = 'Momentum'
+            RankBy = 'Score'
             Description = 'Trend, 200 günlük ortalama, MACD, RSI ve hacim teyidini öne çıkarır; yalnızca ortak kârlılık, büyüklük, makro/sektör, likidite ve risk koşullarını geçen hisseleri kullanır.'
         },
         [pscustomobject][ordered]@{
             Id = 'Kalite'
             Name = 'Kalite Model Portföyü'
             Strategy = 'Kalite'
+            RankBy = 'Score'
             Description = 'ROE, bilanço puanı, FAVÖK sürekliliği ve kâr kalitesini öne çıkarır; fiyat, makro/sektör ve likidite koşullarını ortak koruma filtresi olarak uygular.'
+        },
+        [pscustomobject][ordered]@{
+            Id = 'RFS100'
+            Name = 'RFS100 Model Portföyü'
+            Strategy = 'Dengeli'
+            RankBy = 'RawFactorScore100'
+            Description = 'Backtest bulgusuna dayanır: temel/likidite uygunluk filtresini geçen hisseleri, Get-BistScore eşik puanlaması yerine ham teknik faktörlerin (RSI, MACD, SMA mesafeleri, momentum, hacim, oynaklık) kesitsel z-skor karışımı olan RawFactorScore100 ile sıralar. Walk-forward testlerde bu sıralama botun skorunun ~2 katı bilgi katsayısı (IC) verdi.'
         }
     )
 }
@@ -3402,14 +3418,29 @@ function Get-ModelPortfolioSelection {
 
         [int]$Count = 5,
 
-        [int]$MaxPerSector = 2
+        [int]$MaxPerSector = 2,
+
+        # 'Score' (varsayilan, strateji skoru) veya 'RawFactorScore100' (ham-faktor)
+        [string]$RankBy = 'Score'
     )
 
-    $candidates = @(
-        Get-BistScores -Stocks $Stocks -Strategy $Strategy |
-            Where-Object { Test-ModelPortfolioEligibleStock -Stock $_ } |
-            Sort-Object Score -Descending
-    )
+    $scoredAll = @(Get-BistScores -Stocks $Stocks -Strategy $Strategy)
+    if ($RankBy -eq 'RawFactorScore100') {
+        # RFS100 tum evren uzerinde kesitsel hesaplanir, sonra uygunlar siralanir.
+        $scoredAll = @(Add-RawFactorScore -Stocks $scoredAll)
+        $candidates = @(
+            $scoredAll |
+                Where-Object { Test-ModelPortfolioEligibleStock -Stock $_ } |
+                Sort-Object @{ Expression = { [double](Get-ObjectPropertyValue -Object $_ -Name 'RawFactorScore100') }; Descending = $true }
+        )
+    }
+    else {
+        $candidates = @(
+            $scoredAll |
+                Where-Object { Test-ModelPortfolioEligibleStock -Stock $_ } |
+                Sort-Object Score -Descending
+        )
+    }
 
     $selected = [System.Collections.Generic.List[object]]::new()
     $selectedSymbols = @{}
@@ -3562,6 +3593,7 @@ function New-ModelPortfolioHolding {
         Company = [string]$Stock.Company
         SectorTR = [string]$Stock.SectorTR
         StrategyScore = [Math]::Round([double]$Stock.Score, 1)
+        RawFactorScore100 = Get-ObjectPropertyValue -Object $Stock -Name 'RawFactorScore100'
         MacroSectorScore = Get-ObjectPropertyValue -Object $Stock -Name 'MacroSectorScore'
         EvEbitda = Get-ObjectPropertyValue -Object $Stock -Name 'EvEbitda'
         SelectionReason = Get-ModelPortfolioSelectionReason -Stock $Stock -Strategy $Strategy
@@ -3574,6 +3606,61 @@ function New-ModelPortfolioHolding {
         GainSinceRebalanceTL = 0.0
         GainSinceRebalancePct = 0.0
         PriceIsFresh = $true
+    }
+}
+
+function New-SingleModelPortfolio {
+    param(
+        [Parameter(Mandatory)] $Definition,
+        [Parameter(Mandatory)] [object[]]$Stocks,
+        [datetime]$AsOf = (Get-Date),
+        [double]$InitialCapital = 100000
+    )
+
+    $rankBy = Get-ObjectPropertyValue -Object $Definition -Name 'RankBy'
+    if ([string]::IsNullOrWhiteSpace([string]$rankBy)) { $rankBy = 'Score' }
+    $selection = @(Get-ModelPortfolioSelection -Stocks $Stocks -Strategy $Definition.Strategy -RankBy $rankBy)
+    $targetValue = $InitialCapital / $selection.Count
+    $holdings = [System.Collections.Generic.List[object]]::new()
+    $transactions = [System.Collections.Generic.List[object]]::new()
+
+    [void]$transactions.Add((New-ModelPortfolioTransaction `
+                -Sequence 1 -ExecutionDate $AsOf -Action 'İLK KURULUM' -Symbol 'PORTFÖY' `
+                -Company $Definition.Name -Price $null -Quantity $null -AmountTL $InitialCapital `
+                -Note ('Başlangıç sermayesi {0} eşit parçaya bölündü; hisse başına hedef {1:N2} TL.' -f $selection.Count, $targetValue)))
+
+    $sequence = 2
+    foreach ($stock in $selection) {
+        $holding = New-ModelPortfolioHolding -Stock $stock -TargetValue $targetValue -Strategy $Definition.Strategy
+        [void]$holdings.Add($holding)
+        [void]$transactions.Add((New-ModelPortfolioTransaction `
+                    -Sequence $sequence -ExecutionDate $AsOf -Action 'AL' -Symbol $holding.Symbol `
+                    -Company $holding.Company -Price $holding.CurrentPrice -Quantity $holding.Quantity -AmountTL $targetValue `
+                    -Note ('İlk kurulum: portföyün eşit ağırlığı. {0}' -f $holding.SelectionReason)))
+        $sequence++
+    }
+
+    return [pscustomobject][ordered]@{
+        Id = $Definition.Id
+        Name = $Definition.Name
+        Strategy = $Definition.Strategy
+        RankBy = $rankBy
+        Description = $Definition.Description
+        StartDate = $AsOf.ToString('o')
+        StartDateText = $AsOf.ToString('dd.MM.yyyy HH:mm')
+        InitialCapitalTL = [Math]::Round($InitialCapital, 2)
+        CurrentValueTL = [Math]::Round($InitialCapital, 2)
+        TotalGainTL = 0.0
+        TotalReturnPct = 0.0
+        LastValuationAt = $AsOf.ToString('o')
+        LastValuationAtText = $AsOf.ToString('dd.MM.yyyy HH:mm')
+        LastRebalanceDate = $AsOf.ToString('o')
+        LastRebalanceDateText = $AsOf.ToString('dd.MM.yyyy HH:mm')
+        LastRebalancePeriodEnd = $AsOf.Date.ToString('yyyy-MM-dd')
+        NextRebalanceDate = (Get-NextModelPortfolioRebalanceDate -LastRebalancePeriodEnd $AsOf.Date -AsOf $AsOf).ToString('yyyy-MM-dd')
+        StatusNote = 'İlk model işlem canlı tarama fiyatlarıyla oluşturuldu.'
+        Holdings = $holdings.ToArray()
+        Transactions = $transactions.ToArray()
     }
 }
 
@@ -3590,60 +3677,7 @@ function New-ModelPortfolioSet {
 
     $portfolios = [System.Collections.Generic.List[object]]::new()
     foreach ($definition in Get-ModelPortfolioDefinitions) {
-        $selection = @(Get-ModelPortfolioSelection -Stocks $Stocks -Strategy $definition.Strategy)
-        $targetValue = $InitialCapital / $selection.Count
-        $holdings = [System.Collections.Generic.List[object]]::new()
-        $transactions = [System.Collections.Generic.List[object]]::new()
-
-        [void]$transactions.Add((New-ModelPortfolioTransaction `
-                    -Sequence 1 `
-                    -ExecutionDate $AsOf `
-                    -Action 'İLK KURULUM' `
-                    -Symbol 'PORTFÖY' `
-                    -Company $definition.Name `
-                    -Price $null `
-                    -Quantity $null `
-                    -AmountTL $InitialCapital `
-                    -Note ('Başlangıç sermayesi 5 eşit parçaya bölündü; hisse başına hedef {0:N2} TL.' -f $targetValue)))
-
-        $sequence = 2
-        foreach ($stock in $selection) {
-            $holding = New-ModelPortfolioHolding -Stock $stock -TargetValue $targetValue -Strategy $definition.Strategy
-            [void]$holdings.Add($holding)
-            [void]$transactions.Add((New-ModelPortfolioTransaction `
-                        -Sequence $sequence `
-                        -ExecutionDate $AsOf `
-                        -Action 'AL' `
-                        -Symbol $holding.Symbol `
-                        -Company $holding.Company `
-                        -Price $holding.CurrentPrice `
-                        -Quantity $holding.Quantity `
-                        -AmountTL $targetValue `
-                        -Note ('İlk kurulum: portföyün %20 eşit ağırlığı. {0}' -f $holding.SelectionReason)))
-            $sequence++
-        }
-
-        [void]$portfolios.Add([pscustomobject][ordered]@{
-                Id = $definition.Id
-                Name = $definition.Name
-                Strategy = $definition.Strategy
-                Description = $definition.Description
-                StartDate = $AsOf.ToString('o')
-                StartDateText = $AsOf.ToString('dd.MM.yyyy HH:mm')
-                InitialCapitalTL = [Math]::Round($InitialCapital, 2)
-                CurrentValueTL = [Math]::Round($InitialCapital, 2)
-                TotalGainTL = 0.0
-                TotalReturnPct = 0.0
-                LastValuationAt = $AsOf.ToString('o')
-                LastValuationAtText = $AsOf.ToString('dd.MM.yyyy HH:mm')
-                LastRebalanceDate = $AsOf.ToString('o')
-                LastRebalanceDateText = $AsOf.ToString('dd.MM.yyyy HH:mm')
-                LastRebalancePeriodEnd = $AsOf.Date.ToString('yyyy-MM-dd')
-                NextRebalanceDate = (Get-NextModelPortfolioRebalanceDate -LastRebalancePeriodEnd $AsOf.Date -AsOf $AsOf).ToString('yyyy-MM-dd')
-                StatusNote = 'İlk model işlem canlı tarama fiyatlarıyla oluşturuldu.'
-                Holdings = $holdings.ToArray()
-                Transactions = $transactions.ToArray()
-            })
+        [void]$portfolios.Add((New-SingleModelPortfolio -Definition $definition -Stocks $Stocks -AsOf $AsOf -InitialCapital $InitialCapital))
     }
 
     return [pscustomobject][ordered]@{
@@ -3771,7 +3805,9 @@ function Invoke-ModelPortfolioRebalance {
         return $valuedPortfolio
     }
 
-    $selection = @(Get-ModelPortfolioSelection -Stocks $Stocks -Strategy $valuedPortfolio.Strategy)
+    $rebalanceRankBy = Get-ObjectPropertyValue -Object $valuedPortfolio -Name 'RankBy'
+    if ([string]::IsNullOrWhiteSpace([string]$rebalanceRankBy)) { $rebalanceRankBy = 'Score' }
+    $selection = @(Get-ModelPortfolioSelection -Stocks $Stocks -Strategy $valuedPortfolio.Strategy -RankBy $rebalanceRankBy)
     $totalValue = [double]$valuedPortfolio.CurrentValueTL
     $targetValue = $totalValue / $selection.Count
     $oldHoldings = @{}
@@ -3946,6 +3982,23 @@ function Update-ModelPortfolioSet {
         }
     }
 
+    # Migration: tanimlarda olup state'te olmayan portfoyleri (or. RFS100) olustur.
+    if ($AllowRebalance) {
+        $existingIds = @($portfolios | ForEach-Object { [string]$_.Id })
+        $initCap = [double](Get-ObjectPropertyValue -Object $PortfolioSet -Name 'InitialCapitalPerPortfolioTL')
+        if ($initCap -le 0) { $initCap = 100000 }
+        foreach ($definition in Get-ModelPortfolioDefinitions) {
+            if ([string]$definition.Id -notin $existingIds) {
+                try {
+                    [void]$portfolios.Add((New-SingleModelPortfolio -Definition $definition -Stocks $Stocks -AsOf $AsOf -InitialCapital $initCap))
+                }
+                catch {
+                    # Uygun hisse yetersizse sessizce atla; sonraki çalışmada tekrar denenir.
+                }
+            }
+        }
+    }
+
     $properties = [ordered]@{}
     foreach ($property in $PortfolioSet.PSObject.Properties) {
         if ($property.Name -notin @('UpdatedAt', 'Portfolios')) {
@@ -3958,11 +4011,195 @@ function Update-ModelPortfolioSet {
     return [pscustomobject]$properties
 }
 
+# ============================================================================
+# RawFactorScore: kesitsel ham-faktor skoru (backtest bulgusu).
+# Get-BistScore'un ayrik RSI/MACD/SMA puanlamasi OOS'ta bilgi yok ediyordu; ham
+# faktorlerin kesitsel z-skor + lineer karisimi botun skorunun ~2 kati IC verdi
+# (bkz. backtest/README.md). Bu fonksiyon mevcut skoru DEGISTIRMEZ; her hisseye
+# RawFactorScore + RawFactorScore100 (0-100 gun-ici yuzdelik) ekler.
+# Agirliklar BIST100 walk-forward ortalamalaridir; yon kritik (RSI negatif!).
+# ============================================================================
+
+function Get-RfNumber {
+    param($Value)
+    if ($null -eq $Value) { return $null }
+    return ($Value -as [double])
+}
+
+function Get-RawFactorVector {
+    param($Stock)
+    $price = Get-RfNumber (Get-ObjectPropertyValue -Object $Stock -Name 'Price')
+    $rsi = Get-RfNumber (Get-ObjectPropertyValue -Object $Stock -Name 'RSI')
+    $mh = Get-RfNumber (Get-ObjectPropertyValue -Object $Stock -Name 'MacdHistogram')
+    $wmh = Get-RfNumber (Get-ObjectPropertyValue -Object $Stock -Name 'MacdHistogramWeekly')
+    $sma20 = Get-RfNumber (Get-ObjectPropertyValue -Object $Stock -Name 'SMA20')
+    $sma50 = Get-RfNumber (Get-ObjectPropertyValue -Object $Stock -Name 'SMA50')
+    $sma200 = Get-RfNumber (Get-ObjectPropertyValue -Object $Stock -Name 'SMA200')
+    $p1m = Get-RfNumber (Get-ObjectPropertyValue -Object $Stock -Name 'PerfMonth')
+    $p3m = Get-RfNumber (Get-ObjectPropertyValue -Object $Stock -Name 'Perf3Month')
+    $relv = Get-RfNumber (Get-ObjectPropertyValue -Object $Stock -Name 'RelativeVolume')
+    $rvol = Get-RfNumber (Get-ObjectPropertyValue -Object $Stock -Name 'VolatilityD')
+    [ordered]@{
+        RSI     = $rsi
+        MACDh   = if ($null -ne $mh -and $null -ne $price -and $price -gt 0) { ($mh / $price) * 100 } else { $null }
+        WMACDh  = if ($null -ne $wmh -and $null -ne $price -and $price -gt 0) { ($wmh / $price) * 100 } else { $null }
+        dSMA20  = if ($null -ne $price -and $null -ne $sma20 -and $sma20 -gt 0) { ($price / $sma20 - 1) * 100 } else { $null }
+        dSMA50  = if ($null -ne $price -and $null -ne $sma50 -and $sma50 -gt 0) { ($price / $sma50 - 1) * 100 } else { $null }
+        dSMA200 = if ($null -ne $price -and $null -ne $sma200 -and $sma200 -gt 0) { ($price / $sma200 - 1) * 100 } else { $null }
+        Perf1M  = $p1m
+        Perf3M  = $p3m
+        RelVol  = $relv
+        RVol    = $rvol
+    }
+}
+
+function Add-RawFactorScore {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][object[]]$Stocks,
+        [hashtable]$Weights
+    )
+    if (-not $Weights) {
+        # BIST100 walk-forward (4-hafta tutus) ortalama agirliklari; kesit z-skoru basina.
+        $Weights = @{
+            RSI = -1.49; MACDh = 0.69; WMACDh = 0.35; dSMA20 = -0.13; dSMA50 = 0.82
+            dSMA200 = 1.58; Perf1M = 0.86; Perf3M = -1.29; RelVol = -0.40; RVol = -0.62
+        }
+    }
+    $factorNames = @($Weights.Keys)
+    $facList = New-Object System.Collections.Generic.List[object]
+    foreach ($s in $Stocks) { $facList.Add((Get-RawFactorVector -Stock $s)) }
+
+    $stats = @{}
+    foreach ($fn in $factorNames) {
+        $vals = New-Object System.Collections.Generic.List[double]
+        foreach ($f in $facList) { if ($null -ne $f[$fn]) { $vals.Add([double]$f[$fn]) } }
+        if ($vals.Count -ge 3) {
+            $mean = ($vals | Measure-Object -Average).Average
+            $var = 0.0; foreach ($v in $vals) { $var += ($v - $mean) * ($v - $mean) }
+            $std = [Math]::Sqrt($var / $vals.Count)
+        }
+        else { $mean = 0.0; $std = 0.0 }
+        $stats[$fn] = [pscustomobject]@{ Mean = $mean; Std = $std }
+    }
+
+    $blends = New-Object double[] $Stocks.Count
+    for ($i = 0; $i -lt $Stocks.Count; $i++) {
+        $f = $facList[$i]; $blend = 0.0
+        foreach ($fn in $factorNames) {
+            $st = $stats[$fn]
+            if ($st.Std -gt 1e-9 -and $null -ne $f[$fn]) {
+                $z = ([double]$f[$fn] - $st.Mean) / $st.Std
+                $blend += [double]$Weights[$fn] * $z
+            }
+        }
+        $blends[$i] = $blend
+    }
+    $order = 0..($Stocks.Count - 1) | Sort-Object { $blends[$_] }
+    $pct = New-Object double[] $Stocks.Count
+    $n = $Stocks.Count
+    for ($rank = 0; $rank -lt $n; $rank++) {
+        $idx = $order[$rank]
+        $pct[$idx] = if ($n -gt 1) { [Math]::Round(($rank / ($n - 1.0)) * 100, 1) } else { 50 }
+    }
+    for ($i = 0; $i -lt $Stocks.Count; $i++) {
+        $Stocks[$i] | Add-Member -NotePropertyName RawFactorScore -NotePropertyValue ([Math]::Round($blends[$i], 4)) -Force
+        $Stocks[$i] | Add-Member -NotePropertyName RawFactorScore100 -NotePropertyValue $pct[$i] -Force
+    }
+    return $Stocks
+}
+
+# ============================================================================
+# TCMB EVDS (Elektronik Veri Dagitim Sistemi) entegrasyonu.
+# API anahtari ASLA kodda saklanmaz; $env:BIST_EVDS_API_KEY'den okunur
+# (bulutta GitHub Secret, yerelde ortam degiskeni). Anahtar yoksa sessizce
+# atlanir (mevcut makro akisi bozulmaz).
+# ============================================================================
+
+function Get-EvdsSeries {
+    param(
+        [Parameter(Mandatory)][string]$Series,        # or. 'TP.DK.USD.A.YTL'
+        [datetime]$StartDate = (Get-Date).AddDays(-45),
+        [datetime]$EndDate = (Get-Date),
+        [int]$Frequency = 1,                            # 1=gunluk,5=aylik
+        [string]$Aggregation = 'last',
+        [int]$TimeoutSec = 10
+    )
+    $apiKey = $env:BIST_EVDS_API_KEY
+    if ([string]::IsNullOrWhiteSpace($apiKey)) { return $null }
+    $url = 'https://evds2.tcmb.gov.tr/service/evds/series={0}&startDate={1}&endDate={2}&type=json&frequency={3}&aggregationTypes={4}&formulas=0' -f `
+        $Series, $StartDate.ToString('dd-MM-yyyy'), $EndDate.ToString('dd-MM-yyyy'), $Frequency, $Aggregation
+    try {
+        $resp = Invoke-RestMethod -Uri $url -Headers @{ key = $apiKey } -TimeoutSec $TimeoutSec -ErrorAction Stop
+    }
+    catch { return $null }
+    $items = Get-ObjectPropertyValue -Object $resp -Name 'items'
+    if ($null -eq $items) { return $null }
+    $col = ($Series -replace '[\.\-]', '_')
+    $points = New-Object System.Collections.Generic.List[object]
+    foreach ($it in @($items)) {
+        $raw = Get-ObjectPropertyValue -Object $it -Name $col
+        $val = ConvertFrom-InvestingNumberText $raw
+        if ($null -ne $val) {
+            $points.Add([pscustomobject]@{ Date = [string](Get-ObjectPropertyValue -Object $it -Name 'Tarih'); Value = [double]$val })
+        }
+    }
+    if ($points.Count -eq 0) { return $null }
+    $last = $points[$points.Count - 1]
+    $prev = if ($points.Count -ge 2) { $points[$points.Count - 2] } else { $null }
+    return [pscustomobject]@{
+        Series = $Series
+        Value = $last.Value
+        Date = $last.Date
+        Previous = if ($prev) { $prev.Value } else { $null }
+        Points = $points.ToArray()
+    }
+}
+
+function Get-EvdsMacroMetrics {
+    # Anahtar yoksa bos donerek mevcut akisi bozmaz. Seri kodlari EVDS'de
+    # dogrulanmalidir; yanlis kod sessizce atlanir.
+    param([int]$TimeoutSec = 8)
+    if ([string]::IsNullOrWhiteSpace($env:BIST_EVDS_API_KEY)) { return @() }
+
+    $metrics = [System.Collections.Generic.List[object]]::new()
+
+    # Politika/fonlama faizi (TCMB agirlikli ortalama fonlama maliyeti)
+    $rate = Get-EvdsSeries -Series 'TP.APIFON4' -Frequency 1 -TimeoutSec $TimeoutSec
+    if ($null -ne $rate) {
+        $chg = if ($null -ne $rate.Previous) { $rate.Value - $rate.Previous } else { $null }
+        [void]$metrics.Add([pscustomobject][ordered]@{
+                Id = 'TR_FUNDING'; Name = 'TCMB Fonlama Faizi'; Value = [Math]::Round($rate.Value, 2)
+                Change = if ($null -ne $chg) { [Math]::Round($chg, 2) } else { $null }; ChangePct = $null; Unit = '%'
+                Status = if ($null -ne $chg -and $chg -lt 0) { 'Faiz düşüyor' } elseif ($null -ne $chg -and $chg -gt 0) { 'Faiz artıyor' } else { 'Sabit' }
+                Source = 'TCMB EVDS'; Url = 'https://evds2.tcmb.gov.tr/'; Note = "Tarih: $($rate.Date)"
+            })
+    }
+
+    # TUFE (yillik enflasyon, son 13 ayligin ilk-son orani)
+    $cpi = Get-EvdsSeries -Series 'TP.FG.J0' -Frequency 5 -StartDate ((Get-Date).AddMonths(-14)) -TimeoutSec $TimeoutSec
+    if ($null -ne $cpi -and $cpi.Points.Count -ge 13) {
+        $pts = $cpi.Points; $latest = $pts[$pts.Count - 1].Value; $yearAgo = $pts[$pts.Count - 13].Value
+        if ($yearAgo -gt 0) {
+            $yoy = (($latest / $yearAgo) - 1) * 100
+            [void]$metrics.Add([pscustomobject][ordered]@{
+                    Id = 'TR_CPI_YOY'; Name = 'TÜFE (yıllık)'; Value = [Math]::Round($yoy, 1); Change = $null; ChangePct = $null; Unit = '%'
+                    Status = if ($yoy -lt 40) { 'Enflasyon ılımlı' } else { 'Enflasyon yüksek' }
+                    Source = 'TCMB EVDS'; Url = 'https://evds2.tcmb.gov.tr/'; Note = "Son endeks tarihi: $($pts[$pts.Count-1].Date)"
+                })
+        }
+    }
+    return $metrics.ToArray()
+}
+
 Export-ModuleMember -Function `
     Invoke-BistStockScan, `
     Get-ObjectPropertyValue, `
     Get-BistScore, `
     Get-BistScores, `
+    Add-RawFactorScore, `
+    Get-RawFactorVector, `
+    Get-EvdsSeries, `
     Get-ModelPortfolioDefinitions, `
     Get-ModelPortfolioSelection, `
     Get-LastModelPortfolioTradingDay, `

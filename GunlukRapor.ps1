@@ -1297,6 +1297,9 @@ try {
 
     $stageStartedAt = Get-Date
     $scored = @(Get-BistScores -Stocks $stocks -Strategy $strategy | Sort-Object Score -Descending)
+    # Ham-faktor eklenti skoru (kesitsel): backtest bulgusu, botun skorunun ~2 kati IC.
+    # Mevcut Score'u degistirmez; her hisseye RawFactorScore100 (0-100) ekler.
+    $scored = @(Add-RawFactorScore -Stocks $scored)
     Write-TimingLog -Step 'Skorlama' -StartedAt $stageStartedAt
 
     $stageStartedAt = Get-Date
@@ -1352,6 +1355,7 @@ try {
     $topRows = @($scored | Select-Object -First $topCount | ForEach-Object {
             [pscustomobject][ordered]@{
                 Skor = Format-ReportNumber -Value $_.Score -Format 'N1'
+                'RFS100' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'RawFactorScore100') -Format 'N1'
                 Gorus = ConvertTo-PlainText $_.Signal
                 Teyit = ConvertTo-PlainText $_.ConfirmationLabel
                 'Teknik Teyit' = '{0}/{1}' -f (ConvertTo-PlainText $_.TechnicalPassCount), (ConvertTo-PlainText $_.TechnicalCheckCount)
@@ -1526,38 +1530,63 @@ try {
 
     $css = @'
 <style>
-body { font-family: Segoe UI, Arial, sans-serif; color: #0f172a; margin: 24px; }
-h1 { margin-bottom: 4px; }
-h2 { margin-top: 28px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; }
-.muted { color: #64748b; }
-.card { display: inline-block; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin: 8px 8px 8px 0; background: #f8fafc; }
-.detail-card { border: 1px solid #cbd5e1; border-radius: 10px; padding: 14px 16px; margin: 14px 0; background: #ffffff; box-shadow: 0 1px 2px rgba(15,23,42,0.05); }
-.detail-card h3 { margin: 0 0 4px 0; color: #0f172a; }
-.detail-card h4 { margin: 12px 0 4px 0; color: #1e293b; }
-.detail-card ul { margin-top: 4px; padding-left: 20px; }
-.detail-card li { margin: 4px 0; }
-.badge { display: inline-block; padding: 4px 8px; border-radius: 999px; background: #dcfce7; color: #166534; font-weight: 700; font-size: 12px; }
-.portfolio-group { margin: 18px 0 26px 0; }
-.portfolio-group h3 { margin: 0 0 4px 0; }
-.pie-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 12px; }
-.pie-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; background: #ffffff; }
-.pie-card h3 { margin: 0 0 10px 0; font-size: 16px; }
-.pie-layout { display: grid; grid-template-columns: 108px 1fr; gap: 12px; align-items: center; }
-.pie-chart { width: 108px; height: 108px; border-radius: 50%; border: 1px solid #cbd5e1; }
-.pie-legend { display: grid; gap: 6px; }
-.pie-legend-item { display: grid; grid-template-columns: 14px 1fr auto; gap: 7px; align-items: center; font-size: 12px; }
-.swatch { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
-table { border-collapse: collapse; width: 100%; margin-top: 10px; font-size: 12px; }
-th { background: #0f172a; color: white; text-align: left; padding: 7px; }
-td { border-bottom: 1px solid #e2e8f0; padding: 7px; vertical-align: top; }
-tr:nth-child(even) td { background: #f8fafc; }
-.warn { background: #fffbeb; border: 1px solid #fde68a; padding: 10px; border-radius: 8px; }
-@media (max-width: 760px) {
-body { margin: 12px; font-size: 14px; }
-.card { display: block; }
-.pie-layout { grid-template-columns: 96px 1fr; }
-.pie-chart { width: 96px; height: 96px; }
-table { display: block; overflow-x: auto; white-space: nowrap; }
+body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color:#0f172a; margin:0; padding:0; background:#e9eef5; -webkit-font-smoothing:antialiased; }
+.wrap { max-width:1000px; margin:0 auto; background:#ffffff; box-shadow:0 6px 30px rgba(11,18,32,0.10); }
+.mono { font-family:'Consolas','SF Mono','Roboto Mono',monospace; }
+/* Masthead */
+.masthead { background:#0b1220; background:linear-gradient(135deg,#0b1220 0%,#132744 58%,#1e466f 100%); color:#e8eef7; padding:28px 30px 24px; border-bottom:3px solid #c9a227; }
+.mh-kicker { font-size:11px; letter-spacing:4px; text-transform:uppercase; color:#d6b34a; font-weight:700; }
+.mh-title { font-size:27px; font-weight:800; margin:7px 0 3px; letter-spacing:.3px; }
+.mh-sub { font-size:13px; color:#9fb3cc; }
+.mh-badge { float:right; text-align:center; border:1px solid rgba(214,179,74,.45); border-radius:12px; padding:10px 14px; background:rgba(255,255,255,.04); }
+.mh-badge .b1 { font-size:10px; letter-spacing:2px; color:#d6b34a; text-transform:uppercase; }
+.mh-badge .b2 { font-size:22px; font-weight:800; color:#fff; }
+.disclaim { display:inline-block; margin-top:12px; font-size:11px; color:#cbd5e1; background:rgba(255,255,255,.05); border:1px solid rgba(201,162,39,.35); padding:6px 11px; border-radius:7px; }
+/* KPI tiles */
+.kpi-row { padding:20px 30px 6px; background:#f4f7fb; border-bottom:1px solid #e2e8f0; }
+.kpi { display:inline-block; vertical-align:top; width:175px; background:#fff; border:1px solid #e6ebf2; border-top:3px solid #1e466f; border-radius:11px; padding:13px 15px; margin:0 11px 14px 0; box-shadow:0 1px 3px rgba(15,23,42,.06); }
+.kpi .lab { font-size:10.5px; text-transform:uppercase; letter-spacing:1px; color:#6b7a90; font-weight:700; }
+.kpi .val { font-size:23px; font-weight:800; color:#0b1220; margin-top:4px; font-family:'Consolas','Roboto Mono',monospace; }
+.kpi .sub { font-size:11px; color:#94a3b8; margin-top:3px; }
+.kpi.good { border-top-color:#059669; } .kpi.bad { border-top-color:#dc2626; } .kpi.gold { border-top-color:#c9a227; }
+.up { color:#059669; font-weight:700; } .down { color:#dc2626; font-weight:700; }
+/* Sections */
+.section { padding:4px 30px 8px; }
+h1 { margin:0; }
+h2 { margin:30px 0 3px; font-size:18px; color:#0b1220; border-left:4px solid #c9a227; padding-left:11px; }
+.muted { color:#64748b; font-size:12.5px; line-height:1.5; }
+.card { display:inline-block; vertical-align:top; border:1px solid #e2e8f0; border-radius:10px; padding:12px 16px; margin:8px 8px 8px 0; background:#f8fafc; }
+.detail-card { border:1px solid #e2e8f0; border-left:4px solid #1e466f; border-radius:10px; padding:15px 17px; margin:14px 0; background:#ffffff; box-shadow:0 1px 3px rgba(15,23,42,0.05); }
+.detail-card h3 { margin:0 0 4px 0; color:#0b1220; }
+.detail-card h4 { margin:12px 0 4px 0; color:#1e466f; font-size:13px; text-transform:uppercase; letter-spacing:.5px; }
+.detail-card ul { margin-top:4px; padding-left:20px; }
+.detail-card li { margin:4px 0; }
+.badge { display:inline-block; padding:4px 11px; border-radius:999px; background:#0b1220; color:#d6b34a; font-weight:700; font-size:11.5px; letter-spacing:.3px; border:1px solid #c9a227; }
+.portfolio-group { margin:18px 0 26px 0; }
+.portfolio-group h3 { margin:0 0 4px 0; }
+.pie-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:14px; margin-top:12px; }
+.pie-card { border:1px solid #e2e8f0; border-radius:10px; padding:13px; background:#ffffff; box-shadow:0 1px 3px rgba(15,23,42,.05); }
+.pie-card h3 { margin:0 0 10px 0; font-size:15px; color:#0b1220; }
+.pie-layout { display:grid; grid-template-columns:108px 1fr; gap:12px; align-items:center; }
+.pie-chart { width:108px; height:108px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 0 1px #cbd5e1, 0 2px 8px rgba(15,23,42,.12); }
+.pie-legend { display:grid; gap:6px; }
+.pie-legend-item { display:grid; grid-template-columns:14px 1fr auto; gap:7px; align-items:center; font-size:12px; }
+.swatch { width:12px; height:12px; border-radius:3px; display:inline-block; }
+/* Tables */
+table { border-collapse:collapse; width:100%; margin-top:10px; font-size:12px; background:#fff; border:1px solid #e6ebf2; border-radius:10px; overflow:hidden; }
+th { background:#0b1220; color:#e8eef7; text-align:left; padding:9px 8px; font-size:10.5px; letter-spacing:.4px; text-transform:uppercase; font-weight:700; }
+td { border-bottom:1px solid #eef2f7; padding:8px; vertical-align:top; }
+tr:nth-child(even) td { background:#f8fafc; }
+.warn { background:#0b1220; color:#cbd5e1; border:1px solid #c9a227; border-radius:11px; padding:15px 18px; font-size:12px; line-height:1.6; margin:24px 30px 30px; }
+.warn b { color:#d6b34a; }
+.footer { text-align:center; color:#94a3b8; font-size:11px; padding:14px 30px 26px; }
+@media (max-width:760px) {
+body { font-size:14px; }
+.card, .kpi { display:block; width:auto; }
+.mh-badge { float:none; display:inline-block; margin-top:12px; }
+.pie-layout { grid-template-columns:96px 1fr; }
+.pie-chart { width:96px; height:96px; }
+table { display:block; overflow-x:auto; white-space:nowrap; }
 }
 </style>
 '@
@@ -1571,13 +1600,22 @@ $css
 <title>$subject</title>
 </head>
 <body>
-<h1>$subject</h1>
-<p class="muted">Bu rapor otomatik sayisal taramadir; yatirim tavsiyesi degildir.</p>
-<div class="card"><b>Hisse sayisi</b><br>$($stocks.Count)</div>
-<div class="card"><b>Strateji</b><br>$strategy</div>
-<div class="card"><b>Lider</b><br>$($leader.Symbol) - $($leader.Score)</div>
-<div class="card"><b>Makro</b><br>$($macroSnapshot.Status)</div>
-<div class="card"><b>Rapor dosyasi</b><br>$htmlPath</div>
+<div class="wrap">
+<div class="masthead">
+<div class="mh-badge"><div class="b1">BIST</div><div class="b2">$topCount</div></div>
+<div class="mh-kicker">BORSA İSTANBUL · GÜNLÜK KANTİTATİF RAPOR</div>
+<h1 class="mh-title">$subject</h1>
+<div class="mh-sub mono">$($runAt.ToString('dd.MM.yyyy HH:mm')) · Strateji: $strategy · $($stocks.Count) hisse tarandı</div>
+<div class="disclaim">⚠ Otomatik sayısal taramadır; yatırım tavsiyesi değildir.</div>
+</div>
+<div class="kpi-row">
+<div class="kpi gold"><div class="lab">Skor Lideri</div><div class="val">$($leader.Symbol)</div><div class="sub">Skor $($leader.Score) · $($leader.Signal)</div></div>
+<div class="kpi"><div class="lab">Ham-Faktör Lideri</div><div class="val">$(($scored | Sort-Object RawFactorScore100 -Descending | Select-Object -First 1).Symbol)</div><div class="sub">RFS100 $(($scored | Sort-Object RawFactorScore100 -Descending | Select-Object -First 1).RawFactorScore100)</div></div>
+<div class="kpi $(if ($macroSnapshot.Status -match 'destekleyici') { 'good' } elseif ($macroSnapshot.Status -match 'temkinli') { 'bad' } else { 'gold' })"><div class="lab">Makro Zemin</div><div class="val" style="font-size:15px">$($macroSnapshot.Status)</div><div class="sub">Destek $($macroSnapshot.SupportiveCount) · Baskı $($macroSnapshot.PressureCount)</div></div>
+<div class="kpi $(if ([double]($updatedInstantEntryPortfolio.TotalReturnPct) -ge 0) { 'good' } else { 'bad' })"><div class="lab">Anlık Fırsat Portföyü</div><div class="val">%$($updatedInstantEntryPortfolio.TotalReturnPct)</div><div class="sub">Değer $($updatedInstantEntryPortfolio.CurrentValueTL) TL</div></div>
+<div class="kpi"><div class="lab">Anlık Giriş Fırsatı</div><div class="val">$(@($entryOpportunities).Count)</div><div class="sub">bugünkü sinyal</div></div>
+</div>
+<div class="section">
 <h2>Makro Görünüm</h2>
 <p class="muted">$($macroSnapshot.MeasurementNote)</p>
 $(New-HtmlTable -Rows $macroRows)
@@ -1605,7 +1643,7 @@ $(New-HtmlTable -Rows $strongUsdRows)
 <p class="muted">Fark sütunları sektör endeksi/proxy getirisi eksi BIST100 getirisi olarak okunur. Pozitif değer sektörün BIST100'e göre daha güçlü aktığını gösterir.</p>
 $(New-HtmlTable -Rows $sectorRows)
 <h2>Model Portföyler</h2>
-<p class="muted">Portföyler her çalışmada sadece değerlenir; ay sonu son işlem günü 18:10 sonrası tamamlanmış dönem varsa yeniden sıralanır ve AL/SAT/EŞİTLEME işlemleri state dosyasına yazılır.</p>
+<p class="muted">Portföyler her çalışmada sadece değerlenir; ay sonu son işlem günü 18:10 sonrası tamamlanmış dönem varsa yeniden sıralanır ve AL/SAT/EŞİTLEME işlemleri state dosyasına yazılır. <b>Dengeli / Değer / Momentum / Kalite</b> portföyleri strateji skoruna (Get-BistScore) göre seçilir. <b>RFS100</b> portföyü ise — backtest bulgusuna dayanarak — aynı uygunluk filtresini geçen hisseleri, eşik puanlaması yerine ham teknik faktörlerin kesitsel z-skor karışımı olan <b>RawFactorScore100</b> ile sıralayıp seçer (walk-forward testlerde botun skorunun ~2 katı IC). Tüm model portföyler teoriktir; komisyon/vergi/kayma içermez.</p>
 $(New-HtmlTable -Rows $portfolioRows)
 <h2>Model Portföy Hisse Dağılımı</h2>
 <p class="muted">Her model portföydeki güncel hisse ağırlıkları pasta grafik olarak gösterilir.</p>
@@ -1616,9 +1654,12 @@ $portfolioHoldingGroupsHtml
 <h2>Model Portföy Son İşlemler</h2>
 <p class="muted">Her portföy için son 12 işlem gösterilir; ilk kurulum, AL, SAT ve ay sonu eşitleme kayıtları fiyat/adet/tutar/not alanlarıyla izlenir.</p>
 $(New-HtmlTable -Rows $portfolioTransactionRows)
+</div>
 <div class="warn">
-Makro karar ağacı: makro uygun -> sektör güçlü -> bilanço güçlü -> teknik teyit -> kademeli giriş.
-CDS, TR10Y, DXY, VIX ve USD/TRY ücretsiz kaynaklardan izleme metriği olarak alınır; gecikmeli veya eksik olabilir. İşlem kararı öncesi TCMB, Borsa İstanbul/MKK/KAP ve lisanslı veri kaynaklarıyla doğrulayın.
+<b>Karar mekanizması:</b> makro zemin (TCMB EVDS faiz/TÜFE + CDS/DXY/VIX) → sektör rotasyonu → bilanço gücü (USD bazlı) → çok-zamanlı teknik teyit → kademeli giriş. Buna ek olarak <b>RawFactorScore100</b> (kesitsel ham-faktör; backtestte botun ~2 katı IC) bağımsız bir sıralama sinyali olarak raporlanır.<br>
+CDS, DXY, VIX izleme metrikleri ücretsiz/gecikmeli kaynaklardandır. İşlem kararı öncesi TCMB, Borsa İstanbul/MKK/KAP ve lisanslı veri kaynaklarıyla doğrulayın.
+</div>
+<div class="footer mono">BIST Kantitatif Rapor Motoru · $($runAt.ToString('yyyy-MM-dd HH:mm')) · otomatik üretildi</div>
 </div>
 </body>
 </html>
