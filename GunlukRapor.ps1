@@ -507,29 +507,25 @@ function New-ModelPortfolioDistributionPieChartsHtml {
                 $weightValues = @(1..$holdings.Count | ForEach-Object { 1.0 })
             }
 
-            $start = 0.0
-            $segments = [System.Collections.Generic.List[string]]::new()
+            $barCells = [System.Collections.Generic.List[string]]::new()
             $legendItems = [System.Collections.Generic.List[string]]::new()
             for ($index = 0; $index -lt $holdings.Count; $index++) {
                 $holding = $holdings[$index]
                 $symbol = [string](Get-ObjectPropertyValue -Object $holding -Name 'Symbol')
                 $weightPct = ([double]$weightValues[$index] / [double]$totalWeight) * 100.0
-                $end = $start + ($weightPct * 3.6)
                 $color = $colors[$index % $colors.Count]
-                [void]$segments.Add(('{0} {1}deg {2}deg' -f $color, $start.ToString('0.###', $culture), $end.ToString('0.###', $culture)))
+                # E-posta uyumlu: conic-gradient yerine genislik%'li tablo hucreleri
+                [void]$barCells.Add(('<td style="width:{0}%;background:{1};font-size:1px;line-height:20px;">&nbsp;</td>' -f $weightPct.ToString('0.##', $culture), $color))
                 [void]$legendItems.Add(('<div class="pie-legend-item"><span class="swatch" style="background:{0}"></span><span>{1}</span><b>{2}</b></div>' -f $color, (ConvertTo-HtmlText $symbol), (Format-ReportNumber -Value $weightPct -Format 'N1' -Suffix '%')))
-                $start = $end
             }
 
-            $gradient = $segments -join ', '
+            $barHtml = $barCells -join ''
             $legendHtml = $legendItems -join [Environment]::NewLine
             @"
 <section class="pie-card">
 <h3>$(ConvertTo-HtmlText $portfolioName)</h3>
-<div class="pie-layout">
-<div class="pie-chart" style="background: conic-gradient($gradient);"></div>
+<table role="presentation" cellpadding="0" cellspacing="0" class="distbar"><tr>$barHtml</tr></table>
 <div class="pie-legend">$legendHtml</div>
-</div>
 </section>
 "@
         })
@@ -603,20 +599,14 @@ function Get-ModelPortfolioHoldingRows {
                     Portfoy = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $portfolio -Name 'Name')
                     Sembol = ConvertTo-PlainText $symbol
                     Sirket = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $holding -Name 'Company')
-                    Sektor = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $holding -Name 'SectorTR')
-                    Adet = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $holding -Name 'Quantity') -Format 'N4'
-                    'Ilk Alis Tarihi' = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $firstBuy -Name 'ExecutionDateText')
-                    'Ilk Alis Fiyati' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $firstBuy -Name 'Price') -Format 'N2' -Suffix ' TL'
-                    'Ilk Satis Fiyati' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $firstSell -Name 'Price') -Format 'N2' -Suffix ' TL'
-                    'Son Islem' = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $lastTransaction -Name 'Action')
-                    'Son Rebalance Fiyati' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $holding -Name 'RebalancePrice') -Format 'N2' -Suffix ' TL'
-                    'Guncel Fiyat' = Format-ReportNumber -Value $currentPrice -Format 'N2' -Suffix ' TL'
-                    'Maliyet' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $holding -Name 'CostBasisTL') -Format 'N2' -Suffix ' TL'
-                    'Guncel Deger' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $holding -Name 'CurrentValueTL') -Format 'N2' -Suffix ' TL'
-                    'Agirlik' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $holding -Name 'WeightPct') -Format 'N2' -Suffix '%'
-                    'Rebalance Getirisi' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $holding -Name 'GainSinceRebalancePct') -Format 'N2' -Suffix '%'
-                    'Ilk Alistan Getiri' = Format-ReportNumber -Value (Get-TransactionPriceReturnPct -ReferenceTransaction $firstBuy -CurrentPrice $currentPrice) -Format 'N2' -Suffix '%'
-                    Gerekce = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $holding -Name 'SelectionReason')
+                    Adet = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $holding -Name 'Quantity') -Format 'N2'
+                    'Ilk Fiyat' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $firstBuy -Name 'Price') -Format 'N2'
+                    'Guncel' = Format-ReportNumber -Value $currentPrice -Format 'N2'
+                    'Maliyet TL' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $holding -Name 'CostBasisTL') -Format 'N0'
+                    'Deger TL' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $holding -Name 'CurrentValueTL') -Format 'N0'
+                    'Agirlik' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $holding -Name 'WeightPct') -Format 'N1' -Suffix '%'
+                    'Rebalans %' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $holding -Name 'GainSinceRebalancePct') -Format 'N1'
+                    'Getiri %' = Format-ReportNumber -Value (Get-TransactionPriceReturnPct -ReferenceTransaction $firstBuy -CurrentPrice $currentPrice) -Format 'N1'
                 }
             }
         })
@@ -1085,20 +1075,13 @@ function Get-InstantEntryPortfolioHoldingRows {
             [pscustomobject][ordered]@{
                 Sembol = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Symbol')
                 Şirket = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Company')
-                Sektör = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'SectorTR')
-                Adet = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'Quantity') -Format 'N4'
-                'Ort. Maliyet' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'AverageBuyPrice') -Format 'N2' -Suffix ' TL'
-                'Güncel Fiyat' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'CurrentPrice') -Format 'N2' -Suffix ' TL'
-                Maliyet = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'CostBasisTL') -Format 'N2' -Suffix ' TL'
-                'Güncel Değer' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'CurrentValueTL') -Format 'N2' -Suffix ' TL'
-                Ağırlık = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'WeightPct') -Format 'N2' -Suffix '%'
-                'Anlık Getiri' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'UnrealizedGainPct') -Format 'N2' -Suffix '%'
-                'Alım Sayısı' = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'BuyCount')
-                'İlk Alım' = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'FirstBuyAtText')
-                'Son Alım' = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'LastBuyAtText')
-                'Son Sinyal' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'LastSignalScore') -Format 'N1'
-                Etiket = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'LastSignalLabel')
-                Gerekçe = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'LastReason')
+                Adet = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'Quantity') -Format 'N2'
+                'Maliyet TL' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'CostBasisTL') -Format 'N0'
+                'Deger TL' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'CurrentValueTL') -Format 'N0'
+                Ağırlık = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'WeightPct') -Format 'N1' -Suffix '%'
+                'Getiri %' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'UnrealizedGainPct') -Format 'N1'
+                'Alim' = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'BuyCount')
+                'Ilk Alim' = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'FirstBuyAtText')
             }
         }
     )
@@ -1358,24 +1341,15 @@ try {
                 'RFS100' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'RawFactorScore100') -Format 'N1'
                 Gorus = ConvertTo-PlainText $_.Signal
                 Teyit = ConvertTo-PlainText $_.ConfirmationLabel
-                'Teknik Teyit' = '{0}/{1}' -f (ConvertTo-PlainText $_.TechnicalPassCount), (ConvertTo-PlainText $_.TechnicalCheckCount)
-                'Kademeli Giris Notu' = ConvertTo-PlainText $_.EntryNote
-                'Eksik Teyitler' = ConvertTo-PlainText $_.FailedConfirmations
+                'Teyit n' = '{0}/{1}' -f (ConvertTo-PlainText $_.TechnicalPassCount), (ConvertTo-PlainText $_.TechnicalCheckCount)
                 Sembol = ConvertTo-PlainText $_.Symbol
                 Sirket = ConvertTo-PlainText $_.Company
                 Sektor = ConvertTo-PlainText $_.SectorTR
                 Fiyat = Format-ReportNumber -Value $_.Price -Format 'N2'
-                'Makro/Sektor' = Format-ReportNumber -Value $_.MacroSectorScore -Format 'N1'
-                'BIST Alfa 1Y' = Format-ReportNumber -Value $_.StockVsBist1YPct -Format 'N1'
-                'FAVOK USD Y/Y' = Format-ReportNumber -Value $_.EbitdaUsdYoYPct -Format 'N1' -Suffix '%'
-                'FD/FAVOK' = Format-ReportNumber -Value $_.EvEbitda -Format 'N2'
+                'Makro' = Format-ReportNumber -Value $_.MacroSectorScore -Format 'N1'
                 RSI = Format-ReportNumber -Value $_.RSI -Format 'N1'
-                'MACD Hist' = Format-ReportNumber -Value $_.MacdHistogram -Format 'N2'
-                'Haftalik RSI' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'RSIWeekly') -Format 'N1'
-                'Haftalik MACD Hist' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'MacdHistogramWeekly') -Format 'N2'
-                'Aylik RSI' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'RSIMonthly') -Format 'N1'
-                'Aylik MACD Hist' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'MacdHistogramMonthly') -Format 'N2'
-                'Hacim' = Format-ReportNumber -Value $_.RelativeVolume -Format 'N2' -Suffix 'x'
+                'MACD' = Format-ReportNumber -Value $_.MacdHistogram -Format 'N2'
+                'Hacim' = Format-ReportNumber -Value $_.RelativeVolume -Format 'N1' -Suffix 'x'
             }
         })
 
@@ -1448,21 +1422,12 @@ try {
                 'Giris Skoru' = Format-ReportNumber -Value $_.EntryOpportunityScore -Format 'N1'
                 Sembol = ConvertTo-PlainText $_.Symbol
                 Sirket = ConvertTo-PlainText $_.Company
-                Sektor = ConvertTo-PlainText $_.SectorTR
-                Fiyat = Format-ReportNumber -Value $_.Price -Format 'N2' -Suffix ' TL'
-                'Haftalik Hist Etiket' = ConvertTo-PlainText $_.WeeklyHistogramLabel
-                'Ust Uste Artis' = ConvertTo-PlainText $_.WeeklyHistogramRisingWeeks
-                '8 Haftada Artis' = '{0}/7' -f (ConvertTo-PlainText $_.WeeklyHistogramIncreaseCount)
-                'Son Hist' = Format-ReportNumber -Value $_.LastWeeklyHistogram -Format 'N2'
-                'Onceki Hist' = Format-ReportNumber -Value $_.PreviousWeeklyHistogram -Format 'N2'
+                Fiyat = Format-ReportNumber -Value $_.Price -Format 'N2'
+                'Hist Etiket' = ConvertTo-PlainText $_.WeeklyHistogramLabel
+                '8H Artis' = '{0}/7' -f (ConvertTo-PlainText $_.WeeklyHistogramIncreaseCount)
                 RSI = Format-ReportNumber -Value $_.RSI -Format 'N1'
-                'Goreli Hacim' = Format-ReportNumber -Value $_.RelativeVolume -Format 'N2' -Suffix 'x'
-                'FD/FAVOK' = Format-ReportNumber -Value $_.EvEbitda -Format 'N2'
-                '52H Konum' = Format-ReportNumber -Value $_.Range52PositionPct -Format 'N1' -Suffix '%'
-                '52H Bant' = ConvertTo-PlainText $_.Range52Bucket
-                'BIST 4H' = $(if ($null -ne $_.MarketRegimeLabel) { '{0} ({1})' -f (ConvertTo-PlainText $_.MarketRegimeLabel), (Format-ReportNumber -Value $_.MarketRegimeChangePct -Format 'N1' -Suffix '%') } else { '-' })
-                'Makro/Sektor' = Format-ReportNumber -Value $_.MacroSectorScore -Format 'N1'
-                'Neden Simdi Izlenir' = ConvertTo-PlainText $_.Reason
+                '52H %' = Format-ReportNumber -Value $_.Range52PositionPct -Format 'N1'
+                'Makro' = Format-ReportNumber -Value $_.MacroSectorScore -Format 'N1'
             }
         })
 
@@ -1564,19 +1529,22 @@ h2 { margin:30px 0 3px; font-size:18px; color:#0b1220; border-left:4px solid #c9
 .badge { display:inline-block; padding:4px 11px; border-radius:999px; background:#0b1220; color:#d6b34a; font-weight:700; font-size:11.5px; letter-spacing:.3px; border:1px solid #c9a227; }
 .portfolio-group { margin:18px 0 26px 0; }
 .portfolio-group h3 { margin:0 0 4px 0; }
-.pie-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:14px; margin-top:12px; }
-.pie-card { border:1px solid #e2e8f0; border-radius:10px; padding:13px; background:#ffffff; box-shadow:0 1px 3px rgba(15,23,42,.05); }
+.pie-grid { font-size:0; margin-top:12px; }
+.pie-card { display:inline-block; vertical-align:top; width:46%; min-width:280px; border:1px solid #e2e8f0; border-radius:10px; padding:13px; margin:0 1.5% 14px 0; background:#ffffff; box-shadow:0 1px 3px rgba(15,23,42,.05); }
 .pie-card h3 { margin:0 0 10px 0; font-size:15px; color:#0b1220; }
-.pie-layout { display:grid; grid-template-columns:108px 1fr; gap:12px; align-items:center; }
-.pie-chart { width:108px; height:108px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 0 1px #cbd5e1, 0 2px 8px rgba(15,23,42,.12); }
-.pie-legend { display:grid; gap:6px; }
-.pie-legend-item { display:grid; grid-template-columns:14px 1fr auto; gap:7px; align-items:center; font-size:12px; }
-.swatch { width:12px; height:12px; border-radius:3px; display:inline-block; }
-/* Tables */
-table { border-collapse:collapse; width:100%; margin-top:10px; font-size:12px; background:#fff; border:1px solid #e6ebf2; border-radius:10px; overflow:hidden; }
-th { background:#0b1220; color:#e8eef7; text-align:left; padding:9px 8px; font-size:10.5px; letter-spacing:.4px; text-transform:uppercase; font-weight:700; }
-td { border-bottom:1px solid #eef2f7; padding:8px; vertical-align:top; }
+.distbar { width:100%; border-collapse:separate; border-spacing:0; border-radius:6px; overflow:hidden; margin-bottom:10px; border:1px solid #e2e8f0; }
+.distbar td { padding:0; border:0; }
+.pie-legend { font-size:0; }
+.pie-legend-item { display:inline-block; width:48%; font-size:12px; margin:2px 0; white-space:nowrap; }
+.pie-legend-item span { display:inline; }
+.pie-legend-item b { font-weight:700; margin-left:4px; }
+.swatch { width:10px; height:10px; border-radius:2px; display:inline-block; margin-right:5px; vertical-align:middle; }
+/* Tables - e-posta uyumlu: sabit yerlesim + kelime kirma (kesilmeyi onler) */
+table { border-collapse:collapse; width:100%; table-layout:fixed; margin-top:10px; font-size:11px; background:#fff; border:1px solid #e6ebf2; border-radius:10px; }
+th { background:#0b1220; color:#e8eef7; text-align:left; padding:7px 5px; font-size:10px; letter-spacing:.2px; text-transform:uppercase; font-weight:700; word-break:break-word; overflow-wrap:anywhere; }
+td { border-bottom:1px solid #eef2f7; padding:6px 5px; vertical-align:top; word-break:break-word; overflow-wrap:anywhere; }
 tr:nth-child(even) td { background:#f8fafc; }
+.distbar td { word-break:normal; }
 .warn { background:#0b1220; color:#cbd5e1; border:1px solid #c9a227; border-radius:11px; padding:15px 18px; font-size:12px; line-height:1.6; margin:24px 30px 30px; }
 .warn b { color:#d6b34a; }
 .footer { text-align:center; color:#94a3b8; font-size:11px; padding:14px 30px 26px; }
