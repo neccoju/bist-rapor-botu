@@ -3486,22 +3486,32 @@ function Get-ModelPortfolioSelection {
 function Get-BistFullClosureDates {
     param([int]$Year)
 
-    if ($Year -eq 2026) {
-        return @(
-            [datetime]'2026-01-01',
-            [datetime]'2026-03-20',
-            [datetime]'2026-04-23',
-            [datetime]'2026-05-01',
-            [datetime]'2026-05-19',
-            [datetime]'2026-05-27',
-            [datetime]'2026-05-28',
-            [datetime]'2026-05-29',
-            [datetime]'2026-07-15',
-            [datetime]'2026-10-29'
-        )
+    $dates = New-Object System.Collections.Generic.List[datetime]
+
+    # 1) Sabit tarihli resmi tatiller (her yil deterministik; BIST tamamen kapali).
+    #    Yilbasi, Ulusal Egemenlik, Emek, Genclik, Demokrasi, Zafer, Cumhuriyet.
+    foreach ($md in @('01-01', '04-23', '05-01', '05-19', '07-15', '08-30', '10-29')) {
+        $p = $md.Split('-')
+        [void]$dates.Add([datetime]::new($Year, [int]$p[0], [int]$p[1]))
+    }
+    # 29 Ekim arifesi (yarim gun degil; BIST geleneksel olarak 28 Ekim ogleden sonra
+    # kapanir ama tam kapanis degildir) -> sadece tam kapanis gunleri listelenir.
+
+    # 2) Dini bayramlar (ay takvimine bagli -> her yil BIST resmi tatil takviminden
+    #    GUNCELLENMELIDIR). Eksik yil icin yalnizca sabit tatiller + hafta sonu atlanir.
+    $religious = @{
+        2026 = @('03-20', '03-21', '03-22', '05-27', '05-28', '05-29')
+        2027 = @('03-10', '03-11', '03-12', '05-16', '05-17', '05-18', '05-19')
+        2028 = @('02-26', '02-27', '02-28', '05-04', '05-05', '05-06', '05-07')
+    }
+    if ($religious.ContainsKey($Year)) {
+        foreach ($md in $religious[$Year]) {
+            $p = $md.Split('-')
+            [void]$dates.Add([datetime]::new($Year, [int]$p[0], [int]$p[1]))
+        }
     }
 
-    return @()
+    return ($dates | Sort-Object -Unique)
 }
 
 function Get-LastModelPortfolioTradingDay {

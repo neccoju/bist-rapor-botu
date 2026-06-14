@@ -47,7 +47,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $expectedPartCount = 22
-          $expectedPayloadChars = 84752
+          $expectedPayloadChars = 85340
           $parts = Get-ChildItem -LiteralPath .\runtime -Filter 'full-bist-report-runtime.zip.b64.chunk*' | Sort-Object Name
           if ($parts.Count -ne $expectedPartCount) {
             throw "Runtime package chunk count is $($parts.Count), expected $expectedPartCount."
