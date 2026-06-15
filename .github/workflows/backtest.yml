@@ -1,0 +1,41 @@
+name: Model Portfolio Backtest
+
+# Elle calistirilan geriye-donuk backtest (momentum 12-1, aylik). Gunluk raporu
+# ve state'i ETKILEMEZ; sonuclari loga yazar.
+on:
+  workflow_dispatch:
+    inputs:
+      start_date:
+        description: "Baslangic (yyyy-MM-dd)"
+        required: false
+        default: "2024-09-01"
+      top_n:
+        description: "Portfoy hisse sayisi"
+        required: false
+        default: "5"
+      max_stocks:
+        description: "Evren buyuklugu (piyasa degerine gore)"
+        required: false
+        default: "200"
+      cost_bps:
+        description: "Islem maliyeti (bps)"
+        required: false
+        default: "20"
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  backtest:
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Run backtest
+        shell: powershell
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\Backtest-ModelPortfolio.ps1 -StartDate ([datetime]"${{ github.event.inputs.start_date }}") -TopN ([int]"${{ github.event.inputs.top_n }}") -MaxStocks ([int]"${{ github.event.inputs.max_stocks }}") -CostBps ([double]"${{ github.event.inputs.cost_bps }}")
