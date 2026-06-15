@@ -1416,6 +1416,26 @@ try {
             }
         })
 
+    $earningsCalendarRows = @($scored |
+            Where-Object { $null -ne (Get-ObjectPropertyValue -Object $_ -Name 'NextEarningsDate') } |
+            Sort-Object @{ Expression = { [datetime](Get-ObjectPropertyValue -Object $_ -Name 'NextEarningsDate') }; Ascending = $true } |
+            Select-Object -First 15 |
+            ForEach-Object {
+                $nextDate = [datetime](Get-ObjectPropertyValue -Object $_ -Name 'NextEarningsDate')
+                $lastDate = Get-ObjectPropertyValue -Object $_ -Name 'LatestReportDate'
+                $daysTo = [int][Math]::Ceiling(($nextDate.Date - $runAt.Date).TotalDays)
+                $flag = if ($daysTo -lt 0) { 'Geçti/güncellenmedi' } elseif ($daysTo -le 7) { '⚠ Yaklaşıyor (olay riski)' } elseif ($daysTo -le 21) { 'Yakında' } else { 'Uzak' }
+                [pscustomobject][ordered]@{
+                    Sembol = ConvertTo-PlainText $_.Symbol
+                    Sirket = ConvertTo-PlainText $_.Company
+                    Skor = Format-ReportNumber -Value $_.Score -Format 'N1'
+                    'Son Bilanço' = if ($null -ne $lastDate) { ([datetime]$lastDate).ToString('dd.MM.yyyy') } else { '-' }
+                    'Sonraki Bilanço' = $nextDate.ToString('dd.MM.yyyy')
+                    'Kalan Gün' = ConvertTo-PlainText $daysTo
+                    Durum = $flag
+                }
+            })
+
     $confirmedRows = @($scored |
             Where-Object { $_.ConfirmationLabel -in @('Tüm Teyitli Güçlü Aday', 'Teknik Teyitli Güçlü İzle') } |
             Sort-Object @{ Expression = { Get-ConfirmationRank -Stock $_ }; Ascending = $true }, @{ Expression = { $_.Score }; Descending = $true } |
@@ -1656,6 +1676,9 @@ $(New-HtmlTable -Rows $topRows)
 $(New-HtmlTable -Rows $academicRows)
 <h2>USD Güçlü Bilanço</h2>
 $(New-HtmlTable -Rows $strongUsdRows)
+<h2>Yaklaşan Bilanço Takvimi</h2>
+<p class="muted">Skora göre öne çıkan hisselerin bir sonraki bilanço/finansal rapor açıklama tarihi (TradingView takviminden; tahmini olabilir) ve son açıklanan bilanço tarihi. "Kalan Gün" 7 ve altındaysa olay riski yüksektir: bilanço öncesi oynaklık artar, kademeli giriş veya bilanço sonrası teyit beklemek daha disiplinlidir. Açıklanan rakamlar bir sonraki taramada otomatik olarak skorlara yansır.</p>
+$(New-HtmlTable -Rows $earningsCalendarRows)
 <h2>Sektor Rotasyonu</h2>
 <p class="muted">Fark sütunları sektör endeksi/proxy getirisi eksi BIST100 getirisi olarak okunur. Pozitif değer sektörün BIST100'e göre daha güçlü aktığını gösterir.</p>
 $(New-HtmlTable -Rows $sectorRows)
