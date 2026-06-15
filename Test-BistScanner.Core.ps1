@@ -280,7 +280,7 @@ if ($sellNewsStock.PreEarningsRunupActive) { throw 'SLL: run-up bayrağı beklen
 if (-not $sellNewsStock.SellTheNewsRisk) { throw 'SLL: sell-the-news riski bekleniyordu.' }
 if ($preRunStock.SellTheNewsRisk) { throw 'PRE: sell-the-news beklenmiyordu (yeni açıklama yok).' }
 if ((Get-EarningsTimingAdjustment -Stock $preRunStock) -ne 3) { throw "PRE skor ayarı +3 olmaliydi: $(Get-EarningsTimingAdjustment -Stock $preRunStock)" }
-if ((Get-EarningsTimingAdjustment -Stock $sellNewsStock) -ne -5) { throw "SLL skor ayarı -5 olmaliydi: $(Get-EarningsTimingAdjustment -Stock $sellNewsStock)" }
+if ((Get-EarningsTimingAdjustment -Stock $sellNewsStock) -ne -3) { throw "SLL skor ayarı -3 olmaliydi: $(Get-EarningsTimingAdjustment -Stock $sellNewsStock)" }
 # Skora yansima: run-up bonusu skoru yukseltmeli
 $baseTiming = (Get-BistScore -Stock $sample -Strategy 'Dengeli').Score
 $runupSample = $sample.PSObject.Copy()
@@ -334,7 +334,7 @@ Write-Host "Get-KapDisclosures testi başarılı (best-effort, $($kapList.Count)
 # --- Kendini ogrenen sinyal kalibrasyonu ---
 # Yetersiz ornek -> varsayilan (-5).
 $calInsufficient = Update-SignalCalibration -Reactions ([pscustomobject]@{ Completed = @() }) -AsOf ([datetime]'2026-06-15')
-if ($calInsufficient.Calibrated -or $calInsufficient.PostEarningsAdjustment -ne -5.0) {
+if ($calInsufficient.Calibrated -or $calInsufficient.PostEarningsAdjustment -ne -3.0) {
     throw "Yetersiz örnekte varsayılan kalibrasyon bekleniyordu: $($calInsufficient.PostEarningsAdjustment)"
 }
 # Yeterli ornek, pozitif surprizliler geri vermis (sell-the-news) -> negatif ayar.

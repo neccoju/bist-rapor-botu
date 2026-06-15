@@ -4501,7 +4501,7 @@ function Get-SignalCalibration {
     return [pscustomobject][ordered]@{
         UpdatedAt = $null
         PreEarningsRunupBonus = 3.0
-        PostEarningsAdjustment = -5.0
+        PostEarningsAdjustment = -3.0
         Calibrated = $false
         SampleCount = 0
         Note = 'Varsayilan degerler (henuz kalibre edilmedi).'
@@ -4551,7 +4551,7 @@ function Update-SignalCalibration {
     )
 
     $bonus = 3.0
-    $postAdj = -5.0
+    $postAdj = -3.0
     $calibrated = $false
     $meanPos = $null
     $hitPos = $null
@@ -4576,7 +4576,7 @@ function Update-SignalCalibration {
         "Kalibre edildi: n=$n yönlü örnek, pozitif sürpriz ort. drift %$meanPos (isabet %$hitPos) -> bilanço sonrası ayar $postAdj."
     }
     else {
-        "Yetersiz örnek (yönlü=$n/$MinSamples, pozitif=$($posDrifts.Count)/$MinPositive); varsayılan ayar -5 kullanılıyor."
+        "Yetersiz örnek (yönlü=$n/$MinSamples, pozitif=$($posDrifts.Count)/$MinPositive); varsayılan ayar -3 kullanılıyor."
     }
 
     return [pscustomobject][ordered]@{
