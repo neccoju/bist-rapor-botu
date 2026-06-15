@@ -18,8 +18,9 @@ function Inv($url) {
 
 $kw = 'TAHVIL|TAHVİL|DIBS|DİBS|GETIRI|GETİRİ|GOSTERGE|GÖSTERGE|BONO|HAZINE|HAZİNE|YIL|VADE|FAIZ|FAİZ|BOND|YIELD|BENCHMARK'
 
+# EVDS metadata uclari anahtari URL YOLUNDA ister (veri ucu header'da; metadata path'te).
 Write-Host '=== EVDS kategorileri ==='
-$cats = Inv 'https://evds2.tcmb.gov.tr/service/evds/categories/type=json'
+$cats = Inv ("https://evds2.tcmb.gov.tr/service/evds/categories/key={0}/type=json" -f $key)
 if ($null -eq $cats) { Write-Host 'Kategori alinamadi; cikiliyor.'; return }
 $catList = if ($cats -is [array]) { $cats } else { @($cats) }
 foreach ($c in $catList) {
@@ -37,14 +38,14 @@ Write-Host "=== Ilgili kategorilerde tahvil/getiri veri gruplari ve serileri ===
 foreach ($c in $targetCats) {
     $cid = $c.CATEGORY_ID
     Write-Host ("--- Kategori [{0}] {1} ---" -f $cid, $c.TOPIC_TITLE_TR)
-    $groups = Inv ("https://evds2.tcmb.gov.tr/service/evds/datagroups/mode=2&code={0}&type=json" -f $cid)
+    $groups = Inv ("https://evds2.tcmb.gov.tr/service/evds/datagroups/key={0}/mode=2/code={1}/type=json" -f $key, $cid)
     if ($null -eq $groups) { continue }
     $groupList = if ($groups -is [array]) { $groups } else { @($groups) }
     $matchGroups = @($groupList | Where-Object { "$($_.DATAGROUP_NAME) $($_.DATAGROUP_NAME_ENG)" -match $kw })
     foreach ($g in $matchGroups) {
         $gcode = $g.DATAGROUP_CODE
         Write-Host ("  VeriGrubu [{0}] {1}" -f $gcode, $g.DATAGROUP_NAME)
-        $series = Inv ("https://evds2.tcmb.gov.tr/service/evds/serieList/type=json&code={0}" -f $gcode)
+        $series = Inv ("https://evds2.tcmb.gov.tr/service/evds/serieList/key={0}/type=json/code={1}" -f $key, $gcode)
         if ($null -eq $series) { continue }
         $seriesList = if ($series -is [array]) { $series } else { @($series) }
         foreach ($s in $seriesList) {
