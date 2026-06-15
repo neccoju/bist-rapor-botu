@@ -269,6 +269,26 @@ if ($etA.DaysToNextEarnings -ne 3 -or $etA.DaysSinceLastReport -ne 2 -or $null -
 }
 Write-Host "Add-EarningsTiming testi başarılı."
 
+# --- Bilanço öncesi run-up + sell-the-news bayrakları ve skor ayarı ---
+$preRunStock = [pscustomobject]@{ Symbol = 'PRE'; Price = 120; SMA20 = 110; SMA50 = 100; RelativeVolume = 1.4; PerfMonth = 8; MacdHistogram = 0.5; RSI = 60
+    NextEarningsDate = [datetime]'2026-06-30'; LatestReportDate = [datetime]'2026-03-31'; NetIncomeUsdYoYPct = 40; EbitdaUsdYoYPct = 30; EbitdaSequentialIncreaseCount = 3; PositiveQuarterCount = 5 }
+$sellNewsStock = [pscustomobject]@{ Symbol = 'SLL'; Price = 130; SMA20 = 110; SMA50 = 100; RelativeVolume = 1.2; PerfMonth = 20; MacdHistogram = 0.5; RSI = 72
+    NextEarningsDate = [datetime]'2026-09-30'; LatestReportDate = [datetime]'2026-06-12'; NetIncomeUsdYoYPct = 90; EbitdaUsdYoYPct = 70; EbitdaSequentialIncreaseCount = 4; PositiveQuarterCount = 5 }
+[void](Add-EarningsTiming -Stocks @($preRunStock, $sellNewsStock) -AsOf ([datetime]'2026-06-15'))
+if (-not $preRunStock.PreEarningsRunupActive) { throw 'PRE: bilanço öncesi run-up bayrağı bekleniyordu.' }
+if ($sellNewsStock.PreEarningsRunupActive) { throw 'SLL: run-up bayrağı beklenmiyordu (bilanço uzak).' }
+if (-not $sellNewsStock.SellTheNewsRisk) { throw 'SLL: sell-the-news riski bekleniyordu.' }
+if ($preRunStock.SellTheNewsRisk) { throw 'PRE: sell-the-news beklenmiyordu (yeni açıklama yok).' }
+if ((Get-EarningsTimingAdjustment -Stock $preRunStock) -ne 3) { throw "PRE skor ayarı +3 olmaliydi: $(Get-EarningsTimingAdjustment -Stock $preRunStock)" }
+if ((Get-EarningsTimingAdjustment -Stock $sellNewsStock) -ne -5) { throw "SLL skor ayarı -5 olmaliydi: $(Get-EarningsTimingAdjustment -Stock $sellNewsStock)" }
+# Skora yansima: run-up bonusu skoru yukseltmeli
+$baseTiming = (Get-BistScore -Stock $sample -Strategy 'Dengeli').Score
+$runupSample = $sample.PSObject.Copy()
+$runupSample | Add-Member -NotePropertyName PreEarningsRunupActive -NotePropertyValue $true -Force
+$runupScore = (Get-BistScore -Stock $runupSample -Strategy 'Dengeli').Score
+if (-not ($runupScore -gt $baseTiming)) { throw "Run-up bonusu skora yansimadi: base=$baseTiming runup=$runupScore" }
+Write-Host "Bilanço öncesi ivme / sell-the-news testi başarılı (bonus base=$baseTiming -> $runupScore)."
+
 # --- Bilanço yakınlığı skora (Get-BistScore üzerinden risk cezası) ---
 $baseScore = (Get-BistScore -Stock $sample -Strategy 'Dengeli').Score
 $nearSample = $sample.PSObject.Copy()

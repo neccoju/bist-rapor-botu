@@ -1816,6 +1816,12 @@ function Get-BistRiskFlags {
     if ($null -ne $daysToEarnings -and $daysToEarnings -ge 0 -and $daysToEarnings -le 7) {
         [void]$flags.Add("Bilanço açıklamasına $daysToEarnings gün kaldı; olay riski")
     }
+    if ([bool](Get-ObjectPropertyValue -Object $Stock -Name 'PreEarningsRunupActive')) {
+        [void]$flags.Add('Bilanço öncesi ivme (anticipation): yaklaşan bilanço + güçlenen fiyat/hacim')
+    }
+    if ([bool](Get-ObjectPropertyValue -Object $Stock -Name 'SellTheNewsRisk')) {
+        [void]$flags.Add('Sell-the-news riski: yeni güçlü bilanço sonrası geri verme eğilimi')
+    }
 
     if ($null -eq $Stock.PE -and $null -eq $Stock.PB -and $null -eq $Stock.ROE) {
         [void]$flags.Add('Temel analiz verileri eksik')
@@ -2461,7 +2467,8 @@ function Get-BistScore {
         ($liquidityScore * $weights.Liquidity) + `
         ($macroSectorScore * $weights.MacroSector)
 
-    $score = [Math]::Round((Limit-Value -Value ($rawScore - $riskPenalty)), 1)
+    $earningsTimingAdjustment = Get-EarningsTimingAdjustment -Stock $Stock
+    $score = [Math]::Round((Limit-Value -Value ($rawScore - $riskPenalty + $earningsTimingAdjustment)), 1)
     $signal = Get-SignalLabel -Score $score
     $riskFlags = @(Get-BistRiskFlags -Stock $Stock)
     $riskLevel = Get-RiskLevel -RiskFlags $riskFlags
@@ -4439,12 +4446,61 @@ function Add-EarningsTiming {
         $last = Get-ObjectPropertyValue -Object $s -Name 'LatestReportDate'
         $dNext = if ($next -is [datetime]) { [int][Math]::Ceiling(($next.Date - $AsOf.Date).TotalDays) } else { $null }
         $dLast = if ($last -is [datetime]) { [int][Math]::Floor(($AsOf.Date - $last.Date).TotalDays) } else { $null }
+        $surprise = Get-EarningsSurpriseScore -Stock $s
         $s | Add-Member -NotePropertyName DaysToNextEarnings -NotePropertyValue $dNext -Force
         $s | Add-Member -NotePropertyName DaysSinceLastReport -NotePropertyValue $dLast -Force
-        $s | Add-Member -NotePropertyName EarningsSurpriseScore -NotePropertyValue (Get-EarningsSurpriseScore -Stock $s) -Force
+        $s | Add-Member -NotePropertyName EarningsSurpriseScore -NotePropertyValue $surprise -Force
+
+        # Bilanço öncesi run-up (öncü sinyal): olay çalışmasinda iyi bilanço
+        # aciklama oncesi fiyat yukselisiyle haber veriyordu (r~0.26). 8-25 gun
+        # kala + guclenen fiyat/hacim.
+        $price = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'Price')
+        $sma20 = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'SMA20')
+        $sma50 = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'SMA50')
+        $relVol = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'RelativeVolume')
+        $perfMonth = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'PerfMonth')
+        $macdHist = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'MacdHistogram')
+        $rsi = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'RSI')
+
+        $preRunup = $false
+        if ($null -ne $dNext -and $dNext -ge 8 -and $dNext -le 25 -and
+            $null -ne $price -and $null -ne $sma20 -and $sma20 -gt 0 -and $price -ge $sma20 -and
+            $null -ne $sma50 -and $sma50 -gt 0 -and $sma20 -ge $sma50 -and
+            $null -ne $relVol -and $relVol -ge 1.1 -and
+            (($null -ne $perfMonth -and $perfMonth -gt 0) -or ($null -ne $macdHist -and $macdHist -ge 0))) {
+            $preRunup = $true
+        }
+
+        # Açıklama sonrası "sell-the-news" riski: olay çalismasinda pozitif
+        # surprizliler ~1 ay sonra geri veriyordu (-%4.9). Yeni aciklamis +
+        # pozitif surpriz + asiri uzamis/asiri alim.
+        $sellTheNews = $false
+        if ($null -ne $dLast -and $dLast -ge 0 -and $dLast -le 15 -and
+            $null -ne $surprise -and $surprise -ge 60 -and
+            ((($null -ne $price -and $null -ne $sma20 -and $sma20 -gt 0) -and (($price / $sma20) - 1.0) -gt 0.10) -or
+             ($null -ne $rsi -and $rsi -gt 65))) {
+            $sellTheNews = $true
+        }
+
+        $s | Add-Member -NotePropertyName PreEarningsRunupActive -NotePropertyValue $preRunup -Force
+        $s | Add-Member -NotePropertyName SellTheNewsRisk -NotePropertyValue $sellTheNews -Force
     }
 
     return $Stocks
+}
+
+function Get-EarningsTimingAdjustment {
+    <#
+        Bilanço zamanlamasina dayali imzali skor ayari (olay calismasi bulgusu):
+        + bilanço oncesi run-up (anticipation edge), - sell-the-news riski.
+        Kucuk ve sinirli; cekirdek skoru asiri etkilemez.
+    #>
+    param($Stock)
+
+    $adj = 0.0
+    if ([bool](Get-ObjectPropertyValue -Object $Stock -Name 'PreEarningsRunupActive')) { $adj += 3 }
+    if ([bool](Get-ObjectPropertyValue -Object $Stock -Name 'SellTheNewsRisk')) { $adj -= 5 }
+    return $adj
 }
 
 function Get-EarningsSurpriseScore {
@@ -5018,6 +5074,7 @@ Export-ModuleMember -Function `
     Get-CumulativeInflationFromIndexPoints, `
     Add-EarningsTiming, `
     Get-EarningsSurpriseScore, `
+    Get-EarningsTimingAdjustment, `
     Add-DataQualityAssessment, `
     Update-EarningsReactions, `
     Get-KapDisclosures, `
