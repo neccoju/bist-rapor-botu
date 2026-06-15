@@ -7,12 +7,14 @@ on:
       - main
     paths:
       - .github/workflows/bist-cloud-report.yml
+      - "*.ps1"
+      - "*.psm1"
       - patches/**
       - config/**
-      - runtime/full-bist-report-runtime.zip.b64.chunk*
   schedule:
-    # 18:15 Europe/Istanbul. GitHub Actions cron uses UTC.
-    - cron: "15 15 * * *"
+    # 18:15 Europe/Istanbul, sadece BIST islem gunleri (Pzt-Cum).
+    # GitHub Actions cron UTC kullanir; Turkiye yil boyu UTC+3 oldugundan 15:15 UTC = 18:15 Istanbul.
+    - cron: "15 15 * * 1-5"
 
 permissions:
   contents: read
@@ -42,29 +44,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Restore full desktop report runtime
+      - name: Verify report runtime
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
-          $expectedPartCount = 22
-          $expectedPayloadChars = 85340
-          $parts = Get-ChildItem -LiteralPath .\runtime -Filter 'full-bist-report-runtime.zip.b64.chunk*' | Sort-Object Name
-          if ($parts.Count -ne $expectedPartCount) {
-            throw "Runtime package chunk count is $($parts.Count), expected $expectedPartCount."
+          $required = @(
+            'GunlukRapor.ps1',
+            'BistScanner.Core.psm1',
+            'Test-BistScanner.Core.ps1',
+            'config\report_settings.cloud.json'
+          )
+          $missing = @($required | Where-Object { -not (Test-Path -LiteralPath $_) })
+          if ($missing.Count -gt 0) {
+            throw "Eksik runtime dosyalari: $($missing -join ', ')"
           }
-
-          $payload = ($parts | ForEach-Object { (Get-Content -Raw -LiteralPath $_.FullName).Trim() }) -join ''
-          if ($payload.Length -ne $expectedPayloadChars) {
-            throw "Runtime package payload length is $($payload.Length), expected $expectedPayloadChars."
-          }
-
-          $zipPath = Join-Path $PWD 'full-bist-report-runtime.zip'
-          [IO.File]::WriteAllBytes($zipPath, [Convert]::FromBase64String($payload))
-          Expand-Archive -LiteralPath $zipPath -DestinationPath $PWD -Force
-
-          if (-not (Test-Path .\GunlukRapor.ps1)) { throw 'GunlukRapor.ps1 package restore failed.' }
-          if (-not (Test-Path .\BistScanner.Core.psm1)) { throw 'BistScanner.Core.psm1 package restore failed.' }
-          if (-not (Test-Path .\config\report_settings.cloud.json)) { throw 'Cloud report settings package restore failed.' }
+          Write-Host "Runtime dosyalari dogrulandi: $($required -join ', ')"
 
       - name: Restore bot state
         uses: actions/cache/restore@v5
@@ -73,6 +67,7 @@ jobs:
             data/last_scan.json
             data/model_portfolios.json
             data/instant_entry_portfolio.json
+            data/signal_performance.json
           key: bist-state-${{ github.run_id }}
           restore-keys: |
             bist-state-
@@ -99,6 +94,7 @@ jobs:
             data\last_scan.json
             data\model_portfolios.json
             data\instant_entry_portfolio.json
+            data\signal_performance.json
           if-no-files-found: warn
 
       - name: Save bot state
@@ -110,4 +106,5 @@ jobs:
             data/last_scan.json
             data/model_portfolios.json
             data/instant_entry_portfolio.json
+            data/signal_performance.json
           key: bist-state-${{ github.run_id }}

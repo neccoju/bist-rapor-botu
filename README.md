@@ -2,7 +2,7 @@
 
 GitHub Actions uzerinde calisan BIST bulut raporu.
 
-Bu surum artik masaustundeki gunluk rapor motoruyla ayni mantigi calistirir: `GunlukRapor.ps1` ve `BistScanner.Core.psm1` runtime paketi workflow basinda acilir, rapor uretilir ve mail/artifact olarak verilir.
+Bu surum masaustundeki gunluk rapor motoruyla ayni mantigi calistirir: workflow dogrudan repodaki `GunlukRapor.ps1` ve `BistScanner.Core.psm1` dosyalarini kullanir (tek kaynak), rapor uretilir ve mail/artifact olarak verilir. Calistirilan kod repoda gorunen kodla aynidir; dosyalari duzenlemek davranisi dogrudan degistirir.
 
 ## Bulutta Gelen Bolumler
 
@@ -11,11 +11,14 @@ Bu surum artik masaustundeki gunluk rapor motoruyla ayni mantigi calistirir: `Gu
 - Top Radar: skor, gorus, teyit etiketi, eksik teyitler, temel/teknik/makro kolonlari.
 - Sektor Rotasyonu: gunluk, haftalik, 1 ay, 3 ay ve 1 yil sektor/BIST100 farklari.
 - Model Portfoyler: dengeli, deger, momentum ve kalite portfoyleri; state cache ile ay sonu yeniden dengeleme mantigi korunur.
+- Skor Isabet Takibi (oz-degerlendirme): her kosu o gunku Top secimleri ve fiyatlari saklar; sonraki kosuda secimlerin gerceklesen getirisini tum evren ortalamasiyla kiyaslayarak yuvarlanan isabet orani (hit-rate) ve ortalama getiri avantaji (edge) uretir. Bu, skorlama mantiginin zaman icinde gercekten ayristirici olup olmadigini olcen geri-besleme sinyalidir.
 
 ## Dosyalar
 
 - `.github/workflows/bist-cloud-report.yml`: Bulut calisma plani.
-- `runtime/full-bist-report-runtime.zip.b64.part*`: Masaustundeki tam gunluk rapor runtime paketi.
+- `GunlukRapor.ps1`: Rapor motoru (orkestrasyon, HTML/CSV uretimi, e-posta/Telegram gonderimi).
+- `BistScanner.Core.psm1`: Tarama, skorlama, model portfoy ve makro/sektor mantigi.
+- `Test-BistScanner.Core.ps1`: Workflow basinda calisan smoke test.
 - `config/report_settings.cloud.json`: Bulut ayarlari.
 - `config/report_settings.example.json`: Lokal ayar ornegi.
 - `reports/`: Workflow calistiktan sonra artifact olarak HTML/CSV rapor uretir.

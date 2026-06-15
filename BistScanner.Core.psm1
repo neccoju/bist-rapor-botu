@@ -100,6 +100,43 @@ $script:InflationBenchmark = [pscustomobject][ordered]@{
     SourceNote = 'TÜİK Nisan 2026 yıllık TÜFE %32,37; 3Y ve 5Y eşikler Nisan yıllık TÜFE oranlarının bileşik yaklaşık değeridir.'
 }
 
+function Invoke-WithRetry {
+    <#
+        Gecici ag/HTTP hatalarinda ustel bekleme ile yeniden dener.
+        Tum denemeler basarisiz olursa son istisnayi yeniden firlatir.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [scriptblock]$ScriptBlock,
+        [int]$MaxAttempts = 3,
+        [double]$BaseDelaySec = 2.0,
+        [string]$OperationName = 'islem'
+    )
+
+    if ($MaxAttempts -lt 1) { $MaxAttempts = 1 }
+
+    $attempt = 0
+    $lastError = $null
+    while ($attempt -lt $MaxAttempts) {
+        $attempt++
+        try {
+            return & $ScriptBlock
+        }
+        catch {
+            $lastError = $_
+            if ($attempt -ge $MaxAttempts) {
+                break
+            }
+            $delay = $BaseDelaySec * [Math]::Pow(2, $attempt - 1)
+            Write-Warning ("{0}: {1}. deneme basarisiz ({2}). {3:N1}sn sonra tekrar denenecek." -f $OperationName, $attempt, $_.Exception.Message, $delay)
+            Start-Sleep -Seconds $delay
+        }
+    }
+
+    throw $lastError
+}
+
 function ConvertTo-DoubleOrNull {
     param($Value)
 
@@ -2281,22 +2318,25 @@ function Invoke-BistStockScan {
         'Accept' = 'application/json'
     }
 
+    $body = $payload | ConvertTo-Json -Depth 8 -Compress
     try {
-        $response = Invoke-RestMethod `
-            -Method Post `
-            -Uri $script:TradingViewScannerUrl `
-            -ContentType 'application/json' `
-            -Headers $headers `
-            -Body ($payload | ConvertTo-Json -Depth 8 -Compress) `
-            -TimeoutSec $TimeoutSec `
-            -ErrorAction Stop
+        $response = Invoke-WithRetry -OperationName 'Canlı BIST taraması' -MaxAttempts 3 -BaseDelaySec 2 -ScriptBlock {
+            $result = Invoke-RestMethod `
+                -Method Post `
+                -Uri $script:TradingViewScannerUrl `
+                -ContentType 'application/json' `
+                -Headers $headers `
+                -Body $body `
+                -TimeoutSec $TimeoutSec `
+                -ErrorAction Stop
+            if ($null -eq $result.data -or $result.data.Count -eq 0) {
+                throw 'Canlı BIST sorgusu boş sonuç döndürdü.'
+            }
+            return $result
+        }
     }
     catch {
         throw "Canlı BIST verisi alınamadı: $($_.Exception.Message)"
-    }
-
-    if ($null -eq $response.data -or $response.data.Count -eq 0) {
-        throw 'Canlı BIST sorgusu boş sonuç döndürdü.'
     }
 
     $stocks = @($response.data | ForEach-Object {
@@ -4202,7 +4242,143 @@ function Get-EvdsMacroMetrics {
     return $metrics.ToArray()
 }
 
+function Update-SignalPerformance {
+    <#
+        Kendi kendini degerlendiren geri-besleme dongusu.
+        Onceki kosuda kaydedilen yuksek-skorlu seciler ile bugunku fiyatlari
+        karsilastirir; secilerin ortalama getirisini tum evrenin ortalamasiyla
+        kiyaslayarak skorun "isabet" edip etmedigini olcer ve yuvarlanan bir
+        isabet orani (hit-rate) + ortalama getiri avantaji (edge) biriktirir.
+    #>
+    [CmdletBinding()]
+    param(
+        $Previous,
+        [Parameter(Mandatory)]
+        [AllowEmptyCollection()]
+        [object[]]$ScoredStocks,
+        [datetime]$AsOf = (Get-Date),
+        [int]$TopCount = 20,
+        [int]$MaxHistory = 60
+    )
+
+    $priceMap = @{}
+    foreach ($stock in @($ScoredStocks)) {
+        $symbol = [string](Get-ObjectPropertyValue -Object $stock -Name 'Symbol')
+        if ([string]::IsNullOrWhiteSpace($symbol)) { continue }
+        $price = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $stock -Name 'Price')
+        if ($null -ne $price -and $price -gt 0 -and -not $priceMap.ContainsKey($symbol)) {
+            $priceMap[$symbol] = [double]$price
+        }
+    }
+
+    $evaluations = [System.Collections.Generic.List[object]]::new()
+    $previousPending = $null
+    if ($null -ne $Previous) {
+        foreach ($existing in @(Get-ObjectPropertyValue -Object $Previous -Name 'Evaluations')) {
+            if ($null -ne $existing) { [void]$evaluations.Add($existing) }
+        }
+        $previousPending = Get-ObjectPropertyValue -Object $Previous -Name 'PendingPicks'
+    }
+
+    $newEvaluation = $null
+    $pendingItems = @(Get-ObjectPropertyValue -Object $previousPending -Name 'Picks')
+    if ($pendingItems.Count -gt 0) {
+        # Evrenin tamami icin getiri (benchmark) ve seciler icin getiri.
+        $pickReturns = [System.Collections.Generic.List[double]]::new()
+        $benchReturns = [System.Collections.Generic.List[double]]::new()
+        $pendingMap = @{}
+        foreach ($pick in $pendingItems) {
+            $sym = [string](Get-ObjectPropertyValue -Object $pick -Name 'Symbol')
+            $entryPrice = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $pick -Name 'Price')
+            if ([string]::IsNullOrWhiteSpace($sym) -or $null -eq $entryPrice -or $entryPrice -le 0) { continue }
+            $pendingMap[$sym] = [double]$entryPrice
+        }
+
+        # Bencmark: onceki kosuda kaydedilen evren fiyatlarinin getirisi.
+        $universeItems = @(Get-ObjectPropertyValue -Object $previousPending -Name 'Universe')
+        foreach ($u in $universeItems) {
+            $sym = [string](Get-ObjectPropertyValue -Object $u -Name 'Symbol')
+            $oldPrice = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $u -Name 'Price')
+            if ([string]::IsNullOrWhiteSpace($sym) -or $null -eq $oldPrice -or $oldPrice -le 0) { continue }
+            if (-not $priceMap.ContainsKey($sym)) { continue }
+            $ret = (($priceMap[$sym] / [double]$oldPrice) - 1.0) * 100.0
+            [void]$benchReturns.Add($ret)
+            if ($pendingMap.ContainsKey($sym)) { [void]$pickReturns.Add($ret) }
+        }
+
+        if ($pickReturns.Count -gt 0 -and $benchReturns.Count -gt 0) {
+            $pickMean = ($pickReturns | Measure-Object -Average).Average
+            $benchMean = ($benchReturns | Measure-Object -Average).Average
+            $edge = $pickMean - $benchMean
+            $recordedAt = [string](Get-ObjectPropertyValue -Object $previousPending -Name 'AsOf')
+            $newEvaluation = [pscustomobject][ordered]@{
+                PicksAsOf = $recordedAt
+                EvaluatedAt = $AsOf.ToString('o')
+                PickCount = $pickReturns.Count
+                UniverseCount = $benchReturns.Count
+                PickMeanReturnPct = [Math]::Round($pickMean, 3)
+                UniverseMeanReturnPct = [Math]::Round($benchMean, 3)
+                EdgePct = [Math]::Round($edge, 3)
+                Win = ($edge -gt 0)
+            }
+            [void]$evaluations.Add($newEvaluation)
+        }
+    }
+
+    # Tarihçeyi sinirla (en yeni MaxHistory degerlendirme).
+    while ($evaluations.Count -gt $MaxHistory) {
+        $evaluations.RemoveAt(0)
+    }
+
+    # Bugunku secileri ve evreni sonraki kosu icin kaydet.
+    $orderedScored = @($ScoredStocks | Sort-Object @{ Expression = { ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $_ -Name 'Score') }; Descending = $true })
+    $topPicks = [System.Collections.Generic.List[object]]::new()
+    foreach ($stock in @($orderedScored | Select-Object -First $TopCount)) {
+        $sym = [string](Get-ObjectPropertyValue -Object $stock -Name 'Symbol')
+        if ([string]::IsNullOrWhiteSpace($sym) -or -not $priceMap.ContainsKey($sym)) { continue }
+        [void]$topPicks.Add([pscustomobject][ordered]@{
+                Symbol = $sym
+                Score = [Math]::Round([double](ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $stock -Name 'Score')), 2)
+                Price = $priceMap[$sym]
+            })
+    }
+    $universe = [System.Collections.Generic.List[object]]::new()
+    foreach ($sym in $priceMap.Keys) {
+        [void]$universe.Add([pscustomobject][ordered]@{ Symbol = $sym; Price = $priceMap[$sym] })
+    }
+
+    # Yuvarlanan ozet.
+    $winCount = @($evaluations | Where-Object { [bool](Get-ObjectPropertyValue -Object $_ -Name 'Win') }).Count
+    $sampleCount = $evaluations.Count
+    $hitRate = if ($sampleCount -gt 0) { [Math]::Round(($winCount / [double]$sampleCount) * 100.0, 1) } else { $null }
+    $avgEdge = if ($sampleCount -gt 0) {
+        [Math]::Round((@($evaluations | ForEach-Object { [double](Get-ObjectPropertyValue -Object $_ -Name 'EdgePct') }) | Measure-Object -Average).Average, 3)
+    } else { $null }
+
+    $summary = [pscustomobject][ordered]@{
+        SampleCount = $sampleCount
+        HitRatePct = $hitRate
+        AvgEdgePct = $avgEdge
+        LastEdgePct = if ($null -ne $newEvaluation) { $newEvaluation.EdgePct } else { $null }
+        LastPickReturnPct = if ($null -ne $newEvaluation) { $newEvaluation.PickMeanReturnPct } else { $null }
+        HasEvaluationToday = ($null -ne $newEvaluation)
+    }
+
+    return [pscustomobject][ordered]@{
+        UpdatedAt = $AsOf.ToString('o')
+        Summary = $summary
+        Evaluations = $evaluations.ToArray()
+        PendingPicks = [pscustomobject][ordered]@{
+            AsOf = $AsOf.ToString('o')
+            Picks = $topPicks.ToArray()
+            Universe = $universe.ToArray()
+        }
+    }
+}
+
 Export-ModuleMember -Function `
+    Invoke-WithRetry, `
+    Update-SignalPerformance, `
     Invoke-BistStockScan, `
     Get-ObjectPropertyValue, `
     Get-BistScore, `

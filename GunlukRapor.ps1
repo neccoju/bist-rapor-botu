@@ -1293,6 +1293,25 @@ try {
         }) -Depth 8
     Write-TimingLog -Step 'Son tarama state kaydi' -StartedAt $stageStartedAt
 
+    # Kendi kendini degerlendiren geri-besleme: onceki kosunun yuksek-skorlu
+    # secilerinin gerceklesen getirisi, skorun isabet oranini (hit-rate) olcer.
+    $stageStartedAt = Get-Date
+    $signalPerfPath = Join-Path $PSScriptRoot 'data\signal_performance.json'
+    $previousSignalPerf = $null
+    if (Test-Path $signalPerfPath) {
+        try {
+            $previousSignalPerf = Get-Content -Path $signalPerfPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        }
+        catch {
+            Write-Warning "Onceki sinyal performans state'i okunamadi: $($_.Exception.Message)"
+            $previousSignalPerf = $null
+        }
+    }
+    $signalPerf = Update-SignalPerformance -Previous $previousSignalPerf -ScoredStocks $scored -AsOf $runAt -TopCount $topCount
+    Save-JsonFile -Path $signalPerfPath -Value $signalPerf -Depth 10
+    $signalPerfSummary = $signalPerf.Summary
+    Write-TimingLog -Step 'Sinyal performans degerlendirmesi' -StartedAt $stageStartedAt
+
     $stageStartedAt = Get-Date
     $portfolioPath = Join-Path $PSScriptRoot 'data\model_portfolios.json'
     $portfolioSet = $null
@@ -1487,6 +1506,7 @@ try {
         "Hisse sayisi: $($stocks.Count)",
         "Lider: $($leader.Symbol) | Skor $($leader.Score) | $($leader.Signal)",
         "Makro: $($macroSnapshot.Status)",
+        "Skor isabet orani: " + $(if ($null -ne $signalPerfSummary.HitRatePct) { "%$($signalPerfSummary.HitRatePct) ($($signalPerfSummary.SampleCount) gun, ort. fark %$($signalPerfSummary.AvgEdgePct))" } else { 'henuz veri yok' }),
         "Anlik giris radari: " + $(if ($entryOpportunities.Count -gt 0) { (($entryOpportunities | ForEach-Object { "$($_.Symbol)($($_.EntryOpportunityScore))" }) -join ', ') } else { 'bugun uygun aday yok' }),
         "Anlik firsat portfoyu: $($updatedInstantEntryPortfolio.StatusNote) Deger $($updatedInstantEntryPortfolio.CurrentValueTL) TL, getiri $($updatedInstantEntryPortfolio.TotalReturnPct)%",
         "Model portfoyler: " + ((@($updatedPortfolioSet.Portfolios) | ForEach-Object { "$($_.Strategy): " + ((@($_.Holdings) | ForEach-Object Symbol) -join ',') }) -join ' | '),
@@ -1582,6 +1602,7 @@ $css
 <div class="kpi $(if ($macroSnapshot.Status -match 'destekleyici') { 'good' } elseif ($macroSnapshot.Status -match 'temkinli') { 'bad' } else { 'gold' })"><div class="lab">Makro Zemin</div><div class="val" style="font-size:15px">$($macroSnapshot.Status)</div><div class="sub">Destek $($macroSnapshot.SupportiveCount) · Baskı $($macroSnapshot.PressureCount)</div></div>
 <div class="kpi $(if ([double]($updatedInstantEntryPortfolio.TotalReturnPct) -ge 0) { 'good' } else { 'bad' })"><div class="lab">Anlık Fırsat Portföyü</div><div class="val">%$($updatedInstantEntryPortfolio.TotalReturnPct)</div><div class="sub">Değer $($updatedInstantEntryPortfolio.CurrentValueTL) TL</div></div>
 <div class="kpi"><div class="lab">Anlık Giriş Fırsatı</div><div class="val">$(@($entryOpportunities).Count)</div><div class="sub">bugünkü sinyal</div></div>
+<div class="kpi $(if ($null -ne $signalPerfSummary.HitRatePct -and [double]$signalPerfSummary.HitRatePct -ge 50) { 'good' } elseif ($null -ne $signalPerfSummary.HitRatePct) { 'bad' } else { 'gold' })"><div class="lab">Skor İsabet Oranı</div><div class="val">$(if ($null -ne $signalPerfSummary.HitRatePct) { "%$($signalPerfSummary.HitRatePct)" } else { 'veri yok' })</div><div class="sub">$($signalPerfSummary.SampleCount) gün · ort. fark $(if ($null -ne $signalPerfSummary.AvgEdgePct) { "%$($signalPerfSummary.AvgEdgePct)" } else { '-' })</div></div>
 </div>
 <div class="section">
 <h2>Makro Görünüm</h2>
@@ -1605,6 +1626,8 @@ $(New-HtmlTable -Rows $confirmedRows)
 $detailedCardsHtml
 <h2>Top $topCount Radar</h2>
 $(New-HtmlTable -Rows $topRows)
+<h2>Skor İsabet Takibi (Öz-Değerlendirme)</h2>
+<p class="muted">Bot, her çalışmada o günkü Top $topCount seçimini ve fiyatlarını saklar; bir sonraki çalışmada bu seçimlerin gerçekleşen getirisini tüm taranan evrenin ortalama getirisiyle karşılaştırır. <b>İsabet oranı</b>, seçimlerin evren ortalamasını geçtiği gün yüzdesidir; <b>ortalama fark (edge)</b> ise seçimlerin evrene kıyasla ortalama getiri üstünlüğüdür. Bu, skorlama mantığının zaman içinde gerçekten ayrıştırıcı olup olmadığını ölçen kendi kendine öğrenme/denetim sinyalidir. $(if ($null -ne $signalPerfSummary.HitRatePct) { "Şu ana kadar $($signalPerfSummary.SampleCount) değerlendirme gününde isabet oranı %$($signalPerfSummary.HitRatePct), ortalama fark %$($signalPerfSummary.AvgEdgePct)." } else { 'Henüz karşılaştırılacak önceki seçim yok; ilk isabet ölçümü bir sonraki çalışmada üretilecek.' })</p>
 <h2>USD Güçlü Bilanço</h2>
 $(New-HtmlTable -Rows $strongUsdRows)
 <h2>Sektor Rotasyonu</h2>
@@ -1655,13 +1678,36 @@ CDS, DXY, VIX izleme metrikleri ücretsiz/gecikmeli kaynaklardandır. İşlem ka
     }
 
     Write-TimingLog -Step 'Toplam rapor suresi' -StartedAt $reportStartedAt
-    $result = "OK $($runAt.ToString('s')) | Hisse=$($stocks.Count) | HTML=$htmlPath | CSV=$csvPath | $($sendMessages -join ' ')"
+    $hitRateText = if ($null -ne $signalPerfSummary.HitRatePct) { "$($signalPerfSummary.HitRatePct)% ($($signalPerfSummary.SampleCount)g)" } else { 'NA' }
+    $result = "OK $($runAt.ToString('s')) | Hisse=$($stocks.Count) | Isabet=$hitRateText | HTML=$htmlPath | CSV=$csvPath | $($sendMessages -join ' ')"
     Add-Content -Path $logPath -Value $result -Encoding UTF8
     Write-Host $result
 }
 catch {
     $message = "ERROR $((Get-Date).ToString('s')) | $($_.Exception.Message)"
-    Add-Content -Path $logPath -Value $message -Encoding UTF8
+    try { Add-Content -Path $logPath -Value $message -Encoding UTF8 } catch { }
+
+    # Sessiz basarisizligi gorunur kil: best-effort hata bildirimi gonder.
+    if (-not $NoSend) {
+        try {
+            if ([bool](Get-ConfigValue -Object $settings.Send -Name 'EmailEnabled' -Default $false)) {
+                $failSubjectPrefix = [string](Get-ConfigValue -Object $settings.Email -Name 'SubjectPrefix' -Default 'BIST Gunluk Rapor')
+                $failSubject = '{0} - HATA - {1}' -f $failSubjectPrefix, (Get-Date).ToString('dd.MM.yyyy HH:mm')
+                $failBody = @"
+<p>BIST gunluk rapor uretimi basarisiz oldu.</p>
+<p><b>Hata:</b> $([System.Net.WebUtility]::HtmlEncode([string]$_.Exception.Message))</p>
+<p>Zaman: $((Get-Date).ToString('o'))</p>
+<p>Ayrintilar icin GitHub Actions kayitlarini ve rapor log dosyasini kontrol edin.</p>
+"@
+                Send-EmailReport -Settings $settings -Subject $failSubject -HtmlBody $failBody -HtmlPath $htmlPath -CsvPath $csvPath
+                try { Add-Content -Path $logPath -Value "INFO $((Get-Date).ToString('s')) | Hata bildirimi e-postasi gonderildi." -Encoding UTF8 } catch { }
+            }
+        }
+        catch {
+            try { Add-Content -Path $logPath -Value "WARN $((Get-Date).ToString('s')) | Hata bildirimi gonderilemedi: $($_.Exception.Message)" -Encoding UTF8 } catch { }
+        }
+    }
+
     Write-Error $message
     exit 1
 }
