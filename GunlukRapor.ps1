@@ -1316,6 +1316,19 @@ try {
     $signalPerfSummary = $signalPerf.Summary
     Write-TimingLog -Step 'Sinyal performans degerlendirmesi' -StartedAt $stageStartedAt
 
+    # PEAD (bilanco sonrasi suruklenme) geri-besleme dongusu.
+    $stageStartedAt = Get-Date
+    $earningsReactionPath = Join-Path $PSScriptRoot 'data\earnings_reactions.json'
+    $previousReactions = $null
+    if (Test-Path $earningsReactionPath) {
+        try { $previousReactions = Get-Content -Path $earningsReactionPath -Raw -Encoding UTF8 | ConvertFrom-Json }
+        catch { Write-Warning "Onceki PEAD state'i okunamadi: $($_.Exception.Message)"; $previousReactions = $null }
+    }
+    $earningsReactions = Update-EarningsReactions -Previous $previousReactions -Stocks $stocks -AsOf $runAt
+    Save-JsonFile -Path $earningsReactionPath -Value $earningsReactions -Depth 10
+    $earningsReactionSummary = $earningsReactions.Summary
+    Write-TimingLog -Step 'PEAD bilanço tepkisi' -StartedAt $stageStartedAt
+
     $stageStartedAt = Get-Date
     $portfolioPath = Join-Path $PSScriptRoot 'data\model_portfolios.json'
     $portfolioSet = $null
@@ -1332,6 +1345,11 @@ try {
     $stageStartedAt = Get-Date
     $macroSnapshot = Get-MacroSnapshot -AsOf $runAt -TimeoutSec $macroTimeoutSec
     Write-TimingLog -Step 'Makro gorunum' -StartedAt $stageStartedAt
+
+    # KAP son bildirimleri (best-effort; erisilemezse bos doner, rapor bozulmaz).
+    $stageStartedAt = Get-Date
+    $kapDisclosures = @(Get-KapDisclosures -TimeoutSec 5 -Limit 40)
+    Write-TimingLog -Step 'KAP bildirimleri' -StartedAt $stageStartedAt
 
     $stageStartedAt = Get-Date
     $entryOpportunities = @(Get-InstantEntryOpportunities `
@@ -1435,6 +1453,40 @@ try {
                     Durum = $flag
                 }
             })
+
+    # PEAD: yeni bilanco aciklamis ve izlenen hisseler (surprize gore).
+    $peadTrackedRows = @($earningsReactions.Tracked |
+            Sort-Object @{ Expression = { [double](Get-ObjectPropertyValue -Object $_ -Name 'SurpriseScore') }; Descending = $true } |
+            Select-Object -First 12 |
+            ForEach-Object {
+                [pscustomobject][ordered]@{
+                    Sembol = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Symbol')
+                    'Bilanço Tarihi' = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'ReportDate')
+                    'Sürpriz Skoru' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'SurpriseScore') -Format 'N0'
+                    'Giriş Fiyatı' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'EntryPrice') -Format 'N2' -Suffix ' TL'
+                }
+            })
+
+    # KAP son bildirimleri: oncelikle Top radar sembollerine ait olanlar.
+    $topSymbolsForKap = @($scored | Select-Object -First $topCount | ForEach-Object { [string]$_.Symbol })
+    $kapMatched = @($kapDisclosures | Where-Object {
+            $sym = [string](Get-ObjectPropertyValue -Object $_ -Name 'Symbol')
+            -not [string]::IsNullOrWhiteSpace($sym) -and @($topSymbolsForKap | Where-Object { $sym -match [Regex]::Escape($_) }).Count -gt 0
+        })
+    $kapForReport = if ($kapMatched.Count -gt 0) { $kapMatched } else { $kapDisclosures }
+    $kapRows = @($kapForReport | Select-Object -First 15 | ForEach-Object {
+            [pscustomobject][ordered]@{
+                Sembol = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Symbol')
+                Tür = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Kind')
+                Baslik = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Title')
+                Tarih = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Date')
+            }
+        })
+
+    # Veri kalitesi ozeti.
+    $dqFlagged = @($scored | Where-Object { -not [bool](Get-ObjectPropertyValue -Object $_ -Name 'DataQualityOk') })
+    $dqFlaggedCount = $dqFlagged.Count
+    $dqTotal = @($scored).Count
 
     $confirmedRows = @($scored |
             Where-Object { $_.ConfirmationLabel -in @('Tüm Teyitli Güçlü Aday', 'Teknik Teyitli Güçlü İzle') } |
@@ -1668,6 +1720,7 @@ $(New-HtmlTable -Rows $confirmedRows)
 <p class="muted">Her kart Makro, Temel ve Teknik bacaklarini ayri okur. Teknik bolumde gunluk, haftalik ve aylik RSI/MACD degerleri ayrica yazilir.</p>
 $detailedCardsHtml
 <h2>Top $topCount Radar</h2>
+<p class="muted">Veri kalitesi: $dqTotal hissenin $dqFlaggedCount tanesinde kritik veri sorunu (geçersiz fiyat / çok düşük likidite) işaretlendi; bunlar model portföy seçiminde elenir. Kalan alanlar geçerli veri akışından gelir.</p>
 $(New-HtmlTable -Rows $topRows)
 <h2>Skor İsabet Takibi (Öz-Değerlendirme)</h2>
 <p class="muted">Bot, her çalışmada o günkü Top $topCount seçimini ve fiyatlarını saklar; bir sonraki çalışmada bu seçimlerin gerçekleşen getirisini tüm taranan evrenin ortalama getirisiyle karşılaştırır. <b>İsabet oranı</b>, seçimlerin evren ortalamasını geçtiği gün yüzdesidir; <b>ortalama fark (edge)</b> ise seçimlerin evrene kıyasla ortalama getiri üstünlüğüdür. Bu, skorlama mantığının zaman içinde gerçekten ayrıştırıcı olup olmadığını ölçen kendi kendine öğrenme/denetim sinyalidir. $(if ($null -ne $signalPerfSummary.HitRatePct) { "Şu ana kadar $($signalPerfSummary.SampleCount) değerlendirme gününde isabet oranı %$($signalPerfSummary.HitRatePct), ortalama fark %$($signalPerfSummary.AvgEdgePct)." } else { 'Henüz karşılaştırılacak önceki seçim yok; ilk isabet ölçümü bir sonraki çalışmada üretilecek.' })</p>
@@ -1677,8 +1730,14 @@ $(New-HtmlTable -Rows $academicRows)
 <h2>USD Güçlü Bilanço</h2>
 $(New-HtmlTable -Rows $strongUsdRows)
 <h2>Yaklaşan Bilanço Takvimi</h2>
-<p class="muted">Skora göre öne çıkan hisselerin bir sonraki bilanço/finansal rapor açıklama tarihi (TradingView takviminden; tahmini olabilir) ve son açıklanan bilanço tarihi. "Kalan Gün" 7 ve altındaysa olay riski yüksektir: bilanço öncesi oynaklık artar, kademeli giriş veya bilanço sonrası teyit beklemek daha disiplinlidir. Açıklanan rakamlar bir sonraki taramada otomatik olarak skorlara yansır.</p>
+<p class="muted">Skora göre öne çıkan hisselerin bir sonraki bilanço/finansal rapor açıklama tarihi (TradingView takviminden; tahmini olabilir) ve son açıklanan bilanço tarihi. "Kalan Gün" 7 ve altındaysa olay riski yüksektir: bilanço öncesi oynaklık artar, kademeli giriş veya bilanço sonrası teyit beklemek daha disiplinlidir. Bilançoya 0-7 gün kalan hisselere skorda olay-riski cezası uygulanır. Açıklanan rakamlar bir sonraki taramada otomatik olarak skorlara yansır.</p>
 $(New-HtmlTable -Rows $earningsCalendarRows)
+<h2>Bilanço Sonrası Sürüklenme (PEAD) Takibi</h2>
+<p class="muted">Akademik PEAD bulgusu (Bernard-Thomas 1989): hisseler bilanço sürprizinin yönünde haftalarca sürüklenir. Bot, yeni bilanço açıklayan hisseleri tespit anındaki fiyat ve sürpriz proxy'siyle (USD net kâr/FAVÖK Y/Y + FAVÖK trendi; 0-100, 50 nötr) kaydeder; ~28 gün sonra tespit fiyatına göre getiriyi ölçer ve "pozitif sürpriz → pozitif sürüklenme" isabet oranını biriktirir. $(if ($null -ne $earningsReactionSummary.PeadHitRatePct) { "Şu ana kadar $($earningsReactionSummary.DirectionalCount) yönlü örnekte isabet %$($earningsReactionSummary.PeadHitRatePct); pozitif sürpriz ortalama sürüklenmesi %$($earningsReactionSummary.AvgPositiveSurpriseDriftPct). Halen izlenen $($earningsReactionSummary.TrackedCount) hisse." } else { "Henüz tamamlanmış sürüklenme örneği yok; halen izlenen $($earningsReactionSummary.TrackedCount) hisse. İlk isabet ölçümü açıklamalardan ~28 gün sonra üretilecek." })</p>
+$(New-HtmlTable -Rows $peadTrackedRows)
+<h2>KAP Son Bildirimleri (Deneysel)</h2>
+<p class="muted">KAP'ın resmi ücretsiz API'si yoktur; bu bölüm KAP'tan en iyi çaba (best-effort) ile çekilir, erişilemezse boş kalır ve rapor akışını etkilemez. Öncelikle Top radar hisselerine ait bildirimler gösterilir. Özel durum açıklamaları işlem öncesi mutlaka KAP'tan birinci elden doğrulanmalıdır.</p>
+$(if ($kapRows.Count -gt 0) { New-HtmlTable -Rows $kapRows } else { '<p class="muted">KAP bildirimleri bu çalışmada alınamadı (kaynak erişilemedi veya boş döndü).</p>' })
 <h2>Sektor Rotasyonu</h2>
 <p class="muted">Fark sütunları sektör endeksi/proxy getirisi eksi BIST100 getirisi olarak okunur. Pozitif değer sektörün BIST100'e göre daha güçlü aktığını gösterir.</p>
 $(New-HtmlTable -Rows $sectorRows)

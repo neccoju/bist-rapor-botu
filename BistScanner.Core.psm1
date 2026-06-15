@@ -280,7 +280,9 @@ function Get-TcmbUsdTryRate {
             $candidate.ToString('ddMMyyyy')
 
         try {
-            $xml = Invoke-RestMethod -Uri $url -Method Get -TimeoutSec $TimeoutSec -ErrorAction Stop
+            $xml = Invoke-WithRetry -OperationName 'TCMB USD/TRY' -MaxAttempts 2 -BaseDelaySec 1 -ScriptBlock {
+                Invoke-RestMethod -Uri $url -Method Get -TimeoutSec $TimeoutSec -ErrorAction Stop
+            }
             $usd = @($xml.Tarih_Date.Currency | Where-Object Kod -eq 'USD') | Select-Object -First 1
             $rate = ConvertTo-DoubleOrNull $usd.ForexBuying
             if ($null -ne $rate -and $rate -gt 0) {
@@ -459,14 +461,16 @@ function Get-BistIndexBenchmarks {
     }
 
     try {
-        $response = Invoke-RestMethod `
-            -Method Post `
-            -Uri $script:TradingViewScannerUrl `
-            -ContentType 'application/json' `
-            -Headers $headers `
-            -Body ($payload | ConvertTo-Json -Depth 8 -Compress) `
-            -TimeoutSec $TimeoutSec `
-            -ErrorAction Stop
+        $response = Invoke-WithRetry -OperationName 'BIST endeks benchmark' -MaxAttempts 2 -BaseDelaySec 1 -ScriptBlock {
+            Invoke-RestMethod `
+                -Method Post `
+                -Uri $script:TradingViewScannerUrl `
+                -ContentType 'application/json' `
+                -Headers $headers `
+                -Body ($payload | ConvertTo-Json -Depth 8 -Compress) `
+                -TimeoutSec $TimeoutSec `
+                -ErrorAction Stop
+        }
     }
     catch {
         return $empty
@@ -762,7 +766,9 @@ function Get-InvestingInstrumentSnapshot {
     $lastError = 'URL listesi boş'
     foreach ($url in @($Urls)) {
         try {
-        $response = Invoke-WebRequest -Uri $url -Headers $headers -UseBasicParsing -TimeoutSec $TimeoutSec -ErrorAction Stop
+        $response = Invoke-WithRetry -OperationName "Investing $url" -MaxAttempts 2 -BaseDelaySec 1 -ScriptBlock {
+            Invoke-WebRequest -Uri $url -Headers $headers -UseBasicParsing -TimeoutSec $TimeoutSec -ErrorAction Stop
+        }
         $content = [string]$response.Content
         $valueText = $null
         $changeText = $null
@@ -1806,6 +1812,11 @@ function Get-BistRiskFlags {
         [void]$flags.Add('MACD henüz al teyidi vermiyor')
     }
 
+    $daysToEarnings = Get-ObjectPropertyValue -Object $Stock -Name 'DaysToNextEarnings'
+    if ($null -ne $daysToEarnings -and $daysToEarnings -ge 0 -and $daysToEarnings -le 7) {
+        [void]$flags.Add("Bilanço açıklamasına $daysToEarnings gün kaldı; olay riski")
+    }
+
     if ($null -eq $Stock.PE -and $null -eq $Stock.PB -and $null -eq $Stock.ROE) {
         [void]$flags.Add('Temel analiz verileri eksik')
     }
@@ -1883,6 +1894,10 @@ function Get-RiskPenalty {
     }
     $macdHistogram = Get-ObjectPropertyValue -Object $Stock -Name 'MacdHistogram'
     if ($null -ne $macdHistogram -and $macdHistogram -lt 0) { $penalty += 3 }
+
+    # Bilanço olay riski: açıklamaya 0-7 gün kala oynaklık/sürpriz riski yüksek.
+    $daysToEarnings = Get-ObjectPropertyValue -Object $Stock -Name 'DaysToNextEarnings'
+    if ($null -ne $daysToEarnings -and $daysToEarnings -ge 0 -and $daysToEarnings -le 7) { $penalty += 4 }
 
     $latestNetIncomeUsd = Get-ObjectPropertyValue -Object $Stock -Name 'LatestNetIncomeUSDMn'
     $positiveQuarterCount = Get-ObjectPropertyValue -Object $Stock -Name 'PositiveQuarterCount'
@@ -2364,7 +2379,13 @@ function Invoke-BistStockScan {
     $indexSnapshot = Get-BistIndexBenchmarks -TimeoutSec $TimeoutSec
     $macroEnrichedStocks = Add-MacroSectorBenchmarks -Stocks @($enrichedStocks) -IndexSnapshot $indexSnapshot
 
-    return @($macroEnrichedStocks)
+    # Bilanço zamanlaması (gün sayaçları + sürpriz proxy) ve veri-kalite bayraklari.
+    # Skorlamadan once eklenir; DaysToNextEarnings risk cezasina, surpriz PEAD'e girer.
+    $now = Get-Date
+    $timedStocks = Add-EarningsTiming -Stocks @($macroEnrichedStocks) -AsOf $now
+    $qualityStocks = Add-DataQualityAssessment -Stocks @($timedStocks) -AsOf $now
+
+    return @($qualityStocks)
 }
 
 function Get-BistScore {
@@ -2551,7 +2572,9 @@ function Get-YahooWeeklyCloseSeries {
     }
 
     try {
-        $response = Invoke-RestMethod -Uri $url -Headers $headers -TimeoutSec $TimeoutSec -ErrorAction Stop
+        $response = Invoke-WithRetry -OperationName 'Yahoo haftalik kapanis' -MaxAttempts 2 -BaseDelaySec 1 -ScriptBlock {
+            Invoke-RestMethod -Uri $url -Headers $headers -TimeoutSec $TimeoutSec -ErrorAction Stop
+        }
     }
     catch {
         return @()
@@ -3403,6 +3426,13 @@ function Get-ModelPortfolioSelectionReason {
 
 function Test-ModelPortfolioEligibleStock {
     param($Stock)
+
+    # Veri kalitesi kapisi: kritik sorunlu (gecersiz fiyat / cok dusuk likidite)
+    # hisseler model portfoye alinmaz. Alan yoksa (eski state) gecirilir.
+    $dataQualityOk = Get-ObjectPropertyValue -Object $Stock -Name 'DataQualityOk'
+    if ($null -ne $dataQualityOk -and -not [bool]$dataQualityOk) {
+        return $false
+    }
 
     $evEbitda = Get-ObjectPropertyValue -Object $Stock -Name 'EvEbitda'
     $latestEbitda = Get-ObjectPropertyValue -Object $Stock -Name 'LatestEbitdaUSDMn'
@@ -4337,6 +4367,285 @@ function Add-AcademicFactorScore {
 }
 
 # ============================================================================
+# Bilanço zamanlaması, veri kalitesi, bilanço sürprizi (PEAD) ve KAP.
+# ============================================================================
+
+function Add-EarningsTiming {
+    <#
+        Her hisseye bilanco zamanlama alanlari ekler:
+        DaysToNextEarnings, DaysSinceLastReport, EarningsSurpriseScore.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Stocks,
+        [datetime]$AsOf = (Get-Date)
+    )
+
+    foreach ($s in $Stocks) {
+        $next = Get-ObjectPropertyValue -Object $s -Name 'NextEarningsDate'
+        $last = Get-ObjectPropertyValue -Object $s -Name 'LatestReportDate'
+        $dNext = if ($next -is [datetime]) { [int][Math]::Ceiling(($next.Date - $AsOf.Date).TotalDays) } else { $null }
+        $dLast = if ($last -is [datetime]) { [int][Math]::Floor(($AsOf.Date - $last.Date).TotalDays) } else { $null }
+        $s | Add-Member -NotePropertyName DaysToNextEarnings -NotePropertyValue $dNext -Force
+        $s | Add-Member -NotePropertyName DaysSinceLastReport -NotePropertyValue $dLast -Force
+        $s | Add-Member -NotePropertyName EarningsSurpriseScore -NotePropertyValue (Get-EarningsSurpriseScore -Stock $s) -Force
+    }
+
+    return $Stocks
+}
+
+function Get-EarningsSurpriseScore {
+    <#
+        Bilanco "surpriz/kalite" proxy'si (0-100, 50 notr). Gercek konsensus
+        tahmini ucretsiz yok; USD net kar Y/Y, USD FAVOK Y/Y, FAVOK ardisik
+        artis ve pozitif ceyrek sayisindan bilesik bir vekil uretir. PEAD
+        (bilanco sonrasi suruklenme) takibinde "surpriz yonu" olarak kullanilir.
+    #>
+    param($Stock)
+
+    $ni = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Stock -Name 'NetIncomeUsdYoYPct')
+    $eb = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Stock -Name 'EbitdaUsdYoYPct')
+    $seq = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Stock -Name 'EbitdaSequentialIncreaseCount')
+    $posq = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Stock -Name 'PositiveQuarterCount')
+
+    if ($null -eq $ni -and $null -eq $eb) { return $null }
+
+    $score = 0.0
+    if ($null -ne $ni) { $score += [Math]::Max(-40, [Math]::Min(40, $ni * 0.4)) }
+    if ($null -ne $eb) { $score += [Math]::Max(-30, [Math]::Min(30, $eb * 0.3)) }
+    if ($null -ne $seq) { $score += [Math]::Min(20, $seq * 5) }
+    if ($null -ne $posq) { $score += [Math]::Min(10, $posq * 2) }
+
+    return [Math]::Round([Math]::Max(0, [Math]::Min(100, 50 + $score)), 1)
+}
+
+function Add-DataQualityAssessment {
+    <#
+        Her hisseye veri-kalite bayraklari (DataQualityFlags) ve DataQualityOk
+        (kritik sorun yoksa $true) ekler. Bayat bilanco, eksik kritik alan,
+        gecersiz fiyat ve dusuk likiditeyi yakalar. Skoru DEGISTIRMEZ; portfoy
+        uygunlugu ve raporda seffaflik icin kullanilir.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Stocks,
+        [datetime]$AsOf = (Get-Date),
+        [int]$StaleReportDays = 135
+    )
+
+    foreach ($s in $Stocks) {
+        $flags = [System.Collections.Generic.List[string]]::new()
+        $critical = $false
+
+        $price = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'Price')
+        if ($null -eq $price -or $price -le 0) { [void]$flags.Add('Geçersiz/eksik fiyat'); $critical = $true }
+
+        $pe = Get-ObjectPropertyValue -Object $s -Name 'PE'
+        $pb = Get-ObjectPropertyValue -Object $s -Name 'PB'
+        $roe = Get-ObjectPropertyValue -Object $s -Name 'ROE'
+        if ($null -eq $pe -and $null -eq $pb -and $null -eq $roe) { [void]$flags.Add('Temel veriler eksik') }
+
+        $dLast = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'DaysSinceLastReport')
+        if ($null -ne $dLast -and $dLast -gt $StaleReportDays) {
+            [void]$flags.Add("Bilanço bayat olabilir ($([int]$dLast) gün)")
+        }
+
+        $avgVol = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'AverageVolume10D')
+        if ($null -ne $avgVol -and $avgVol -lt 50000) { [void]$flags.Add('Çok düşük likidite'); $critical = $true }
+        elseif ($null -ne $avgVol -and $avgVol -lt 150000) { [void]$flags.Add('Düşük likidite') }
+
+        $s | Add-Member -NotePropertyName DataQualityFlags -NotePropertyValue ($flags.ToArray()) -Force
+        $s | Add-Member -NotePropertyName DataQualityOk -NotePropertyValue (-not $critical) -Force
+    }
+
+    return $Stocks
+}
+
+function Update-EarningsReactions {
+    <#
+        PEAD (Post-Earnings Announcement Drift) takibi. Yeni bilanco aciklamis
+        hisseleri (DaysSinceLastReport kucuk) tespit anindaki fiyat + surpriz
+        skoruyla kaydeder; drift penceresi (varsayilan ~20 islem gunu ~ 28
+        takvim gunu) dolunca tespit fiyatina gore getiriyi (drift) hesaplar ve
+        "pozitif surpriz -> pozitif drift" isabet oranini biriktirir.
+        State JSON ile saklanir (cache yerine git'te kalici).
+    #>
+    [CmdletBinding()]
+    param(
+        $Previous,
+        [Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Stocks,
+        [datetime]$AsOf = (Get-Date),
+        [int]$DetectWithinDays = 4,
+        [int]$DriftWindowDays = 28,
+        [int]$MaxCompleted = 200
+    )
+
+    $priceMap = @{}
+    $surpriseMap = @{}
+    $sinceMap = @{}
+    foreach ($s in $Stocks) {
+        $sym = [string](Get-ObjectPropertyValue -Object $s -Name 'Symbol')
+        if ([string]::IsNullOrWhiteSpace($sym)) { continue }
+        $p = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'Price')
+        if ($null -ne $p -and $p -gt 0 -and -not $priceMap.ContainsKey($sym)) {
+            $priceMap[$sym] = [double]$p
+            $surpriseMap[$sym] = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'EarningsSurpriseScore')
+            $sinceMap[$sym] = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'DaysSinceLastReport')
+        }
+    }
+
+    $tracked = [System.Collections.Generic.List[object]]::new()
+    $completed = [System.Collections.Generic.List[object]]::new()
+    if ($null -ne $Previous) {
+        foreach ($t in @(Get-ObjectPropertyValue -Object $Previous -Name 'Tracked')) { if ($null -ne $t) { [void]$tracked.Add($t) } }
+        foreach ($c in @(Get-ObjectPropertyValue -Object $Previous -Name 'Completed')) { if ($null -ne $c) { [void]$completed.Add($c) } }
+    }
+
+    $trackedKeys = @{}
+    foreach ($t in $tracked) {
+        $k = '{0}|{1}' -f [string](Get-ObjectPropertyValue -Object $t -Name 'Symbol'), [string](Get-ObjectPropertyValue -Object $t -Name 'ReportDate')
+        $trackedKeys[$k] = $true
+    }
+
+    # 1) Yeni aciklamis hisseleri izlemeye al.
+    foreach ($s in $Stocks) {
+        $sym = [string](Get-ObjectPropertyValue -Object $s -Name 'Symbol')
+        if ([string]::IsNullOrWhiteSpace($sym)) { continue }
+        $since = $sinceMap[$sym]
+        $reportDate = Get-ObjectPropertyValue -Object $s -Name 'LatestReportDate'
+        $surprise = $surpriseMap[$sym]
+        if ($null -eq $since -or $since -lt 0 -or $since -gt $DetectWithinDays) { continue }
+        if (-not $priceMap.ContainsKey($sym) -or $null -eq $surprise) { continue }
+        $rdText = if ($reportDate -is [datetime]) { $reportDate.ToString('yyyy-MM-dd') } else { [string]$reportDate }
+        $k = '{0}|{1}' -f $sym, $rdText
+        if ($trackedKeys.ContainsKey($k)) { continue }
+        $trackedKeys[$k] = $true
+        [void]$tracked.Add([pscustomobject][ordered]@{
+                Symbol = $sym
+                ReportDate = $rdText
+                DetectedAt = $AsOf.ToString('o')
+                EntryPrice = $priceMap[$sym]
+                SurpriseScore = $surprise
+            })
+    }
+
+    # 2) Drift penceresi dolanlari tamamla.
+    $stillTracked = [System.Collections.Generic.List[object]]::new()
+    $newlyCompleted = $null
+    foreach ($t in $tracked) {
+        $sym = [string](Get-ObjectPropertyValue -Object $t -Name 'Symbol')
+        $detectedAtRaw = [string](Get-ObjectPropertyValue -Object $t -Name 'DetectedAt')
+        $entry = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $t -Name 'EntryPrice')
+        $detectedAt = $null
+        try { $detectedAt = [datetime]::Parse($detectedAtRaw, [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::RoundtripKind) } catch { $detectedAt = $null }
+        $elapsed = if ($null -ne $detectedAt) { ($AsOf.Date - $detectedAt.Date).TotalDays } else { $null }
+
+        if ($null -ne $elapsed -and $elapsed -ge $DriftWindowDays -and $priceMap.ContainsKey($sym) -and $null -ne $entry -and $entry -gt 0) {
+            $drift = (($priceMap[$sym] / $entry) - 1.0) * 100.0
+            $surprise = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $t -Name 'SurpriseScore')
+            $positiveSurprise = ($null -ne $surprise -and $surprise -ge 55)
+            $negativeSurprise = ($null -ne $surprise -and $surprise -le 45)
+            $hit = ($positiveSurprise -and $drift -gt 0) -or ($negativeSurprise -and $drift -lt 0)
+            [void]$completed.Add([pscustomobject][ordered]@{
+                    Symbol = $sym
+                    ReportDate = [string](Get-ObjectPropertyValue -Object $t -Name 'ReportDate')
+                    CompletedAt = $AsOf.ToString('o')
+                    SurpriseScore = $surprise
+                    DriftPct = [Math]::Round($drift, 2)
+                    DirectionalHit = $hit
+                    Directional = ($positiveSurprise -or $negativeSurprise)
+                })
+        }
+        else {
+            [void]$stillTracked.Add($t)
+        }
+    }
+
+    while ($completed.Count -gt $MaxCompleted) { $completed.RemoveAt(0) }
+
+    # Ozet: yonlu (belirgin surprizli) tamamlanmislarda isabet orani + ortalama drift.
+    $directional = @($completed | Where-Object { [bool](Get-ObjectPropertyValue -Object $_ -Name 'Directional') })
+    $hits = @($directional | Where-Object { [bool](Get-ObjectPropertyValue -Object $_ -Name 'DirectionalHit') }).Count
+    $peadHitRate = if ($directional.Count -gt 0) { [Math]::Round(($hits / [double]$directional.Count) * 100.0, 1) } else { $null }
+    $posDrift = @($completed | Where-Object { $s2 = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $_ -Name 'SurpriseScore'); $null -ne $s2 -and $s2 -ge 55 } | ForEach-Object { [double](Get-ObjectPropertyValue -Object $_ -Name 'DriftPct') })
+    $avgPosDrift = if ($posDrift.Count -gt 0) { [Math]::Round((($posDrift | Measure-Object -Average).Average), 2) } else { $null }
+
+    return [pscustomobject][ordered]@{
+        UpdatedAt = $AsOf.ToString('o')
+        Summary = [pscustomobject][ordered]@{
+            TrackedCount = $stillTracked.Count
+            CompletedCount = $completed.Count
+            DirectionalCount = $directional.Count
+            PeadHitRatePct = $peadHitRate
+            AvgPositiveSurpriseDriftPct = $avgPosDrift
+        }
+        Tracked = $stillTracked.ToArray()
+        Completed = $completed.ToArray()
+    }
+}
+
+function Get-KapDisclosures {
+    <#
+        KAP (Kamuyu Aydinlatma Platformu) son bildirimleri - BEST EFFORT.
+        KAP'in resmi ucretsiz API'si yoktur; SPA ic ucu tarayici benzeri
+        header'larla denenir. Her tur hata sessizce yutulur ve BOS dizi doner;
+        boylece rapor akisi asla bozulmaz (deneysel ozellik).
+        Donen kayitlar normalize edilir: Symbol, Title, Kind, Date.
+    #>
+    [CmdletBinding()]
+    param(
+        [int]$TimeoutSec = 6,
+        [int]$Limit = 40
+    )
+
+    $headers = @{
+        'User-Agent' = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
+        'Accept' = 'application/json, text/plain, */*'
+        'Accept-Language' = 'tr-TR,tr;q=0.9'
+        'Referer' = 'https://www.kap.org.tr/tr/bildirim-sorgu'
+    }
+    $endpoints = @(
+        'https://www.kap.org.tr/tr/api/disclosures',
+        'https://www.kap.org.tr/tr/api/memberDisclosureQuery'
+    )
+
+    $raw = $null
+    foreach ($url in $endpoints) {
+        try {
+            $raw = Invoke-WithRetry -OperationName "KAP $url" -MaxAttempts 2 -BaseDelaySec 1 -ScriptBlock {
+                Invoke-RestMethod -Uri $url -Headers $headers -TimeoutSec $TimeoutSec -ErrorAction Stop
+            }
+            if ($null -ne $raw) { break }
+        }
+        catch { $raw = $null }
+    }
+    if ($null -eq $raw) { return @() }
+
+    # Donen yapi bilinmeyebilir; toleransli alan eslemesi yapilir.
+    $items = $raw
+    if ($null -ne (Get-ObjectPropertyValue -Object $raw -Name 'disclosures')) { $items = Get-ObjectPropertyValue -Object $raw -Name 'disclosures' }
+    elseif ($null -ne (Get-ObjectPropertyValue -Object $raw -Name 'value')) { $items = Get-ObjectPropertyValue -Object $raw -Name 'value' }
+
+    $out = [System.Collections.Generic.List[object]]::new()
+    foreach ($it in @($items)) {
+        if ($null -eq $it) { continue }
+        $sym = [string](Get-ObjectPropertyValue -Object $it -Name 'stockCodes')
+        if ([string]::IsNullOrWhiteSpace($sym)) { $sym = [string](Get-ObjectPropertyValue -Object $it -Name 'ticker') }
+        if ([string]::IsNullOrWhiteSpace($sym)) { $sym = [string](Get-ObjectPropertyValue -Object $it -Name 'companyName') }
+        $title = [string](Get-ObjectPropertyValue -Object $it -Name 'title')
+        if ([string]::IsNullOrWhiteSpace($title)) { $title = [string](Get-ObjectPropertyValue -Object $it -Name 'summary') }
+        $kind = [string](Get-ObjectPropertyValue -Object $it -Name 'disclosureCategory')
+        if ([string]::IsNullOrWhiteSpace($kind)) { $kind = [string](Get-ObjectPropertyValue -Object $it -Name 'type') }
+        $date = [string](Get-ObjectPropertyValue -Object $it -Name 'publishDate')
+        if ([string]::IsNullOrWhiteSpace($date)) { $date = [string](Get-ObjectPropertyValue -Object $it -Name 'date') }
+        if ([string]::IsNullOrWhiteSpace($sym) -and [string]::IsNullOrWhiteSpace($title)) { continue }
+        [void]$out.Add([pscustomobject][ordered]@{ Symbol = $sym; Title = $title; Kind = $kind; Date = $date })
+        if ($out.Count -ge $Limit) { break }
+    }
+    return $out.ToArray()
+}
+
+# ============================================================================
 # TCMB EVDS (Elektronik Veri Dagitim Sistemi) entegrasyonu.
 # API anahtari ASLA kodda saklanmaz; $env:BIST_EVDS_API_KEY'den okunur
 # (bulutta GitHub Secret, yerelde ortam degiskeni). Anahtar yoksa sessizce
@@ -4357,7 +4666,9 @@ function Get-EvdsSeries {
     $url = 'https://evds2.tcmb.gov.tr/service/evds/series={0}&startDate={1}&endDate={2}&type=json&frequency={3}&aggregationTypes={4}&formulas=0' -f `
         $Series, $StartDate.ToString('dd-MM-yyyy'), $EndDate.ToString('dd-MM-yyyy'), $Frequency, $Aggregation
     try {
-        $resp = Invoke-RestMethod -Uri $url -Headers @{ key = $apiKey } -TimeoutSec $TimeoutSec -ErrorAction Stop
+        $resp = Invoke-WithRetry -OperationName "EVDS $Series" -MaxAttempts 2 -BaseDelaySec 1 -ScriptBlock {
+            Invoke-RestMethod -Uri $url -Headers @{ key = $apiKey } -TimeoutSec $TimeoutSec -ErrorAction Stop
+        }
     }
     catch { return $null }
     $items = Get-ObjectPropertyValue -Object $resp -Name 'items'
@@ -4652,6 +4963,11 @@ Export-ModuleMember -Function `
     Get-Momentum12_1Pct, `
     Resolve-InflationBenchmark, `
     Get-CumulativeInflationFromIndexPoints, `
+    Add-EarningsTiming, `
+    Get-EarningsSurpriseScore, `
+    Add-DataQualityAssessment, `
+    Update-EarningsReactions, `
+    Get-KapDisclosures, `
     Invoke-BistStockScan, `
     Get-ObjectPropertyValue, `
     Get-BistScore, `

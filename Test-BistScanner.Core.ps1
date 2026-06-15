@@ -249,6 +249,68 @@ if ($null -eq $fallback -or [Math]::Abs([double]$fallback.Inflation1YPct - 32.37
 if ($null -ne $savedKey) { $env:BIST_EVDS_API_KEY = $savedKey } else { Remove-Item Env:\BIST_EVDS_API_KEY -ErrorAction SilentlyContinue }
 Write-Host "Dinamik enflasyon testi başarılı (1Y=$($infl.Inflation1YPct)% 3Y=$($infl.Inflation3YPct)% 5Y=$($infl.Inflation5YPct)%; fallback OK)."
 
+# --- Bilanço sürprizi proxy'si ---
+$surpriseStrong = Get-EarningsSurpriseScore -Stock ([pscustomobject]@{ NetIncomeUsdYoYPct = 80; EbitdaUsdYoYPct = 60; EbitdaSequentialIncreaseCount = 4; PositiveQuarterCount = 5 })
+$surpriseWeak = Get-EarningsSurpriseScore -Stock ([pscustomobject]@{ NetIncomeUsdYoYPct = -50; EbitdaUsdYoYPct = -40; EbitdaSequentialIncreaseCount = 0; PositiveQuarterCount = 1 })
+if ($surpriseStrong -le 55 -or $surpriseWeak -ge 45) { throw "Bilanço sürprizi skoru yanlis: strong=$surpriseStrong weak=$surpriseWeak" }
+if ($null -ne (Get-EarningsSurpriseScore -Stock ([pscustomobject]@{ NetIncomeUsdYoYPct = $null; EbitdaUsdYoYPct = $null; EbitdaSequentialIncreaseCount = $null; PositiveQuarterCount = $null }))) {
+    throw 'Bilanço sürprizi verisi yoksa null donmeli.'
+}
+Write-Host "Bilanço sürprizi testi başarılı (güçlü=$surpriseStrong, zayıf=$surpriseWeak)."
+
+# --- Add-EarningsTiming ---
+$etStocks = @(
+    [pscustomobject]@{ Symbol = 'AAA'; Price = 100; NextEarningsDate = [datetime]'2026-06-18'; LatestReportDate = [datetime]'2026-06-13'; NetIncomeUsdYoYPct = 80; EbitdaUsdYoYPct = 60; EbitdaSequentialIncreaseCount = 4; PositiveQuarterCount = 5 }
+)
+[void](Add-EarningsTiming -Stocks $etStocks -AsOf ([datetime]'2026-06-15'))
+$etA = $etStocks | Where-Object Symbol -eq 'AAA'
+if ($etA.DaysToNextEarnings -ne 3 -or $etA.DaysSinceLastReport -ne 2 -or $null -eq $etA.EarningsSurpriseScore) {
+    throw "Add-EarningsTiming yanlis: dNext=$($etA.DaysToNextEarnings) dLast=$($etA.DaysSinceLastReport)"
+}
+Write-Host "Add-EarningsTiming testi başarılı."
+
+# --- Bilanço yakınlığı skora (Get-BistScore üzerinden risk cezası) ---
+$baseScore = (Get-BistScore -Stock $sample -Strategy 'Dengeli').Score
+$nearSample = $sample.PSObject.Copy()
+$nearSample | Add-Member -NotePropertyName DaysToNextEarnings -NotePropertyValue 3 -Force
+$nearScore = (Get-BistScore -Stock $nearSample -Strategy 'Dengeli').Score
+if (-not ($nearScore -lt $baseScore)) {
+    throw "Bilanço yakınlığı cezası skora yansimadi: base=$baseScore near=$nearScore"
+}
+Write-Host "Bilanço yakınlığı ceza testi başarılı (base=$baseScore -> near=$nearScore)."
+
+# --- Add-DataQualityAssessment ---
+$dqStocks = @(
+    [pscustomobject]@{ Symbol = 'OK'; Price = 100; PE = 10; PB = 1; ROE = 20; DaysSinceLastReport = 40; AverageVolume10D = 1000000 }
+    [pscustomobject]@{ Symbol = 'BADP'; Price = 0; PE = 10; PB = 1; ROE = 20; DaysSinceLastReport = 40; AverageVolume10D = 1000000 }
+    [pscustomobject]@{ Symbol = 'ILQ'; Price = 100; PE = $null; PB = $null; ROE = $null; DaysSinceLastReport = 200; AverageVolume10D = 10000 }
+)
+[void](Add-DataQualityAssessment -Stocks $dqStocks -AsOf ([datetime]'2026-06-15'))
+if (-not ($dqStocks | Where-Object Symbol -eq 'OK').DataQualityOk) { throw 'Veri kalitesi: OK temiz olmaliydi.' }
+if (($dqStocks | Where-Object Symbol -eq 'BADP').DataQualityOk) { throw 'Veri kalitesi: sıfır fiyat kritik olmaliydi.' }
+if (($dqStocks | Where-Object Symbol -eq 'ILQ').DataQualityOk) { throw 'Veri kalitesi: illikit kritik olmaliydi.' }
+Write-Host "Add-DataQualityAssessment testi başarılı."
+
+# --- PEAD (Update-EarningsReactions) iki kosu ---
+function New-PeadStock { param($Sym, $Price, $Since, $ReportDate, $Yoy)
+    [pscustomobject]@{ Symbol = $Sym; Price = $Price; DaysSinceLastReport = $Since; LatestReportDate = $ReportDate; NetIncomeUsdYoYPct = $Yoy; EbitdaUsdYoYPct = $Yoy; EbitdaSequentialIncreaseCount = 4; PositiveQuarterCount = 5 } }
+$peadR1 = @(New-PeadStock 'AAA' 100 1 ([datetime]'2026-06-14') 90; New-PeadStock 'GGG' 200 1 ([datetime]'2026-06-14') -60)
+[void](Add-EarningsTiming -Stocks $peadR1 -AsOf ([datetime]'2026-06-15'))
+$peadS1 = Update-EarningsReactions -Previous $null -Stocks $peadR1 -AsOf ([datetime]'2026-06-15')
+if ($peadS1.Summary.TrackedCount -ne 2) { throw "PEAD ilk kosu izleme: $($peadS1.Summary.TrackedCount)" }
+$peadS1Ro = ($peadS1 | ConvertTo-Json -Depth 10) | ConvertFrom-Json
+$peadR2 = @(New-PeadStock 'AAA' 115 35 ([datetime]'2026-06-14') 90; New-PeadStock 'GGG' 220 35 ([datetime]'2026-06-14') -60)
+[void](Add-EarningsTiming -Stocks $peadR2 -AsOf ([datetime]'2026-07-15'))
+$peadS2 = Update-EarningsReactions -Previous $peadS1Ro -Stocks $peadR2 -AsOf ([datetime]'2026-07-15')
+if ($peadS2.Summary.CompletedCount -ne 2 -or $peadS2.Summary.PeadHitRatePct -ne 50) {
+    throw "PEAD ikinci kosu: completed=$($peadS2.Summary.CompletedCount) hit=$($peadS2.Summary.PeadHitRatePct)"
+}
+Write-Host "PEAD (Update-EarningsReactions) testi başarılı (isabet %$($peadS2.Summary.PeadHitRatePct))."
+
+# --- KAP best-effort: ag yoksa/erisilmezse bos doner, hata firlatmaz ---
+$kapList = @(Get-KapDisclosures -TimeoutSec 3)
+Write-Host "Get-KapDisclosures testi başarılı (best-effort, $($kapList.Count) kayıt, hata yok)."
+
 if ($Live) {
     $stocks = @(Invoke-BistStockScan)
     if ($stocks.Count -lt 400) {
