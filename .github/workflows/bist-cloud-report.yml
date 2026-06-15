@@ -121,12 +121,13 @@ jobs:
             data\signal_calibration.json
           if-no-files-found: warn
 
-      # Kalici state: model portfoyler, anlik firsat portfoyu ve sinyal
-      # performansi repoya commit edilir. Boylece state, cache'in kirilgan
-      # versiyon/tahliye davranisina bagli kalmaz; gecmis git'te gorunur olur.
+      # Kalici state yalnizca basarili rapor kosularindan sonra repoya commit edilir.
+      # Boylece basarisiz veya yarim kalan kosular bot hafizasini ileri alamaz.
+      # Model portfoyler, anlik firsat portfoyu ve sinyal performansi git'te izlenir;
+      # bu state'i cache'in kirilgan versiyon/tahliye davranisina bagli birakmaz.
       # last_scan.json kasten haric (buyuk ve kosular arasi okunmuyor).
       - name: Persist state to repo
-        if: always()
+        if: success()
         shell: powershell
         run: |
           $ErrorActionPreference = 'Continue'

@@ -1122,12 +1122,44 @@ function Save-JsonFile {
         [int]$Depth = 8
     )
 
-    $directory = Split-Path $Path -Parent
-    if (-not (Test-Path $directory)) {
+    $fullPath = [IO.Path]::GetFullPath($Path)
+    $directory = [IO.Path]::GetDirectoryName($fullPath)
+    if ([string]::IsNullOrWhiteSpace($directory)) {
+        throw "JSON dosyasi icin dizin belirlenemedi: $Path"
+    }
+    if (-not (Test-Path -LiteralPath $directory)) {
         [void](New-Item -ItemType Directory -Path $directory -Force)
     }
 
-    [IO.File]::WriteAllText($Path, ($Value | ConvertTo-Json -Depth $Depth), [Text.UTF8Encoding]::new($true))
+    $json = ConvertTo-Json -InputObject $Value -Depth $Depth
+    $targetFileName = [IO.Path]::GetFileName($fullPath)
+    $tempPath = Join-Path -Path $directory -ChildPath ('.{0}.{1}.tmp' -f $targetFileName, [guid]::NewGuid().ToString('N'))
+    $backupPath = Join-Path -Path $directory -ChildPath ('.{0}.{1}.bak' -f $targetFileName, [guid]::NewGuid().ToString('N'))
+    $encoding = [Text.UTF8Encoding]::new($true)
+
+    try {
+        [IO.File]::WriteAllText($tempPath, $json, $encoding)
+        [void](ConvertFrom-Json -InputObject ([IO.File]::ReadAllText($tempPath, $encoding)))
+
+        if ([IO.File]::Exists($fullPath)) {
+            [IO.File]::Replace($tempPath, $fullPath, $backupPath, $true)
+            if ([IO.File]::Exists($backupPath)) {
+                [IO.File]::Delete($backupPath)
+            }
+        }
+        else {
+            [IO.File]::Move($tempPath, $fullPath)
+        }
+    }
+    catch {
+        if ([IO.File]::Exists($tempPath)) {
+            try { [IO.File]::Delete($tempPath) } catch { }
+        }
+        if ([IO.File]::Exists($backupPath) -and [IO.File]::Exists($fullPath)) {
+            try { [IO.File]::Delete($backupPath) } catch { }
+        }
+        throw
+    }
 }
 
 function Load-ReportSettings {
