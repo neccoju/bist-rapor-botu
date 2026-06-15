@@ -119,6 +119,10 @@ jobs:
             data\signal_performance.json
             data\earnings_reactions.json
             data\signal_calibration.json
+            data\order_intents.json
+            data\paper_broker.json
+            data\latest_point_in_time_snapshot.json
+            data\point_in_time_snapshots\*.json
           if-no-files-found: warn
 
       # Kalici state yalnizca basarili rapor kosularindan sonra repoya commit edilir.
@@ -138,8 +142,13 @@ jobs:
             'data/instant_entry_portfolio.json',
             'data/signal_performance.json',
             'data/earnings_reactions.json',
-            'data/signal_calibration.json'
+            'data/signal_calibration.json',
+            'data/order_intents.json',
+            'data/paper_broker.json',
+            'data/latest_point_in_time_snapshot.json'
           ) | Where-Object { Test-Path -LiteralPath $_ }
+          $snapshotFiles = @(Get-ChildItem -Path 'data/point_in_time_snapshots' -Filter '*.json' -File -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })
+          $files = @($files) + $snapshotFiles
           if ($files.Count -eq 0) {
             Write-Host 'Kaydedilecek state dosyasi bulunamadi.'
             exit 0

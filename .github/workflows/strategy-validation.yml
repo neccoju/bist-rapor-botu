@@ -1,0 +1,64 @@
+name: Strategy Validation Sweep
+
+on:
+  workflow_dispatch:
+    inputs:
+      start_date:
+        description: "Baslangic (yyyy-MM-dd)"
+        required: false
+        default: "2024-09-01"
+      top_n_list:
+        description: "TopN listesi (virgullu)"
+        required: false
+        default: "5,7"
+      cost_bps_list:
+        description: "Maliyet bps listesi (virgullu)"
+        required: false
+        default: "20,50"
+      min_adv_tl_list:
+        description: "Min gunluk TL hacim listesi"
+        required: false
+        default: "3000000"
+      max_stocks:
+        description: "Backtest evren buyuklugu"
+        required: false
+        default: "180"
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  validate:
+    runs-on: windows-2025
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Smoke test report core
+        shell: powershell
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\Test-BistScanner.Core.ps1
+
+      - name: Run strategy validation sweep
+        shell: powershell
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\Validate-StrategySweep.ps1 `
+            -StartDate ([datetime]"${{ github.event.inputs.start_date }}") `
+            -TopNList "${{ github.event.inputs.top_n_list }}" `
+            -CostBpsList "${{ github.event.inputs.cost_bps_list }}" `
+            -MinAdvTlList "${{ github.event.inputs.min_adv_tl_list }}" `
+            -MaxStocks ([int]"${{ github.event.inputs.max_stocks }}")
+
+      - name: Upload validation artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: strategy-validation-${{ github.run_id }}
+          path: |
+            reports\strategy_validation.md
+            reports\strategy_validation.json
+          if-no-files-found: warn

@@ -407,16 +407,30 @@ $costStocks = @(0..6 | ForEach-Object {
         $c.Symbol = "CST$_"
         $c.Company = "Cost $_"
         $c.Price = 100.0 + $_
+        $c.VolatilityD = 1.0 + $_
         $c
     })
 $costSet0 = New-ModelPortfolioSet -Stocks $costStocks -AsOf ([datetime]'2026-05-26T18:30:00') -InitialCapital 100000 -BenchmarkLevel 10000 -CostBps 50
 $cp0 = $costSet0.Portfolios[0]
 if (-not ([double]$cp0.CurrentValueTL -lt 100000)) { throw "Giris maliyeti uygulanmadi: $($cp0.CurrentValueTL)" }
 if (-not ([double]$cp0.CumulativeModelCostsTL -gt 0)) { throw "Kumulatif maliyet 0 (giris): $($cp0.CumulativeModelCostsTL)" }
+$riskBalanced = @($costSet0.Portfolios | Where-Object Id -eq 'RiskDengeli')[0]
+if ($null -eq $riskBalanced) { throw 'RiskDengeli portföy oluşturulamadı.' }
+$normalWeightIssues = @(
+    $costSet0.Portfolios |
+        Where-Object { $_.Id -ne 'RiskDengeli' } |
+        ForEach-Object { $_.Holdings } |
+        Where-Object { [Math]::Abs([double]$_.WeightPct - 20.0) -gt 0.01 }
+)
+if ($normalWeightIssues.Count -gt 0) { throw 'Normal model portföylerde eşit ağırlık bozuldu.' }
+$riskWeightSum = ($riskBalanced.Holdings | Measure-Object -Property WeightPct -Sum).Sum
+if ([Math]::Abs([double]$riskWeightSum - 100.0) -gt 0.05) { throw "RiskDengeli ağırlık toplamı 100 değil: $riskWeightSum" }
+$riskNonEqual = @($riskBalanced.Holdings | Where-Object { [Math]::Abs([double]$_.WeightPct - 20.0) -gt 0.01 }).Count
+if ($riskNonEqual -eq 0) { throw 'RiskDengeli portföy eşit ağırlıktan ayrışmadı.' }
 $costSet1 = Update-ModelPortfolioSet -PortfolioSet $costSet0 -Stocks $costStocks -AsOf ([datetime]'2026-06-30T18:30:00') -AllowRebalance -BenchmarkLevel 10500 -CostBps 50
 $cp1 = $costSet1.Portfolios[0]
 if (-not ([double]$cp1.CumulativeModelCostsTL -ge [double]$cp0.CumulativeModelCostsTL)) { throw "Rebalance maliyeti birikmedi: $($cp1.CumulativeModelCostsTL)" }
-Write-Host "İşlem maliyeti testi başarılı (giriş maliyeti $($cp0.CumulativeModelCostsTL) TL, rebalance sonrası $($cp1.CumulativeModelCostsTL) TL)."
+Write-Host "İşlem maliyeti ve RiskDengeli portföy testi başarılı (giriş maliyeti $($cp0.CumulativeModelCostsTL) TL, rebalance sonrası $($cp1.CumulativeModelCostsTL) TL)."
 
 if ($Live) {
     $stocks = @(Invoke-BistStockScan)
@@ -483,15 +497,15 @@ if ($Live) {
 
     $strongUsdCount = @($stocks | Where-Object StrongUsdEarnings).Count
     $portfolioSet = New-ModelPortfolioSet -Stocks $stocks -AsOf ([datetime]'2026-06-04T18:30:00') -InitialCapital 100000
-    if ($portfolioSet.Portfolios.Count -ne 4) {
-        throw "Dört model portföy oluşturulamadı: $($portfolioSet.Portfolios.Count)"
+    if ($portfolioSet.Portfolios.Count -ne 6) {
+        throw "Altı model portföy oluşturulamadı: $($portfolioSet.Portfolios.Count)"
     }
 
     foreach ($portfolio in $portfolioSet.Portfolios) {
         if ($portfolio.Holdings.Count -ne 5) {
             throw "$($portfolio.Name) için 5 hisse oluşturulamadı."
         }
-        if (@($portfolio.Holdings | Where-Object { [Math]::Abs($_.WeightPct - 20) -gt 0.001 }).Count -gt 0) {
+        if ($portfolio.Id -ne 'RiskDengeli' -and @($portfolio.Holdings | Where-Object { [Math]::Abs($_.WeightPct - 20) -gt 0.001 }).Count -gt 0) {
             throw "$($portfolio.Name) başlangıçta eşit ağırlıklı değil."
         }
         if ([Math]::Abs($portfolio.CurrentValueTL - 100000) -gt 0.01) {

@@ -582,8 +582,88 @@ function Get-TransactionPriceReturnPct {
     return (([double]$CurrentPrice - $referencePrice) / $referencePrice) * 100
 }
 
+function Get-ReportRiskRules {
+    param($Settings)
+
+    $rules = Get-ConfigValue -Object $Settings.Report -Name 'RiskRules' -Default $null
+    [pscustomobject][ordered]@{
+        StopLossPct = [double](Get-ConfigValue -Object $rules -Name 'StopLossPct' -Default -8)
+        ReduceLossPct = [double](Get-ConfigValue -Object $rules -Name 'ReduceLossPct' -Default -5)
+        TakeProfitPct = [double](Get-ConfigValue -Object $rules -Name 'TakeProfitPct' -Default 18)
+        TrailingStopPct = [double](Get-ConfigValue -Object $rules -Name 'TrailingStopPct' -Default 7)
+        MinScoreForHold = [double](Get-ConfigValue -Object $rules -Name 'MinScoreForHold' -Default 55)
+    }
+}
+
+function Get-PositionRiskDecision {
+    param(
+        $Holding,
+        $Stock,
+        $Rules
+    )
+
+    $currentPrice = Get-NumberValue -Object $Holding -Name 'CurrentPrice'
+    $rebalancePrice = Get-NumberValue -Object $Holding -Name 'RebalancePrice'
+    if ($null -eq $rebalancePrice -or $rebalancePrice -le 0) {
+        $rebalancePrice = Get-NumberValue -Object $Holding -Name 'AverageBuyPrice'
+    }
+    $gainPct = Get-NumberValue -Object $Holding -Name 'GainSinceRebalancePct'
+    if ($null -eq $gainPct) { $gainPct = Get-NumberValue -Object $Holding -Name 'UnrealizedGainPct' }
+    if ($null -eq $gainPct) { $gainPct = 0.0 }
+
+    $priceIsFresh = [bool](Get-ObjectPropertyValue -Object $Holding -Name 'PriceIsFresh')
+    $score = Get-NumberValue -Object $Stock -Name 'Score'
+    $riskLevel = [string](Get-ObjectPropertyValue -Object $Stock -Name 'RiskLevel')
+    $stopPrice = if ($null -ne $rebalancePrice -and $rebalancePrice -gt 0) {
+        [double]$rebalancePrice * (1.0 + ([double]$Rules.StopLossPct / 100.0))
+    }
+    else { $null }
+
+    if ($null -ne $currentPrice -and $currentPrice -gt 0 -and $gainPct -ge [double]$Rules.TakeProfitPct) {
+        $trail = [double]$currentPrice * (1.0 - ([double]$Rules.TrailingStopPct / 100.0))
+        if ($null -eq $stopPrice -or $trail -gt $stopPrice) { $stopPrice = $trail }
+    }
+
+    $decision = 'Tut'
+    $reason = 'Risk eşiği tetiklenmedi.'
+    if (-not $priceIsFresh) {
+        $decision = 'Bekle'
+        $reason = 'Canlı fiyat taze değil; risk kararı için veri doğrulaması beklenmeli.'
+    }
+    elseif ($riskLevel -eq 'Yüksek') {
+        $decision = 'Azalt / Çıkış Adayı'
+        $reason = 'Hisse yüksek risk bayrağı taşıyor.'
+    }
+    elseif ([double]$gainPct -le [double]$Rules.StopLossPct) {
+        $decision = 'Stop Adayı'
+        $reason = 'Zarar stop eşiğini aştı.'
+    }
+    elseif ([double]$gainPct -le [double]$Rules.ReduceLossPct) {
+        $decision = 'Azalt'
+        $reason = 'Zarar azaltma eşiğine geldi.'
+    }
+    elseif ($null -ne $score -and [double]$score -lt [double]$Rules.MinScoreForHold) {
+        $decision = 'Teyit Zayıf'
+        $reason = 'Güncel skor elde tutma eşiğinin altına indi.'
+    }
+    elseif ([double]$gainPct -ge [double]$Rules.TakeProfitPct) {
+        $decision = 'Kar Al / Stop Yükselt'
+        $reason = 'Kar alma eşiği aşıldı; iz süren stop yukarı çekilmeli.'
+    }
+
+    [pscustomobject][ordered]@{
+        Decision = $decision
+        StopPrice = if ($null -ne $stopPrice) { [Math]::Round([double]$stopPrice, 4) } else { $null }
+        Reason = $reason
+    }
+}
+
 function Get-ModelPortfolioHoldingRows {
-    param($PortfolioSet)
+    param(
+        $PortfolioSet,
+        [hashtable]$StockMap = @{},
+        $RiskRules = $null
+    )
 
     return @($PortfolioSet.Portfolios | ForEach-Object {
             $portfolio = $_
@@ -594,6 +674,8 @@ function Get-ModelPortfolioHoldingRows {
                 $firstSell = Get-PortfolioSymbolTransaction -Portfolio $portfolio -Symbol $symbol -Side Sell
                 $lastTransaction = Get-PortfolioSymbolTransaction -Portfolio $portfolio -Symbol $symbol -Side Any -Last
                 $currentPrice = Get-NumberValue -Object $holding -Name 'CurrentPrice'
+                $stock = if ($null -ne $StockMap -and $StockMap.ContainsKey($symbol)) { $StockMap[$symbol] } else { $null }
+                $riskDecision = if ($null -ne $RiskRules) { Get-PositionRiskDecision -Holding $holding -Stock $stock -Rules $RiskRules } else { $null }
 
                 [pscustomobject][ordered]@{
                     Portfoy = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $portfolio -Name 'Name')
@@ -607,6 +689,9 @@ function Get-ModelPortfolioHoldingRows {
                     'Agirlik' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $holding -Name 'WeightPct') -Format 'N1' -Suffix '%'
                     'Rebalans %' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $holding -Name 'GainSinceRebalancePct') -Format 'N1'
                     'Getiri %' = Format-ReportNumber -Value (Get-TransactionPriceReturnPct -ReferenceTransaction $firstBuy -CurrentPrice $currentPrice) -Format 'N1'
+                    'Risk Karari' = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $riskDecision -Name 'Decision')
+                    'Stop Seviye' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $riskDecision -Name 'StopPrice') -Format 'N2'
+                    'Risk Notu' = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $riskDecision -Name 'Reason')
                 }
             }
         })
@@ -1115,6 +1200,298 @@ function Get-InstantEntryPortfolioTransactionRows {
     )
 }
 
+function Get-TransactionOrderSide {
+    param($Transaction)
+
+    $action = [string](Get-ObjectPropertyValue -Object $Transaction -Name 'Action')
+    if ($action -match 'AL') { return 'Buy' }
+    if ($action -match 'SAT') { return 'Sell' }
+    return $null
+}
+
+function New-OrderIntentFromTransaction {
+    param(
+        [string]$Source,
+        [string]$PortfolioId,
+        [string]$PortfolioName,
+        $Transaction
+    )
+
+    $symbol = [string](Get-ObjectPropertyValue -Object $Transaction -Name 'Symbol')
+    if ([string]::IsNullOrWhiteSpace($symbol) -or $symbol -in @('PORTFÖY', 'KOMİSYON')) { return $null }
+
+    $side = Get-TransactionOrderSide -Transaction $Transaction
+    if ([string]::IsNullOrWhiteSpace($side)) { return $null }
+
+    $quantity = Get-NumberValue -Object $Transaction -Name 'Quantity'
+    $amount = Get-NumberValue -Object $Transaction -Name 'AmountTL'
+    $price = Get-NumberValue -Object $Transaction -Name 'Price'
+    if ($null -eq $quantity -or $quantity -le 0 -or $null -eq $amount -or $amount -le 0) { return $null }
+
+    $sequence = [string](Get-ObjectPropertyValue -Object $Transaction -Name 'Sequence')
+    $executionDate = [string](Get-ObjectPropertyValue -Object $Transaction -Name 'ExecutionDate')
+    $intentId = '{0}:{1}:{2}:{3}:{4}' -f $Source, $PortfolioId, $sequence, $symbol, $executionDate
+
+    return [pscustomobject][ordered]@{
+        Id = $intentId
+        CreatedAt = $executionDate
+        Source = $Source
+        PortfolioId = $PortfolioId
+        PortfolioName = $PortfolioName
+        Side = $side
+        Symbol = $symbol
+        Company = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $Transaction -Name 'Company')
+        Price = if ($null -ne $price) { [Math]::Round([double]$price, 4) } else { $null }
+        Quantity = [Math]::Round([double]$quantity, 6)
+        AmountTL = [Math]::Round([double]$amount, 2)
+        Note = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $Transaction -Name 'Note')
+        Mode = 'PaperOnly'
+    }
+}
+
+function Get-CurrentRunOrderIntents {
+    param(
+        $ModelPortfolioSet,
+        $InstantEntryPortfolio,
+        [datetime]$AsOf
+    )
+
+    $todayKey = $AsOf.ToString('yyyy-MM-dd')
+    $intents = [System.Collections.Generic.List[object]]::new()
+
+    foreach ($portfolio in @(Get-ObjectPropertyValue -Object $ModelPortfolioSet -Name 'Portfolios')) {
+        $portfolioId = [string](Get-ObjectPropertyValue -Object $portfolio -Name 'Id')
+        $portfolioName = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $portfolio -Name 'Name')
+        foreach ($transaction in @(Get-ObjectPropertyValue -Object $portfolio -Name 'Transactions')) {
+            $executionDate = Get-ObjectPropertyValue -Object $transaction -Name 'ExecutionDate'
+            $isToday = try { ([datetime]$executionDate).ToString('yyyy-MM-dd') -eq $todayKey } catch { $false }
+            if (-not $isToday) { continue }
+            $intent = New-OrderIntentFromTransaction -Source 'ModelPortfolio' -PortfolioId $portfolioId -PortfolioName $portfolioName -Transaction $transaction
+            if ($null -ne $intent) { [void]$intents.Add($intent) }
+        }
+    }
+
+    foreach ($transaction in @(Get-ObjectPropertyValue -Object $InstantEntryPortfolio -Name 'Transactions')) {
+        $executionDate = Get-ObjectPropertyValue -Object $transaction -Name 'ExecutionDate'
+        $isToday = try { ([datetime]$executionDate).ToString('yyyy-MM-dd') -eq $todayKey } catch { $false }
+        if (-not $isToday) { continue }
+        $intent = New-OrderIntentFromTransaction -Source 'InstantEntry' -PortfolioId 'InstantEntry' -PortfolioName 'Anlık Fırsat Portföyü' -Transaction $transaction
+        if ($null -ne $intent) { [void]$intents.Add($intent) }
+    }
+
+    return $intents.ToArray()
+}
+
+function Update-PaperBrokerState {
+    param(
+        $State,
+        [object[]]$OrderIntents,
+        [datetime]$AsOf,
+        [int]$MaxOrders = 500
+    )
+
+    if ($null -eq $State -or $null -eq (Get-ObjectPropertyValue -Object $State -Name 'Orders')) {
+        $State = [pscustomobject][ordered]@{
+            Version = 1
+            CreatedAt = $AsOf.ToString('o')
+            UpdatedAt = $AsOf.ToString('o')
+            Mode = 'PaperOnly'
+            Notes = 'Gerçek emir göndermez; raporun ürettiği teorik order intent kayıtlarını doldurulmuş varsayan denetim defteridir.'
+            Orders = @()
+            Positions = @()
+        }
+    }
+
+    $orders = [System.Collections.Generic.List[object]]::new()
+    $knownOrderIds = @{}
+    foreach ($order in @(Get-ObjectPropertyValue -Object $State -Name 'Orders')) {
+        $id = [string](Get-ObjectPropertyValue -Object $order -Name 'Id')
+        if (-not [string]::IsNullOrWhiteSpace($id)) { $knownOrderIds[$id] = $true }
+        [void]$orders.Add($order)
+    }
+
+    $positions = @{}
+    foreach ($position in @(Get-ObjectPropertyValue -Object $State -Name 'Positions')) {
+        $key = [string](Get-ObjectPropertyValue -Object $position -Name 'Key')
+        if ([string]::IsNullOrWhiteSpace($key)) {
+            $key = '{0}|{1}|{2}' -f (Get-ObjectPropertyValue -Object $position -Name 'Source'), (Get-ObjectPropertyValue -Object $position -Name 'PortfolioId'), (Get-ObjectPropertyValue -Object $position -Name 'Symbol')
+        }
+        $positions[$key] = [pscustomobject][ordered]@{
+            Key = $key
+            Source = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $position -Name 'Source')
+            PortfolioId = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $position -Name 'PortfolioId')
+            PortfolioName = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $position -Name 'PortfolioName')
+            Symbol = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $position -Name 'Symbol')
+            Company = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $position -Name 'Company')
+            Quantity = [double](Get-NumberValue -Object $position -Name 'Quantity')
+            CostBasisTL = [double](Get-NumberValue -Object $position -Name 'CostBasisTL')
+            LastPrice = Get-NumberValue -Object $position -Name 'LastPrice'
+            LastOrderAt = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $position -Name 'LastOrderAt')
+        }
+    }
+
+    foreach ($intent in @($OrderIntents)) {
+        $id = [string](Get-ObjectPropertyValue -Object $intent -Name 'Id')
+        if ([string]::IsNullOrWhiteSpace($id) -or $knownOrderIds.ContainsKey($id)) { continue }
+
+        $source = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $intent -Name 'Source')
+        $portfolioId = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $intent -Name 'PortfolioId')
+        $symbol = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $intent -Name 'Symbol')
+        $key = '{0}|{1}|{2}' -f $source, $portfolioId, $symbol
+        $side = [string](Get-ObjectPropertyValue -Object $intent -Name 'Side')
+        $quantity = [double](Get-NumberValue -Object $intent -Name 'Quantity')
+        $amount = [double](Get-NumberValue -Object $intent -Name 'AmountTL')
+        $price = Get-NumberValue -Object $intent -Name 'Price'
+
+        [void]$orders.Add([pscustomobject][ordered]@{
+                Id = $id
+                CreatedAt = Get-ObjectPropertyValue -Object $intent -Name 'CreatedAt'
+                FilledAt = $AsOf.ToString('o')
+                Status = 'PaperFilled'
+                Source = $source
+                PortfolioId = $portfolioId
+                PortfolioName = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $intent -Name 'PortfolioName')
+                Side = $side
+                Symbol = $symbol
+                Company = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $intent -Name 'Company')
+                Price = if ($null -ne $price) { [Math]::Round([double]$price, 4) } else { $null }
+                Quantity = [Math]::Round($quantity, 6)
+                AmountTL = [Math]::Round($amount, 2)
+                Note = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $intent -Name 'Note')
+            })
+        $knownOrderIds[$id] = $true
+
+        $position = if ($positions.ContainsKey($key)) { $positions[$key] } else {
+            [pscustomobject][ordered]@{
+                Key = $key
+                Source = $source
+                PortfolioId = $portfolioId
+                PortfolioName = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $intent -Name 'PortfolioName')
+                Symbol = $symbol
+                Company = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $intent -Name 'Company')
+                Quantity = 0.0
+                CostBasisTL = 0.0
+                LastPrice = $null
+                LastOrderAt = $null
+            }
+        }
+
+        if ($side -eq 'Buy') {
+            $position.Quantity = [double]$position.Quantity + $quantity
+            $position.CostBasisTL = [double]$position.CostBasisTL + $amount
+        }
+        elseif ($side -eq 'Sell') {
+            $oldQuantity = [double]$position.Quantity
+            $sellQuantity = [Math]::Min($oldQuantity, $quantity)
+            $costReduction = if ($oldQuantity -gt 0) { [double]$position.CostBasisTL * ($sellQuantity / $oldQuantity) } else { 0.0 }
+            $position.Quantity = [Math]::Max(0.0, $oldQuantity - $sellQuantity)
+            $position.CostBasisTL = [Math]::Max(0.0, [double]$position.CostBasisTL - $costReduction)
+        }
+        $position.LastPrice = if ($null -ne $price) { [Math]::Round([double]$price, 4) } else { $position.LastPrice }
+        $position.LastOrderAt = $AsOf.ToString('o')
+        $positions[$key] = $position
+    }
+
+    $positionRows = @($positions.Values | Where-Object { [double](Get-ObjectPropertyValue -Object $_ -Name 'Quantity') -gt 0 } | Sort-Object Source, PortfolioId, Symbol | ForEach-Object {
+            $_.Quantity = [Math]::Round([double]$_.Quantity, 6)
+            $_.CostBasisTL = [Math]::Round([double]$_.CostBasisTL, 2)
+            $_
+        })
+    $orderRows = @($orders | Sort-Object @{ Expression = { [string](Get-ObjectPropertyValue -Object $_ -Name 'FilledAt') }; Descending = $true } | Select-Object -First $MaxOrders)
+
+    [pscustomobject][ordered]@{
+        Version = 1
+        CreatedAt = Get-ObjectPropertyValue -Object $State -Name 'CreatedAt'
+        UpdatedAt = $AsOf.ToString('o')
+        Mode = 'PaperOnly'
+        Notes = 'Gerçek emir göndermez; raporun ürettiği teorik order intent kayıtlarını doldurulmuş varsayan denetim defteridir.'
+        Orders = $orderRows
+        Positions = $positionRows
+    }
+}
+
+function Get-OrderIntentRows {
+    param([object[]]$OrderIntents)
+
+    return @($OrderIntents | ForEach-Object {
+            [pscustomobject][ordered]@{
+                Kaynak = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Source')
+                Portfoy = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'PortfolioName')
+                Yon = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Side')
+                Sembol = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Symbol')
+                Sirket = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Company')
+                Fiyat = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'Price') -Format 'N2'
+                Adet = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'Quantity') -Format 'N4'
+                Tutar = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'AmountTL') -Format 'N2' -Suffix ' TL'
+                Not = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Note')
+            }
+        })
+}
+
+function Get-PaperBrokerPositionRows {
+    param($PaperBroker)
+
+    return @(@(Get-ObjectPropertyValue -Object $PaperBroker -Name 'Positions') | ForEach-Object {
+            [pscustomobject][ordered]@{
+                Kaynak = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Source')
+                Portfoy = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'PortfolioName')
+                Sembol = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Symbol')
+                Sirket = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Company')
+                Adet = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'Quantity') -Format 'N4'
+                'Maliyet TL' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'CostBasisTL') -Format 'N2'
+                'Son Fiyat' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'LastPrice') -Format 'N2'
+                'Son Emir' = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'LastOrderAt')
+            }
+        })
+}
+
+function New-PointInTimeSnapshot {
+    param(
+        [object[]]$ScoredStocks,
+        $MacroSnapshot,
+        $ModelPortfolioSet,
+        [datetime]$AsOf,
+        [int]$Limit = 120
+    )
+
+    $rows = @(
+        $ScoredStocks |
+            Sort-Object Score -Descending |
+            Select-Object -First $Limit |
+            ForEach-Object {
+                [pscustomobject][ordered]@{
+                    Symbol = ConvertTo-PlainText $_.Symbol
+                    Company = ConvertTo-PlainText $_.Company
+                    SectorTR = ConvertTo-PlainText $_.SectorTR
+                    Price = Get-NumberValue -Object $_ -Name 'Price'
+                    Score = Get-NumberValue -Object $_ -Name 'Score'
+                    Signal = ConvertTo-PlainText $_.Signal
+                    RiskLevel = ConvertTo-PlainText $_.RiskLevel
+                    RawFactorScore100 = Get-NumberValue -Object $_ -Name 'RawFactorScore100'
+                    AcademicFactorScore100 = Get-NumberValue -Object $_ -Name 'AcademicFactorScore100'
+                    VolatilityD = Get-NumberValue -Object $_ -Name 'VolatilityD'
+                    AverageVolume10D = Get-NumberValue -Object $_ -Name 'AverageVolume10D'
+                    MarketCap = Get-NumberValue -Object $_ -Name 'MarketCap'
+                    RSI = Get-NumberValue -Object $_ -Name 'RSI'
+                    RelativeVolume = Get-NumberValue -Object $_ -Name 'RelativeVolume'
+                    DataQualityOk = Get-ObjectPropertyValue -Object $_ -Name 'DataQualityOk'
+                }
+            }
+    )
+
+    [pscustomobject][ordered]@{
+        Version = 1
+        AsOf = $AsOf.ToString('o')
+        UniverseCount = @($ScoredStocks).Count
+        SnapshotLimit = $Limit
+        MacroStatus = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $MacroSnapshot -Name 'Status')
+        MacroSupportiveCount = Get-ObjectPropertyValue -Object $MacroSnapshot -Name 'SupportiveCount'
+        MacroPressureCount = Get-ObjectPropertyValue -Object $MacroSnapshot -Name 'PressureCount'
+        ModelPortfolioIds = @(@(Get-ObjectPropertyValue -Object $ModelPortfolioSet -Name 'Portfolios') | ForEach-Object { [string](Get-ObjectPropertyValue -Object $_ -Name 'Id') })
+        Stocks = $rows
+    }
+}
+
 function Save-JsonFile {
     param(
         [string]$Path,
@@ -1294,6 +1671,8 @@ $instantEntryPortfolioDailyBudgetTL = [double](Get-ConfigValue -Object $settings
 $instantEntryPortfolioMinBuyScore = [double](Get-ConfigValue -Object $settings.Report -Name 'InstantEntryPortfolioMinBuyScore' -Default 90)
 $instantEntryPortfolioMaxBuysPerDay = [int](Get-ConfigValue -Object $settings.Report -Name 'InstantEntryPortfolioMaxBuysPerDay' -Default 3)
 $modelCostBps = [double](Get-EnvironmentValue -Names @('BIST_MODEL_COST_BPS') -Default ([string](Get-ConfigValue -Object $settings.Report -Name 'ModelPortfolioCostBps' -Default 20)))
+$snapshotMaxStocks = [int](Get-ConfigValue -Object $settings.Report -Name 'SnapshotMaxStocks' -Default 120)
+$riskRules = Get-ReportRiskRules -Settings $settings
 $outputDirectory = Resolve-ReportPath -Path ([string](Get-ConfigValue -Object $settings.Report -Name 'OutputDirectory' -Default 'reports'))
 if (-not (Test-Path $outputDirectory)) {
     [void](New-Item -ItemType Directory -Path $outputDirectory -Force)
@@ -1429,6 +1808,34 @@ try {
         -MaxBuysPerDay $instantEntryPortfolioMaxBuysPerDay
     Save-JsonFile -Path $instantEntryPortfolioPath -Value $updatedInstantEntryPortfolio -Depth 10
     Write-TimingLog -Step 'Anlik firsat portfoyu' -StartedAt $stageStartedAt
+
+    $stageStartedAt = Get-Date
+    $snapshot = New-PointInTimeSnapshot -ScoredStocks $scored -MacroSnapshot $macroSnapshot -ModelPortfolioSet $updatedPortfolioSet -AsOf $runAt -Limit $snapshotMaxStocks
+    $snapshotDirectory = Join-Path $PSScriptRoot 'data\point_in_time_snapshots'
+    $snapshotPath = Join-Path $snapshotDirectory ($runAt.ToString('yyyyMMdd_HHmm') + '.json')
+    Save-JsonFile -Path $snapshotPath -Value $snapshot -Depth 8
+    Save-JsonFile -Path (Join-Path $PSScriptRoot 'data\latest_point_in_time_snapshot.json') -Value $snapshot -Depth 8
+    Write-TimingLog -Step 'Point-in-time snapshot' -StartedAt $stageStartedAt
+
+    $stageStartedAt = Get-Date
+    $orderIntents = @(Get-CurrentRunOrderIntents -ModelPortfolioSet $updatedPortfolioSet -InstantEntryPortfolio $updatedInstantEntryPortfolio -AsOf $runAt)
+    $orderIntentState = [pscustomobject][ordered]@{
+        Version = 1
+        UpdatedAt = $runAt.ToString('o')
+        Mode = 'PaperOnly'
+        Notes = 'Gerçek emir değildir; raporun ürettiği teorik işlem niyetlerinin denetim kaydıdır.'
+        Intents = $orderIntents
+    }
+    $paperBrokerPath = Join-Path $PSScriptRoot 'data\paper_broker.json'
+    $previousPaperBroker = $null
+    if (Test-Path $paperBrokerPath) {
+        try { $previousPaperBroker = Get-Content -Path $paperBrokerPath -Raw -Encoding UTF8 | ConvertFrom-Json }
+        catch { Write-Warning "PaperBroker state'i okunamadi: $($_.Exception.Message)"; $previousPaperBroker = $null }
+    }
+    $paperBroker = Update-PaperBrokerState -State $previousPaperBroker -OrderIntents $orderIntents -AsOf $runAt
+    Save-JsonFile -Path (Join-Path $PSScriptRoot 'data\order_intents.json') -Value $orderIntentState -Depth 8
+    Save-JsonFile -Path $paperBrokerPath -Value $paperBroker -Depth 10
+    Write-TimingLog -Step 'PaperBroker intent defteri' -StartedAt $stageStartedAt
 
     $topRows = @($scored | Select-Object -First $topCount | ForEach-Object {
             [pscustomobject][ordered]@{
@@ -1649,6 +2056,7 @@ try {
                 'BIST100' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'BenchmarkReturnPct') -Format 'N2' -Suffix '%'
                 'Alfa' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'AlphaPct') -Format 'N2' -Suffix '%'
                 'Maks Düşüş' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'MaxDrawdownPct') -Format 'N1' -Suffix '%'
+                'Ağırlık' = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'WeightingMethod')
                 Hisseler = ((@($_.Holdings) | ForEach-Object Symbol) -join ', ')
                 'Baslangic' = ConvertTo-PlainText $_.StartDateText
                 'Son Islem' = ConvertTo-PlainText $_.LastRebalanceDateText
@@ -1676,13 +2084,16 @@ try {
     }
     else { 'Lider strateji henüz belirlenemedi.' }
 
-    $portfolioHoldingRows = Get-ModelPortfolioHoldingRows -PortfolioSet $updatedPortfolioSet
+    $stockLookupForReport = Get-StockLookup -Stocks $scored
+    $portfolioHoldingRows = Get-ModelPortfolioHoldingRows -PortfolioSet $updatedPortfolioSet -StockMap $stockLookupForReport -RiskRules $riskRules
     $portfolioTransactionRows = Get-ModelPortfolioTransactionRows -PortfolioSet $updatedPortfolioSet -PerPortfolio 12
     $portfolioHoldingGroupsHtml = New-ModelPortfolioHoldingGroupsHtml -PortfolioSet $updatedPortfolioSet -HoldingRows $portfolioHoldingRows
     $portfolioDistributionPieHtml = New-ModelPortfolioDistributionPieChartsHtml -PortfolioSet $updatedPortfolioSet
     $instantEntryPortfolioSummaryRows = Get-InstantEntryPortfolioSummaryRows -Portfolio $updatedInstantEntryPortfolio
     $instantEntryPortfolioHoldingRows = Get-InstantEntryPortfolioHoldingRows -Portfolio $updatedInstantEntryPortfolio
     $instantEntryPortfolioTransactionRows = Get-InstantEntryPortfolioTransactionRows -Portfolio $updatedInstantEntryPortfolio -Count 30
+    $orderIntentRows = @(Get-OrderIntentRows -OrderIntents $orderIntents)
+    $paperBrokerPositionRows = @(Get-PaperBrokerPositionRows -PaperBroker $paperBroker)
 
     $topRows | Export-Csv -Path $csvPath -NoTypeInformation -Delimiter ';' -Encoding UTF8
 
@@ -1838,7 +2249,7 @@ $(if ($kapRows.Count -gt 0) { New-HtmlTable -Rows $kapRows } else { '<p class="m
 <p class="muted">Fark sütunları sektör endeksi/proxy getirisi eksi BIST100 getirisi olarak okunur. Pozitif değer sektörün BIST100'e göre daha güçlü aktığını gösterir.</p>
 $(New-HtmlTable -Rows $sectorRows)
 <h2>Model Portföyler</h2>
-<p class="muted">Portföyler her çalışmada sadece değerlenir; ay sonu son işlem günü 18:10 sonrası tamamlanmış dönem varsa yeniden sıralanır ve AL/SAT/EŞİTLEME işlemleri state dosyasına yazılır. <b>Dengeli / Değer / Momentum / Kalite</b> portföyleri strateji skoruna (Get-BistScore) göre seçilir. <b>RFS100</b> portföyü ise — backtest bulgusuna dayanarak — aynı uygunluk filtresini geçen hisseleri, eşik puanlaması yerine ham teknik faktörlerin kesitsel z-skor karışımı olan <b>RawFactorScore100</b> ile sıralayıp seçer (walk-forward testlerde botun skorunun ~2 katı IC). Her portföyün kuruluştan beri getirisi, aynı dönemde <b>BIST100</b> getirisiyle kıyaslanır; <b>Alfa = portföy getirisi − BIST100 getirisi</b> (pozitif alfa endeksi yenmek demektir). Alfa, hangi stratejinin gerçekten değer kattığını gösteren temel ölçüdür. (Eski portföylerde BIST100 başlangıç seviyesi kayıtlı olmadığından alfa bu güncellemeden ileriye doğru ölçülür.) Tablo ayrıca her portföyün <b>maksimum düşüşünü</b> (zirveden en sert geri çekilme) gösterir. Artık ay sonu işlemlerinde <b>işlem maliyeti + kayma</b> ($([string]$modelCostBps) bps) düşülür; getiriler bu maliyetlere göre nettir. <b>$leaderText</b></p>
+<p class="muted">Portföyler her çalışmada sadece değerlenir; ay sonu son işlem günü 18:10 sonrası tamamlanmış dönem varsa yeniden sıralanır ve AL/SAT/EŞİTLEME işlemleri state dosyasına yazılır. <b>Dengeli / Değer / Momentum / Kalite</b> portföyleri strateji skoruna (Get-BistScore) göre seçilir ve eşit ağırlıklı kalır. <b>RFS100</b> portföyü ise — backtest bulgusuna dayanarak — aynı uygunluk filtresini geçen hisseleri, eşik puanlaması yerine ham teknik faktörlerin kesitsel z-skor karışımı olan <b>RawFactorScore100</b> ile sıralayıp seçer. <b>Risk Dengeli</b> portföy ayrı izlenir: seçimi Dengeli skorla yapar ama ağırlıkları günlük oynaklık tersine göre dağıtır; normal model portföylerin ağırlığını değiştirmez. Her portföyün kuruluştan beri getirisi BIST100 ile kıyaslanır; <b>Alfa = portföy getirisi − BIST100 getirisi</b>. Tablo ayrıca <b>maksimum düşüşü</b> gösterir. Ay sonu işlemlerinde <b>işlem maliyeti + kayma</b> ($([string]$modelCostBps) bps) düşülür. <b>$leaderText</b></p>
 $(New-HtmlTable -Rows $portfolioRows)
 <h2>Model Portföy Hisse Dağılımı</h2>
 <p class="muted">Her model portföydeki güncel hisse ağırlıkları pasta grafik olarak gösterilir.</p>
@@ -1849,6 +2260,12 @@ $portfolioHoldingGroupsHtml
 <h2>Model Portföy Son İşlemler</h2>
 <p class="muted">Her portföy için son 12 işlem gösterilir; ilk kurulum, AL, SAT ve ay sonu eşitleme kayıtları fiyat/adet/tutar/not alanlarıyla izlenir.</p>
 $(New-HtmlTable -Rows $portfolioTransactionRows)
+<h2>Paper Order Intents</h2>
+<p class="muted">Bu bölüm gerçek emir değildir. Model portföy ve anlık fırsat portföyünün bu koşuda ürettiği teorik AL/SAT niyetlerini ayrı bir PaperBroker defterine yazar; ileride aracı kurum entegrasyonu gerekirse execution katmanı bu intent formatından beslenebilir.</p>
+$(if ($orderIntentRows.Count -gt 0) { New-HtmlTable -Rows $orderIntentRows } else { '<p class="muted">Bu çalışmada yeni paper order intent oluşmadı.</p>' })
+<h2>PaperBroker Pozisyon Defteri</h2>
+<p class="muted">PaperBroker, intent kayıtlarını kağıt üzerinde doldurulmuş varsayan denetim defteridir; gerçek portföy veya emir sistemi değildir.</p>
+$(if ($paperBrokerPositionRows.Count -gt 0) { New-HtmlTable -Rows $paperBrokerPositionRows } else { '<p class="muted">PaperBroker defterinde açık pozisyon yok.</p>' })
 </div>
 <div class="warn">
 <b>Karar mekanizması:</b> makro zemin (TCMB EVDS faiz/TÜFE + CDS/DXY/VIX) → sektör rotasyonu → bilanço gücü (USD bazlı) → çok-zamanlı teknik teyit → kademeli giriş. Buna ek olarak <b>RawFactorScore100</b> (kesitsel ham-faktör; backtestte botun ~2 katı IC) bağımsız bir sıralama sinyali olarak raporlanır.<br>

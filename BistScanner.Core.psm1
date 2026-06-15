@@ -3587,6 +3587,16 @@ function Get-ModelPortfolioDefinitions {
             Strategy = 'Dengeli'
             RankBy = 'RawFactorScore100'
             Description = 'Backtest bulgusuna dayanır: temel/likidite uygunluk filtresini geçen hisseleri, Get-BistScore eşik puanlaması yerine ham teknik faktörlerin (RSI, MACD, SMA mesafeleri, momentum, hacim, oynaklık) kesitsel z-skor karışımı olan RawFactorScore100 ile sıralar. Walk-forward testlerde bu sıralama botun skorunun ~2 katı bilgi katsayısı (IC) verdi.'
+        },
+        [pscustomobject][ordered]@{
+            Id = 'RiskDengeli'
+            Name = 'Risk Dengeli Model Portföyü'
+            Strategy = 'Dengeli'
+            RankBy = 'Score'
+            WeightingMethod = 'InverseVolatility'
+            MinWeightPct = 8.0
+            MaxWeightPct = 28.0
+            Description = 'Normal model portföyleri bozmadan ayrı izlenen risk dengeli portföydür. Seçim Dengeli skorla yapılır; ağırlıklar günlük oynaklık tersine göre dağıtılır ve tek hisse riski için min/max ağırlık sınırları uygulanır.'
         }
     )
 }
@@ -3909,12 +3919,153 @@ function New-ModelPortfolioTransaction {
     }
 }
 
+function Get-ModelPortfolioWeightingMethod {
+    param($Object)
+
+    $method = [string](Get-ObjectPropertyValue -Object $Object -Name 'WeightingMethod')
+    if ([string]::IsNullOrWhiteSpace($method)) {
+        return 'Equal'
+    }
+
+    return $method
+}
+
+function Get-ModelPortfolioWeightLimit {
+    param(
+        $Object,
+        [string]$Name,
+        [double]$Default
+    )
+
+    $value = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Object -Name $Name)
+    if ($null -eq $value -or $value -le 0) {
+        return $Default
+    }
+
+    return [double]$value
+}
+
+function Get-ModelPortfolioTargetWeights {
+    param(
+        [Parameter(Mandatory)]
+        [object[]]$Selection,
+
+        [string]$WeightingMethod = 'Equal',
+
+        [double]$MinWeightPct = 8.0,
+
+        [double]$MaxWeightPct = 28.0
+    )
+
+    $count = @($Selection).Count
+    if ($count -le 0) {
+        throw 'Model portföy ağırlığı için seçim listesi boş.'
+    }
+
+    $weights = @{}
+    if ($WeightingMethod -ne 'InverseVolatility') {
+        $equalWeight = 1.0 / $count
+        foreach ($stock in $Selection) {
+            $weights[[string]$stock.Symbol] = $equalWeight
+        }
+        return $weights
+    }
+
+    $minWeight = [Math]::Max(0.0, [double]$MinWeightPct / 100.0)
+    $maxWeight = [Math]::Min(1.0, [double]$MaxWeightPct / 100.0)
+    if ($minWeight * $count -gt 1.0) { $minWeight = 0.0 }
+    if ($maxWeight * $count -lt 1.0) { $maxWeight = 1.0 }
+
+    $raw = @{}
+    $rawTotal = 0.0
+    foreach ($stock in $Selection) {
+        $symbol = [string]$stock.Symbol
+        $vol = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $stock -Name 'VolatilityD')
+        if ($null -eq $vol -or $vol -le 0) { $vol = 4.0 }
+        $score = 1.0 / [Math]::Max([double]$vol, 0.75)
+        $raw[$symbol] = $score
+        $rawTotal += $score
+    }
+
+    foreach ($symbol in $raw.Keys) {
+        $weights[$symbol] = if ($rawTotal -gt 0) { [double]$raw[$symbol] / $rawTotal } else { 1.0 / $count }
+    }
+
+    for ($pass = 0; $pass -lt 5; $pass++) {
+        $fixedTotal = 0.0
+        $freeRawTotal = 0.0
+        $freeSymbols = [System.Collections.Generic.List[string]]::new()
+
+        foreach ($symbol in $raw.Keys) {
+            $w = [double]$weights[$symbol]
+            if ($w -lt $minWeight) {
+                $weights[$symbol] = $minWeight
+                $fixedTotal += $minWeight
+            }
+            elseif ($w -gt $maxWeight) {
+                $weights[$symbol] = $maxWeight
+                $fixedTotal += $maxWeight
+            }
+            else {
+                [void]$freeSymbols.Add($symbol)
+                $freeRawTotal += [double]$raw[$symbol]
+            }
+        }
+
+        if ($freeSymbols.Count -eq 0) { break }
+        $remaining = [Math]::Max(0.0, 1.0 - $fixedTotal)
+        foreach ($symbol in $freeSymbols) {
+            $weights[$symbol] = if ($freeRawTotal -gt 0) { $remaining * ([double]$raw[$symbol] / $freeRawTotal) } else { $remaining / $freeSymbols.Count }
+        }
+    }
+
+    $sum = 0.0
+    foreach ($symbol in $weights.Keys) { $sum += [double]$weights[$symbol] }
+    if ($sum -gt 0) {
+        foreach ($symbol in @($weights.Keys)) {
+            $weights[$symbol] = [double]$weights[$symbol] / $sum
+        }
+    }
+
+    return $weights
+}
+
+function Get-ModelPortfolioTargetValues {
+    param(
+        [Parameter(Mandatory)]
+        [object[]]$Selection,
+
+        [double]$TotalValue,
+
+        [string]$WeightingMethod = 'Equal',
+
+        [double]$MinWeightPct = 8.0,
+
+        [double]$MaxWeightPct = 28.0
+    )
+
+    $weights = Get-ModelPortfolioTargetWeights -Selection $Selection -WeightingMethod $WeightingMethod -MinWeightPct $MinWeightPct -MaxWeightPct $MaxWeightPct
+    $targets = @{}
+    foreach ($stock in $Selection) {
+        $symbol = [string]$stock.Symbol
+        $weight = [double]$weights[$symbol]
+        $targets[$symbol] = [pscustomobject][ordered]@{
+            Weight = $weight
+            WeightPct = [Math]::Round($weight * 100.0, 2)
+            TargetValue = [Math]::Round($TotalValue * $weight, 2)
+        }
+    }
+
+    return $targets
+}
+
 function New-ModelPortfolioHolding {
     param(
         $Stock,
         [double]$TargetValue,
         [ValidateSet('Dengeli', 'Değer', 'Momentum', 'Kalite')]
-        [string]$Strategy
+        [string]$Strategy,
+        [double]$TargetWeightPct = 20.0
     )
 
     $quantity = $TargetValue / [double]$Stock.Price
@@ -3926,13 +4077,14 @@ function New-ModelPortfolioHolding {
         RawFactorScore100 = Get-ObjectPropertyValue -Object $Stock -Name 'RawFactorScore100'
         MacroSectorScore = Get-ObjectPropertyValue -Object $Stock -Name 'MacroSectorScore'
         EvEbitda = Get-ObjectPropertyValue -Object $Stock -Name 'EvEbitda'
+        VolatilityD = Get-ObjectPropertyValue -Object $Stock -Name 'VolatilityD'
         SelectionReason = Get-ModelPortfolioSelectionReason -Stock $Stock -Strategy $Strategy
         Quantity = [Math]::Round($quantity, 6)
         RebalancePrice = [Math]::Round([double]$Stock.Price, 4)
         CostBasisTL = [Math]::Round($TargetValue, 2)
         CurrentPrice = [Math]::Round([double]$Stock.Price, 4)
         CurrentValueTL = [Math]::Round($TargetValue, 2)
-        WeightPct = 20.0
+        WeightPct = [Math]::Round($TargetWeightPct, 2)
         GainSinceRebalanceTL = 0.0
         GainSinceRebalancePct = 0.0
         PriceIsFresh = $true
@@ -3951,27 +4103,40 @@ function New-SingleModelPortfolio {
 
     $rankBy = Get-ObjectPropertyValue -Object $Definition -Name 'RankBy'
     if ([string]::IsNullOrWhiteSpace([string]$rankBy)) { $rankBy = 'Score' }
+    $weightingMethod = Get-ModelPortfolioWeightingMethod -Object $Definition
+    $minWeightPct = Get-ModelPortfolioWeightLimit -Object $Definition -Name 'MinWeightPct' -Default 8.0
+    $maxWeightPct = Get-ModelPortfolioWeightLimit -Object $Definition -Name 'MaxWeightPct' -Default 28.0
     $selection = @(Get-ModelPortfolioSelection -Stocks $Stocks -Strategy $Definition.Strategy -RankBy $rankBy)
     # Giris maliyeti: tum sermaye alindigi icin sermaye * maliyet orani.
     $entryCost = [Math]::Round($InitialCapital * ([double]$CostBps / 10000.0), 2)
     $investable = $InitialCapital - $entryCost
-    $targetValue = $investable / $selection.Count
+    $targetValues = Get-ModelPortfolioTargetValues -Selection $selection -TotalValue $investable -WeightingMethod $weightingMethod -MinWeightPct $minWeightPct -MaxWeightPct $maxWeightPct
     $holdings = [System.Collections.Generic.List[object]]::new()
     $transactions = [System.Collections.Generic.List[object]]::new()
+    $allocationNote = if ($weightingMethod -eq 'InverseVolatility') {
+        'Başlangıç sermayesi günlük oynaklık tersine göre risk dengeli hedef ağırlıklara bölündü.'
+    }
+    else {
+        'Başlangıç sermayesi eşit ağırlıklı hedeflere bölündü.'
+    }
 
     [void]$transactions.Add((New-ModelPortfolioTransaction `
                 -Sequence 1 -ExecutionDate $AsOf -Action 'İLK KURULUM' -Symbol 'PORTFÖY' `
                 -Company $Definition.Name -Price $null -Quantity $null -AmountTL $InitialCapital `
-                -Note ('Başlangıç sermayesi {0} eşit parçaya bölündü; hisse başına hedef {1:N2} TL.' -f $selection.Count, $targetValue)))
+                -Note ('{0} Hisse sayısı {1}; yatırım tutarı {2:N2} TL.' -f $allocationNote, $selection.Count, $investable)))
 
     $sequence = 2
     foreach ($stock in $selection) {
-        $holding = New-ModelPortfolioHolding -Stock $stock -TargetValue $targetValue -Strategy $Definition.Strategy
+        $symbol = [string]$stock.Symbol
+        $target = $targetValues[$symbol]
+        $targetValue = [double]$target.TargetValue
+        $targetWeightPct = [double]$target.WeightPct
+        $holding = New-ModelPortfolioHolding -Stock $stock -TargetValue $targetValue -Strategy $Definition.Strategy -TargetWeightPct $targetWeightPct
         [void]$holdings.Add($holding)
         [void]$transactions.Add((New-ModelPortfolioTransaction `
                     -Sequence $sequence -ExecutionDate $AsOf -Action 'AL' -Symbol $holding.Symbol `
                     -Company $holding.Company -Price $holding.CurrentPrice -Quantity $holding.Quantity -AmountTL $targetValue `
-                    -Note ('İlk kurulum: portföyün eşit ağırlığı. {0}' -f $holding.SelectionReason)))
+                    -Note ('İlk kurulum: hedef ağırlık %{0}. {1}' -f $targetWeightPct, $holding.SelectionReason)))
         $sequence++
     }
 
@@ -3988,6 +4153,9 @@ function New-SingleModelPortfolio {
         Name = $Definition.Name
         Strategy = $Definition.Strategy
         RankBy = $rankBy
+        WeightingMethod = $weightingMethod
+        MinWeightPct = if ($weightingMethod -eq 'InverseVolatility') { [Math]::Round($minWeightPct, 2) } else { $null }
+        MaxWeightPct = if ($weightingMethod -eq 'InverseVolatility') { [Math]::Round($maxWeightPct, 2) } else { $null }
         Description = $Definition.Description
         StartDate = $AsOf.ToString('o')
         StartDateText = $AsOf.ToString('dd.MM.yyyy HH:mm')
@@ -4092,8 +4260,10 @@ function Update-ModelPortfolioValuation {
                 Company = [string](Get-ObjectPropertyValue -Object $holding -Name 'Company')
                 SectorTR = [string](Get-ObjectPropertyValue -Object $holding -Name 'SectorTR')
                 StrategyScore = Get-ObjectPropertyValue -Object $holding -Name 'StrategyScore'
+                RawFactorScore100 = Get-ObjectPropertyValue -Object $holding -Name 'RawFactorScore100'
                 MacroSectorScore = Get-ObjectPropertyValue -Object $holding -Name 'MacroSectorScore'
                 EvEbitda = Get-ObjectPropertyValue -Object $holding -Name 'EvEbitda'
+                VolatilityD = Get-ObjectPropertyValue -Object $holding -Name 'VolatilityD'
                 SelectionReason = [string](Get-ObjectPropertyValue -Object $holding -Name 'SelectionReason')
                 Quantity = [Math]::Round($quantity, 6)
                 RebalancePrice = Get-ObjectPropertyValue -Object $holding -Name 'RebalancePrice'
@@ -4196,9 +4366,12 @@ function Invoke-ModelPortfolioRebalance {
 
     $rebalanceRankBy = Get-ObjectPropertyValue -Object $valuedPortfolio -Name 'RankBy'
     if ([string]::IsNullOrWhiteSpace([string]$rebalanceRankBy)) { $rebalanceRankBy = 'Score' }
+    $weightingMethod = Get-ModelPortfolioWeightingMethod -Object $valuedPortfolio
+    $minWeightPct = Get-ModelPortfolioWeightLimit -Object $valuedPortfolio -Name 'MinWeightPct' -Default 8.0
+    $maxWeightPct = Get-ModelPortfolioWeightLimit -Object $valuedPortfolio -Name 'MaxWeightPct' -Default 28.0
     $selection = @(Get-ModelPortfolioSelection -Stocks $Stocks -Strategy $valuedPortfolio.Strategy -RankBy $rebalanceRankBy)
     $totalValue = [double]$valuedPortfolio.CurrentValueTL
-    $targetValue = $totalValue / $selection.Count
+    $targetValuesPreCost = Get-ModelPortfolioTargetValues -Selection $selection -TotalValue $totalValue -WeightingMethod $weightingMethod -MinWeightPct $minWeightPct -MaxWeightPct $maxWeightPct
     $oldHoldings = @{}
     foreach ($holding in @($valuedPortfolio.Holdings)) {
         $oldHoldings[[string]$holding.Symbol] = $holding
@@ -4214,13 +4387,13 @@ function Invoke-ModelPortfolioRebalance {
     $costRate = [double]$CostBps / 10000.0
     $turnover = 0.0
     foreach ($s in $removedSymbols) { $turnover += [double]$oldHoldings[$s].CurrentValueTL }
-    $turnover += $addedSymbols.Count * $targetValue
-    foreach ($s in $keptSymbols) { $turnover += [Math]::Abs($targetValue - [double]$oldHoldings[$s].CurrentValueTL) }
+    foreach ($s in $addedSymbols) { $turnover += [double]$targetValuesPreCost[$s].TargetValue }
+    foreach ($s in $keptSymbols) { $turnover += [Math]::Abs([double]$targetValuesPreCost[$s].TargetValue - [double]$oldHoldings[$s].CurrentValueTL) }
     $rebalanceCost = [Math]::Round($turnover * $costRate, 2)
     if ($rebalanceCost -lt 0) { $rebalanceCost = 0 }
-    # Maliyeti dus: net deger ve esit hedef yeniden hesaplanir.
+    # Maliyeti dus: net deger ve hedef agirliklar yeniden hesaplanir.
     $totalValue = $totalValue - $rebalanceCost
-    $targetValue = $totalValue / $selection.Count
+    $targetValues = Get-ModelPortfolioTargetValues -Selection $selection -TotalValue $totalValue -WeightingMethod $weightingMethod -MinWeightPct $minWeightPct -MaxWeightPct $maxWeightPct
 
     $actionLabel = if ($removedSymbols.Count -gt 0 -or $addedSymbols.Count -gt 0) {
         'AY SONU DEĞİŞİM + EŞİTLEME'
@@ -4234,9 +4407,15 @@ function Invoke-ModelPortfolioRebalance {
     else {
         ''
     }
-    $summaryNote = 'Portföy {0:N2} TL olarak 5 eşit parçaya bölündü; hisse başına hedef {1:N2} TL. Çıkan: {2}. Giren: {3}. Kalan: {4}.{5}' -f `
+    $targetSummary = (@($selection | ForEach-Object {
+                $s = [string]$_.Symbol
+                '{0} %{1:N1}' -f $s, ([double]$targetValues[$s].WeightPct)
+            }) -join ', ')
+    $allocationText = if ($weightingMethod -eq 'InverseVolatility') { 'risk dengeli hedef ağırlıklara' } else { 'eşit ağırlıklı hedeflere' }
+    $summaryNote = 'Portföy {0:N2} TL olarak {1} bölündü. Hedefler: {2}. Çıkan: {3}. Giren: {4}. Kalan: {5}.{6}' -f `
         $totalValue, `
-        $targetValue, `
+        $allocationText, `
+        $targetSummary, `
         $(if ($removedSymbols.Count -gt 0) { $removedSymbols -join ', ' } else { 'yok' }), `
         $(if ($addedSymbols.Count -gt 0) { $addedSymbols -join ', ' } else { 'yok' }), `
         $(if ($keptSymbols.Count -gt 0) { $keptSymbols -join ', ' } else { 'yok' }), `
@@ -4277,7 +4456,10 @@ function Invoke-ModelPortfolioRebalance {
     $newHoldings = [System.Collections.Generic.List[object]]::new()
     foreach ($stock in $selection) {
         $symbol = [string]$stock.Symbol
-        $newHolding = New-ModelPortfolioHolding -Stock $stock -TargetValue $targetValue -Strategy $valuedPortfolio.Strategy
+        $target = $targetValues[$symbol]
+        $targetValue = [double]$target.TargetValue
+        $targetWeightPct = [double]$target.WeightPct
+        $newHolding = New-ModelPortfolioHolding -Stock $stock -TargetValue $targetValue -Strategy $valuedPortfolio.Strategy -TargetWeightPct $targetWeightPct
         [void]$newHoldings.Add($newHolding)
 
         if ($oldHoldings.ContainsKey($symbol)) {
@@ -4293,7 +4475,7 @@ function Invoke-ModelPortfolioRebalance {
                             -Price $newHolding.CurrentPrice `
                             -Quantity ([Math]::Abs($delta) / $newHolding.CurrentPrice) `
                             -AmountTL ([Math]::Abs($delta)) `
-                            -Note ('Ay sonu %20 eşit ağırlık hedefi; işlem öncesi değer {0:N2} TL, işlem sonrası hedef {1:N2} TL.' -f $oldHolding.CurrentValueTL, $targetValue)))
+                            -Note ('Ay sonu hedef ağırlık %{0}; işlem öncesi değer {1:N2} TL, işlem sonrası hedef {2:N2} TL.' -f $targetWeightPct, $oldHolding.CurrentValueTL, $targetValue)))
                 $sequence++
             }
         }
@@ -4307,7 +4489,7 @@ function Invoke-ModelPortfolioRebalance {
                         -Price $newHolding.CurrentPrice `
                         -Quantity $newHolding.Quantity `
                         -AmountTL $targetValue `
-                        -Note ("$PeriodEnd ay sonu strateji sıralamasında portföye girdi. $($newHolding.SelectionReason)")))
+                        -Note ("$PeriodEnd ay sonu strateji sıralamasında portföye girdi; hedef ağırlık %$targetWeightPct. $($newHolding.SelectionReason)")))
             $sequence++
         }
     }

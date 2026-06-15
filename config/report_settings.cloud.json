@@ -10,6 +10,14 @@
     "InstantEntryPortfolioDailyBudgetTL": 5000,
     "InstantEntryPortfolioMinBuyScore": 90,
     "InstantEntryPortfolioMaxBuysPerDay": 3,
+    "SnapshotMaxStocks": 120,
+    "RiskRules": {
+      "StopLossPct": -8,
+      "ReduceLossPct": -5,
+      "TakeProfitPct": 18,
+      "TrailingStopPct": 7,
+      "MinScoreForHold": 55
+    },
     "OutputDirectory": "reports"
   },
   "Send": {
