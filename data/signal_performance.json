@@ -1,11 +1,11 @@
 ﻿{
-    "UpdatedAt":  "2026-06-15T13:12:20.2249875+00:00",
+    "UpdatedAt":  "2026-06-15T13:18:04.1472231+00:00",
     "Summary":  {
-                    "SampleCount":  9,
-                    "HitRatePct":  88.9,
-                    "AvgEdgePct":  0.03,
-                    "LastEdgePct":  0.031,
-                    "LastPickReturnPct":  0.024,
+                    "SampleCount":  10,
+                    "HitRatePct":  80,
+                    "AvgEdgePct":  0.023,
+                    "LastEdgePct":  -0.045,
+                    "LastPickReturnPct":  -0.041,
                     "HasEvaluationToday":  true
                 },
     "Evaluations":  [
@@ -98,20 +98,30 @@
                             "UniverseMeanReturnPct":  -0.007,
                             "EdgePct":  0.031,
                             "Win":  true
+                        },
+                        {
+                            "PicksAsOf":  "2026-06-15T13:12:20.2249875+00:00",
+                            "EvaluatedAt":  "2026-06-15T13:18:04.1472231+00:00",
+                            "PickCount":  20,
+                            "UniverseCount":  607,
+                            "PickMeanReturnPct":  -0.041,
+                            "UniverseMeanReturnPct":  0.004,
+                            "EdgePct":  -0.045,
+                            "Win":  false
                         }
                     ],
     "PendingPicks":  {
-                         "AsOf":  "2026-06-15T13:12:20.2249875+00:00",
+                         "AsOf":  "2026-06-15T13:18:04.1472231+00:00",
                          "Picks":  [
                                        {
                                            "Symbol":  "GLYHO",
                                            "Score":  79.7,
-                                           "Price":  16.61
+                                           "Price":  16.63
                                        },
                                        {
                                            "Symbol":  "TRGYO",
                                            "Score":  78.7,
-                                           "Price":  100.3
+                                           "Price":  100.1
                                        },
                                        {
                                            "Symbol":  "BIMAS",
@@ -125,33 +135,38 @@
                                        },
                                        {
                                            "Symbol":  "BASGZ",
-                                           "Score":  77.4,
-                                           "Price":  50.6
+                                           "Score":  77.6,
+                                           "Price":  50.55
                                        },
                                        {
                                            "Symbol":  "TTKOM",
                                            "Score":  76.4,
-                                           "Price":  65.35
+                                           "Price":  65.4
                                        },
                                        {
                                            "Symbol":  "PAGYO",
-                                           "Score":  75.6,
-                                           "Price":  134.2
+                                           "Score":  75.2,
+                                           "Price":  133.9
                                        },
                                        {
                                            "Symbol":  "KIMMR",
-                                           "Score":  75.3,
-                                           "Price":  17.36
+                                           "Score":  74.9,
+                                           "Price":  17.3
                                        },
                                        {
                                            "Symbol":  "GEDIK",
                                            "Score":  74.3,
-                                           "Price":  7.24
+                                           "Price":  7.23
                                        },
                                        {
                                            "Symbol":  "ORGE",
                                            "Score":  74.2,
-                                           "Price":  115.8
+                                           "Price":  115.7
+                                       },
+                                       {
+                                           "Symbol":  "SAFKR",
+                                           "Score":  73,
+                                           "Price":  25.24
                                        },
                                        {
                                            "Symbol":  "RGYAS",
@@ -159,24 +174,29 @@
                                            "Price":  202.2
                                        },
                                        {
-                                           "Symbol":  "PCILT",
-                                           "Score":  71.7,
-                                           "Price":  34.54
+                                           "Symbol":  "NTGAZ",
+                                           "Score":  71.9,
+                                           "Price":  12.62
                                        },
                                        {
-                                           "Symbol":  "NTGAZ",
-                                           "Score":  71.6,
-                                           "Price":  12.58
+                                           "Symbol":  "PCILT",
+                                           "Score":  71.7,
+                                           "Price":  34.46
                                        },
                                        {
                                            "Symbol":  "ISFIN",
                                            "Score":  71.2,
-                                           "Price":  20.08
+                                           "Price":  20.06
                                        },
                                        {
-                                           "Symbol":  "SAFKR",
-                                           "Score":  71.1,
-                                           "Price":  25.18
+                                           "Symbol":  "ARASE",
+                                           "Score":  71,
+                                           "Price":  118.6
+                                       },
+                                       {
+                                           "Symbol":  "CRDFA",
+                                           "Score":  70.9,
+                                           "Price":  40.64
                                        },
                                        {
                                            "Symbol":  "TUPRS",
@@ -184,34 +204,24 @@
                                            "Price":  235.2
                                        },
                                        {
-                                           "Symbol":  "ARASE",
-                                           "Score":  70.8,
-                                           "Price":  117.7
-                                       },
-                                       {
                                            "Symbol":  "YKBNK",
-                                           "Score":  70.5,
-                                           "Price":  40.08
-                                       },
-                                       {
-                                           "Symbol":  "CRDFA",
-                                           "Score":  70.3,
-                                           "Price":  40.78
+                                           "Score":  70.2,
+                                           "Price":  40.02
                                        },
                                        {
                                            "Symbol":  "RYGYO",
                                            "Score":  70.2,
-                                           "Price":  33.24
+                                           "Price":  33.1
                                        }
                                    ],
                          "Universe":  [
                                           {
                                               "Symbol":  "ERSU",
-                                              "Price":  27.78
+                                              "Price":  27.92
                                           },
                                           {
                                               "Symbol":  "SERNT",
-                                              "Price":  9.32
+                                              "Price":  9.31
                                           },
                                           {
                                               "Symbol":  "KATMR",
@@ -223,11 +233,11 @@
                                           },
                                           {
                                               "Symbol":  "BALSU",
-                                              "Price":  13.83
+                                              "Price":  13.84
                                           },
                                           {
                                               "Symbol":  "SDTTR",
-                                              "Price":  235.1
+                                              "Price":  235.5
                                           },
                                           {
                                               "Symbol":  "SNPAM",
@@ -235,7 +245,7 @@
                                           },
                                           {
                                               "Symbol":  "TRENJ",
-                                              "Price":  87.5
+                                              "Price":  87.4
                                           },
                                           {
                                               "Symbol":  "BRMEN",
@@ -247,15 +257,15 @@
                                           },
                                           {
                                               "Symbol":  "DOCO",
-                                              "Price":  11640
+                                              "Price":  11632.5
                                           },
                                           {
                                               "Symbol":  "COSMO",
-                                              "Price":  155.7
+                                              "Price":  154.9
                                           },
                                           {
                                               "Symbol":  "DESPC",
-                                              "Price":  43.5
+                                              "Price":  43.52
                                           },
                                           {
                                               "Symbol":  "ZOREN",
@@ -267,19 +277,15 @@
                                           },
                                           {
                                               "Symbol":  "KBORU",
-                                              "Price":  24.54
-                                          },
-                                          {
-                                              "Symbol":  "IZMDC",
-                                              "Price":  8.08
+                                              "Price":  24.56
                                           },
                                           {
                                               "Symbol":  "ONCSM",
-                                              "Price":  262.75
+                                              "Price":  263.5
                                           },
                                           {
                                               "Symbol":  "DEVA",
-                                              "Price":  67.35
+                                              "Price":  67.3
                                           },
                                           {
                                               "Symbol":  "KTSKR",
@@ -287,35 +293,35 @@
                                           },
                                           {
                                               "Symbol":  "AVOD",
-                                              "Price":  4.44
+                                              "Price":  4.45
                                           },
                                           {
                                               "Symbol":  "AEFES",
-                                              "Price":  21.18
+                                              "Price":  21.2
                                           },
                                           {
                                               "Symbol":  "SKTAS",
-                                              "Price":  3.69
+                                              "Price":  3.71
                                           },
                                           {
                                               "Symbol":  "HDFGS",
-                                              "Price":  2.62
+                                              "Price":  2.63
                                           },
                                           {
                                               "Symbol":  "DMSAS",
-                                              "Price":  8.65
+                                              "Price":  8.64
                                           },
                                           {
                                               "Symbol":  "KFEIN",
-                                              "Price":  11.27
+                                              "Price":  11.23
                                           },
                                           {
                                               "Symbol":  "MERCN",
-                                              "Price":  24.04
+                                              "Price":  24.02
                                           },
                                           {
                                               "Symbol":  "FORTE",
-                                              "Price":  91.6
+                                              "Price":  91.5
                                           },
                                           {
                                               "Symbol":  "ALVES",
@@ -323,7 +329,7 @@
                                           },
                                           {
                                               "Symbol":  "ALTIN",
-                                              "Price":  77.04
+                                              "Price":  77.05
                                           },
                                           {
                                               "Symbol":  "GUNDG",
@@ -331,31 +337,27 @@
                                           },
                                           {
                                               "Symbol":  "BVSAN",
-                                              "Price":  135.4
-                                          },
-                                          {
-                                              "Symbol":  "DGGYO",
-                                              "Price":  34.54
+                                              "Price":  132.5
                                           },
                                           {
                                               "Symbol":  "CEMZY",
-                                              "Price":  14.95
+                                              "Price":  14.98
                                           },
                                           {
                                               "Symbol":  "CLEBI",
-                                              "Price":  1722
+                                              "Price":  1720
                                           },
                                           {
                                               "Symbol":  "NTHOL",
-                                              "Price":  40.68
+                                              "Price":  41.16
                                           },
                                           {
                                               "Symbol":  "PASEU",
-                                              "Price":  114.2
+                                              "Price":  114.3
                                           },
                                           {
                                               "Symbol":  "MOGAN",
-                                              "Price":  13.26
+                                              "Price":  13.27
                                           },
                                           {
                                               "Symbol":  "GENIL",
@@ -363,31 +365,31 @@
                                           },
                                           {
                                               "Symbol":  "GLRMK",
-                                              "Price":  175.1
+                                              "Price":  175.2
                                           },
                                           {
                                               "Symbol":  "NATEN",
                                               "Price":  6.92
                                           },
                                           {
-                                              "Symbol":  "ARMGD",
-                                              "Price":  152.6
+                                              "Symbol":  "ECILC",
+                                              "Price":  83.7
                                           },
                                           {
                                               "Symbol":  "RNPOL",
-                                              "Price":  2.6
+                                              "Price":  2.61
                                           },
                                           {
                                               "Symbol":  "RTALB",
-                                              "Price":  3.56
+                                              "Price":  3.57
                                           },
                                           {
                                               "Symbol":  "OYAKC",
-                                              "Price":  22.28
+                                              "Price":  22.34
                                           },
                                           {
                                               "Symbol":  "ECZYT",
-                                              "Price":  348.25
+                                              "Price":  347.75
                                           },
                                           {
                                               "Symbol":  "EDIP",
@@ -395,7 +397,7 @@
                                           },
                                           {
                                               "Symbol":  "TRALT",
-                                              "Price":  46.34
+                                              "Price":  46.26
                                           },
                                           {
                                               "Symbol":  "INVEO",
@@ -403,23 +405,23 @@
                                           },
                                           {
                                               "Symbol":  "IZENR",
-                                              "Price":  9.94
+                                              "Price":  9.93
                                           },
                                           {
                                               "Symbol":  "SILVR",
-                                              "Price":  2.65
+                                              "Price":  2.66
                                           },
                                           {
                                               "Symbol":  "DMLKT",
-                                              "Price":  6.11
+                                              "Price":  6.12
                                           },
                                           {
                                               "Symbol":  "MHRGY",
-                                              "Price":  4.18
+                                              "Price":  4.17
                                           },
                                           {
                                               "Symbol":  "GENKM",
-                                              "Price":  21.58
+                                              "Price":  21.68
                                           },
                                           {
                                               "Symbol":  "DAGI",
@@ -431,7 +433,7 @@
                                           },
                                           {
                                               "Symbol":  "BAYRK",
-                                              "Price":  5.22
+                                              "Price":  5.23
                                           },
                                           {
                                               "Symbol":  "BLCYT",
@@ -439,15 +441,15 @@
                                           },
                                           {
                                               "Symbol":  "MAVI",
-                                              "Price":  42.72
+                                              "Price":  42.68
                                           },
                                           {
                                               "Symbol":  "BSOKE",
-                                              "Price":  34.6
+                                              "Price":  34.64
                                           },
                                           {
                                               "Symbol":  "GENTS",
-                                              "Price":  7.21
+                                              "Price":  7.19
                                           },
                                           {
                                               "Symbol":  "INTEK",
@@ -459,11 +461,11 @@
                                           },
                                           {
                                               "Symbol":  "KLGYO",
-                                              "Price":  5.14
+                                              "Price":  5.13
                                           },
                                           {
                                               "Symbol":  "OYLUM",
-                                              "Price":  8.5
+                                              "Price":  8.49
                                           },
                                           {
                                               "Symbol":  "KRGYO",
@@ -471,7 +473,7 @@
                                           },
                                           {
                                               "Symbol":  "FROTO",
-                                              "Price":  90
+                                              "Price":  89.95
                                           },
                                           {
                                               "Symbol":  "SEKFK",
@@ -479,19 +481,19 @@
                                           },
                                           {
                                               "Symbol":  "NUGYO",
-                                              "Price":  10.4
+                                              "Price":  10.39
                                           },
                                           {
                                               "Symbol":  "PKART",
-                                              "Price":  137.3
+                                              "Price":  140.9
                                           },
                                           {
                                               "Symbol":  "JANTS",
-                                              "Price":  16.72
+                                              "Price":  16.71
                                           },
                                           {
                                               "Symbol":  "VERUS",
-                                              "Price":  673
+                                              "Price":  673.5
                                           },
                                           {
                                               "Symbol":  "BASCM",
@@ -499,35 +501,39 @@
                                           },
                                           {
                                               "Symbol":  "FLAP",
-                                              "Price":  13.58
+                                              "Price":  13.52
                                           },
                                           {
                                               "Symbol":  "LOGO",
-                                              "Price":  144.2
+                                              "Price":  144.1
                                           },
                                           {
                                               "Symbol":  "OZATD",
-                                              "Price":  1670
+                                              "Price":  1673
                                           },
                                           {
                                               "Symbol":  "VAKFA",
-                                              "Price":  12.89
+                                              "Price":  12.87
                                           },
                                           {
                                               "Symbol":  "SKBNK",
-                                              "Price":  14.75
+                                              "Price":  14.76
+                                          },
+                                          {
+                                              "Symbol":  "ORCAY",
+                                              "Price":  4.4
                                           },
                                           {
                                               "Symbol":  "ISKPL",
-                                              "Price":  8.59
+                                              "Price":  8.72
                                           },
                                           {
                                               "Symbol":  "DOFER",
-                                              "Price":  34.46
+                                              "Price":  34.56
                                           },
                                           {
                                               "Symbol":  "LINK",
-                                              "Price":  7.51
+                                              "Price":  7.48
                                           },
                                           {
                                               "Symbol":  "SAMAT",
@@ -535,11 +541,11 @@
                                           },
                                           {
                                               "Symbol":  "TEKTU",
-                                              "Price":  10.21
+                                              "Price":  10.22
                                           },
                                           {
                                               "Symbol":  "TKNSA",
-                                              "Price":  20.38
+                                              "Price":  20.36
                                           },
                                           {
                                               "Symbol":  "TCKRC",
@@ -547,15 +553,15 @@
                                           },
                                           {
                                               "Symbol":  "SMRVA",
-                                              "Price":  14.85
+                                              "Price":  14.84
                                           },
                                           {
                                               "Symbol":  "MAGEN",
-                                              "Price":  33.56
+                                              "Price":  33.62
                                           },
                                           {
                                               "Symbol":  "INVES",
-                                              "Price":  711.5
+                                              "Price":  714
                                           },
                                           {
                                               "Symbol":  "BRISA",
@@ -563,7 +569,7 @@
                                           },
                                           {
                                               "Symbol":  "KORDS",
-                                              "Price":  81.1
+                                              "Price":  81.05
                                           },
                                           {
                                               "Symbol":  "ASTOR",
@@ -571,27 +577,27 @@
                                           },
                                           {
                                               "Symbol":  "ULAS",
-                                              "Price":  27.1
+                                              "Price":  27.08
                                           },
                                           {
-                                              "Symbol":  "TRGYO",
-                                              "Price":  100.3
+                                              "Symbol":  "ATATR",
+                                              "Price":  18.19
                                           },
                                           {
                                               "Symbol":  "MACKO",
-                                              "Price":  40.08
+                                              "Price":  40.1
                                           },
                                           {
                                               "Symbol":  "SANEL",
-                                              "Price":  51.25
+                                              "Price":  51.15
                                           },
                                           {
                                               "Symbol":  "KOTON",
-                                              "Price":  14.95
+                                              "Price":  14.96
                                           },
                                           {
                                               "Symbol":  "ALKLC",
-                                              "Price":  348.75
+                                              "Price":  348.5
                                           },
                                           {
                                               "Symbol":  "BIGEN",
@@ -599,19 +605,19 @@
                                           },
                                           {
                                               "Symbol":  "EMKEL",
-                                              "Price":  21.18
+                                              "Price":  21.12
                                           },
                                           {
                                               "Symbol":  "DOFRB",
-                                              "Price":  155.4
+                                              "Price":  155.5
                                           },
                                           {
                                               "Symbol":  "GRNYO",
-                                              "Price":  19.1
+                                              "Price":  19.19
                                           },
                                           {
                                               "Symbol":  "AAGYO",
-                                              "Price":  17.5
+                                              "Price":  17.49
                                           },
                                           {
                                               "Symbol":  "OZKGY",
@@ -635,7 +641,11 @@
                                           },
                                           {
                                               "Symbol":  "TATEN",
-                                              "Price":  14.84
+                                              "Price":  14.86
+                                          },
+                                          {
+                                              "Symbol":  "IZINV",
+                                              "Price":  63.2
                                           },
                                           {
                                               "Symbol":  "TLMAN",
@@ -643,11 +653,11 @@
                                           },
                                           {
                                               "Symbol":  "PRZMA",
-                                              "Price":  45.94
+                                              "Price":  45.88
                                           },
                                           {
                                               "Symbol":  "ODINE",
-                                              "Price":  1561
+                                              "Price":  1577
                                           },
                                           {
                                               "Symbol":  "YGGYO",
@@ -655,11 +665,11 @@
                                           },
                                           {
                                               "Symbol":  "KLKIM",
-                                              "Price":  31.86
+                                              "Price":  31.82
                                           },
                                           {
                                               "Symbol":  "KRPLS",
-                                              "Price":  9.35
+                                              "Price":  9.39
                                           },
                                           {
                                               "Symbol":  "TUCLK",
@@ -667,11 +677,11 @@
                                           },
                                           {
                                               "Symbol":  "MRSHL",
-                                              "Price":  1551
+                                              "Price":  1559
                                           },
                                           {
                                               "Symbol":  "DOAS",
-                                              "Price":  199.1
+                                              "Price":  199.4
                                           },
                                           {
                                               "Symbol":  "MERIT",
@@ -679,7 +689,7 @@
                                           },
                                           {
                                               "Symbol":  "KCAER",
-                                              "Price":  15.45
+                                              "Price":  15.47
                                           },
                                           {
                                               "Symbol":  "DURKN",
@@ -687,7 +697,7 @@
                                           },
                                           {
                                               "Symbol":  "YIGIT",
-                                              "Price":  24.14
+                                              "Price":  24.1
                                           },
                                           {
                                               "Symbol":  "TSPOR",
@@ -699,15 +709,15 @@
                                           },
                                           {
                                               "Symbol":  "CIMSA",
-                                              "Price":  51.7
+                                              "Price":  51.75
                                           },
                                           {
                                               "Symbol":  "ALTNY",
-                                              "Price":  16.01
+                                              "Price":  16
                                           },
                                           {
                                               "Symbol":  "TGSAS",
-                                              "Price":  177.1
+                                              "Price":  176.5
                                           },
                                           {
                                               "Symbol":  "KRSTL",
@@ -715,7 +725,7 @@
                                           },
                                           {
                                               "Symbol":  "AKFYE",
-                                              "Price":  26.1
+                                              "Price":  25.94
                                           },
                                           {
                                               "Symbol":  "SELEC",
@@ -723,7 +733,7 @@
                                           },
                                           {
                                               "Symbol":  "KAPLM",
-                                              "Price":  602.5
+                                              "Price":  600
                                           },
                                           {
                                               "Symbol":  "VAKFN",
@@ -743,31 +753,31 @@
                                           },
                                           {
                                               "Symbol":  "PARSN",
-                                              "Price":  92
+                                              "Price":  91.6
                                           },
                                           {
                                               "Symbol":  "ALARK",
-                                              "Price":  110.1
+                                              "Price":  110.5
                                           },
                                           {
                                               "Symbol":  "LIDFA",
-                                              "Price":  2.9
+                                              "Price":  2.95
                                           },
                                           {
                                               "Symbol":  "ANSGR",
-                                              "Price":  28.48
+                                              "Price":  28.6
                                           },
                                           {
                                               "Symbol":  "ASGYO",
-                                              "Price":  11.82
+                                              "Price":  11.8
                                           },
                                           {
                                               "Symbol":  "HTTBT",
-                                              "Price":  41.64
+                                              "Price":  41.66
                                           },
                                           {
                                               "Symbol":  "AFYON",
-                                              "Price":  13.05
+                                              "Price":  13.03
                                           },
                                           {
                                               "Symbol":  "DNISI",
@@ -775,7 +785,7 @@
                                           },
                                           {
                                               "Symbol":  "GARFA",
-                                              "Price":  31.92
+                                              "Price":  32.14
                                           },
                                           {
                                               "Symbol":  "AKHAN",
@@ -783,19 +793,19 @@
                                           },
                                           {
                                               "Symbol":  "MOBTL",
-                                              "Price":  14.5
+                                              "Price":  14.61
                                           },
                                           {
                                               "Symbol":  "OZYSR",
-                                              "Price":  12.07
+                                              "Price":  12.05
                                           },
                                           {
                                               "Symbol":  "ICUGS",
-                                              "Price":  5.29
+                                              "Price":  5.28
                                           },
                                           {
                                               "Symbol":  "ORGE",
-                                              "Price":  115.8
+                                              "Price":  115.7
                                           },
                                           {
                                               "Symbol":  "MMCAS",
@@ -803,15 +813,19 @@
                                           },
                                           {
                                               "Symbol":  "PSDTC",
-                                              "Price":  122.5
+                                              "Price":  122.2
                                           },
                                           {
                                               "Symbol":  "ETILR",
-                                              "Price":  5.29
+                                              "Price":  5.31
                                           },
                                           {
                                               "Symbol":  "TRMET",
-                                              "Price":  111.5
+                                              "Price":  111.6
+                                          },
+                                          {
+                                              "Symbol":  "ALKA",
+                                              "Price":  9.79
                                           },
                                           {
                                               "Symbol":  "KNFRT",
@@ -823,11 +837,11 @@
                                           },
                                           {
                                               "Symbol":  "AHSGY",
-                                              "Price":  19.38
+                                              "Price":  19.31
                                           },
                                           {
                                               "Symbol":  "TARKM",
-                                              "Price":  549.5
+                                              "Price":  553.5
                                           },
                                           {
                                               "Symbol":  "PATEK",
@@ -839,7 +853,7 @@
                                           },
                                           {
                                               "Symbol":  "HEDEF",
-                                              "Price":  113.9
+                                              "Price":  114
                                           },
                                           {
                                               "Symbol":  "PAMEL",
@@ -851,7 +865,7 @@
                                           },
                                           {
                                               "Symbol":  "GESAN",
-                                              "Price":  85.65
+                                              "Price":  86
                                           },
                                           {
                                               "Symbol":  "EKSUN",
@@ -859,27 +873,27 @@
                                           },
                                           {
                                               "Symbol":  "KRONT",
-                                              "Price":  20.66
+                                              "Price":  20.6
                                           },
                                           {
                                               "Symbol":  "EGEGY",
-                                              "Price":  26.98
+                                              "Price":  27.04
                                           },
                                           {
                                               "Symbol":  "PENGD",
-                                              "Price":  12.37
+                                              "Price":  12.36
                                           },
                                           {
                                               "Symbol":  "EYGYO",
-                                              "Price":  2.48
+                                              "Price":  2.47
                                           },
                                           {
                                               "Symbol":  "SURGY",
-                                              "Price":  75.7
+                                              "Price":  75.65
                                           },
                                           {
                                               "Symbol":  "SMRTG",
-                                              "Price":  12.43
+                                              "Price":  12.42
                                           },
                                           {
                                               "Symbol":  "ARZUM",
@@ -887,7 +901,7 @@
                                           },
                                           {
                                               "Symbol":  "ENERY",
-                                              "Price":  9.98
+                                              "Price":  9.89
                                           },
                                           {
                                               "Symbol":  "DAPGM",
@@ -899,15 +913,15 @@
                                           },
                                           {
                                               "Symbol":  "YAPRK",
-                                              "Price":  13.02
+                                              "Price":  13.05
                                           },
                                           {
                                               "Symbol":  "AGYO",
-                                              "Price":  8.73
+                                              "Price":  8.75
                                           },
                                           {
                                               "Symbol":  "SELVA",
-                                              "Price":  2.15
+                                              "Price":  2.13
                                           },
                                           {
                                               "Symbol":  "DYOBY",
@@ -915,27 +929,27 @@
                                           },
                                           {
                                               "Symbol":  "MAKTK",
-                                              "Price":  13.05
+                                              "Price":  13.07
                                           },
                                           {
                                               "Symbol":  "CVKMD",
-                                              "Price":  43.16
+                                              "Price":  43.06
                                           },
                                           {
                                               "Symbol":  "ADGYO",
-                                              "Price":  55.05
+                                              "Price":  55
                                           },
                                           {
                                               "Symbol":  "ICBCT",
-                                              "Price":  21.02
+                                              "Price":  21.08
                                           },
                                           {
                                               "Symbol":  "CELHA",
-                                              "Price":  15.55
+                                              "Price":  15.46
                                           },
                                           {
                                               "Symbol":  "LILAK",
-                                              "Price":  37.94
+                                              "Price":  37.96
                                           },
                                           {
                                               "Symbol":  "HUBVC",
@@ -947,11 +961,11 @@
                                           },
                                           {
                                               "Symbol":  "ARTMS",
-                                              "Price":  40.78
+                                              "Price":  40.76
                                           },
                                           {
                                               "Symbol":  "BORSK",
-                                              "Price":  6.26
+                                              "Price":  6.28
                                           },
                                           {
                                               "Symbol":  "KUYAS",
@@ -967,11 +981,11 @@
                                           },
                                           {
                                               "Symbol":  "FZLGY",
-                                              "Price":  18.45
+                                              "Price":  18.36
                                           },
                                           {
                                               "Symbol":  "EGPRO",
-                                              "Price":  40.14
+                                              "Price":  40
                                           },
                                           {
                                               "Symbol":  "NUHCM",
@@ -983,7 +997,7 @@
                                           },
                                           {
                                               "Symbol":  "ISGYO",
-                                              "Price":  20.88
+                                              "Price":  20.86
                                           },
                                           {
                                               "Symbol":  "SANFM",
@@ -991,11 +1005,11 @@
                                           },
                                           {
                                               "Symbol":  "EPLAS",
-                                              "Price":  6.28
+                                              "Price":  6.29
                                           },
                                           {
                                               "Symbol":  "NETCD",
-                                              "Price":  165
+                                              "Price":  164.9
                                           },
                                           {
                                               "Symbol":  "CASA",
@@ -1003,31 +1017,31 @@
                                           },
                                           {
                                               "Symbol":  "ULUSE",
-                                              "Price":  331
+                                              "Price":  331.75
                                           },
                                           {
                                               "Symbol":  "MEDTR",
-                                              "Price":  30.32
+                                              "Price":  30.42
                                           },
                                           {
                                               "Symbol":  "AKSA",
-                                              "Price":  11.84
+                                              "Price":  11.8
                                           },
                                           {
                                               "Symbol":  "AKSEN",
-                                              "Price":  82.45
+                                              "Price":  82.6
                                           },
                                           {
                                               "Symbol":  "FENER",
                                               "Price":  3.33
                                           },
                                           {
-                                              "Symbol":  "KARSN",
-                                              "Price":  12.62
+                                              "Symbol":  "SEGYO",
+                                              "Price":  5.04
                                           },
                                           {
                                               "Symbol":  "CATES",
-                                              "Price":  39.74
+                                              "Price":  39.76
                                           },
                                           {
                                               "Symbol":  "ISKUR",
@@ -1042,8 +1056,12 @@
                                               "Price":  104
                                           },
                                           {
+                                              "Symbol":  "GLBMD",
+                                              "Price":  12.62
+                                          },
+                                          {
                                               "Symbol":  "AGESA",
-                                              "Price":  257.25
+                                              "Price":  257.5
                                           },
                                           {
                                               "Symbol":  "DERHL",
@@ -1051,7 +1069,7 @@
                                           },
                                           {
                                               "Symbol":  "EREGL",
-                                              "Price":  40.48
+                                              "Price":  40.46
                                           },
                                           {
                                               "Symbol":  "KENT",
@@ -1062,28 +1080,28 @@
                                               "Price":  83.35
                                           },
                                           {
-                                              "Symbol":  "SEGYO",
-                                              "Price":  4.89
+                                              "Symbol":  "IZMDC",
+                                              "Price":  8.06
                                           },
                                           {
                                               "Symbol":  "EKOS",
-                                              "Price":  7.74
+                                              "Price":  7.73
                                           },
                                           {
                                               "Symbol":  "TOASO",
-                                              "Price":  312.25
+                                              "Price":  312
                                           },
                                           {
                                               "Symbol":  "TAVHL",
-                                              "Price":  289.25
+                                              "Price":  289
                                           },
                                           {
                                               "Symbol":  "BYDNR",
-                                              "Price":  39.56
+                                              "Price":  39.6
                                           },
                                           {
                                               "Symbol":  "KZBGY",
-                                              "Price":  3.26
+                                              "Price":  3.25
                                           },
                                           {
                                               "Symbol":  "ZGYO",
@@ -1091,27 +1109,27 @@
                                           },
                                           {
                                               "Symbol":  "GOODY",
-                                              "Price":  16.25
+                                              "Price":  16.26
                                           },
                                           {
                                               "Symbol":  "BAGFS",
-                                              "Price":  26.76
+                                              "Price":  26.82
                                           },
                                           {
                                               "Symbol":  "EUPWR",
-                                              "Price":  100.8
+                                              "Price":  101
                                           },
                                           {
                                               "Symbol":  "OZRDN",
-                                              "Price":  30.12
+                                              "Price":  30.1
                                           },
                                           {
                                               "Symbol":  "BRLSM",
-                                              "Price":  20.72
+                                              "Price":  20.82
                                           },
                                           {
                                               "Symbol":  "BINBN",
-                                              "Price":  179.2
+                                              "Price":  178.7
                                           },
                                           {
                                               "Symbol":  "CANTE",
@@ -1119,27 +1137,27 @@
                                           },
                                           {
                                               "Symbol":  "CGCAM",
-                                              "Price":  45.42
+                                              "Price":  45.44
                                           },
                                           {
                                               "Symbol":  "KIMMR",
-                                              "Price":  17.36
+                                              "Price":  17.3
                                           },
                                           {
                                               "Symbol":  "KUTPO",
-                                              "Price":  92.1
+                                              "Price":  92.4
                                           },
                                           {
                                               "Symbol":  "BERA",
-                                              "Price":  18.21
+                                              "Price":  18.16
                                           },
                                           {
                                               "Symbol":  "KLSER",
-                                              "Price":  28.84
+                                              "Price":  28.86
                                           },
                                           {
                                               "Symbol":  "SNICA",
-                                              "Price":  4.04
+                                              "Price":  4.05
                                           },
                                           {
                                               "Symbol":  "GLRYH",
@@ -1147,11 +1165,11 @@
                                           },
                                           {
                                               "Symbol":  "ANGEN",
-                                              "Price":  10.95
+                                              "Price":  10.96
                                           },
                                           {
                                               "Symbol":  "MGROS",
-                                              "Price":  697
+                                              "Price":  696
                                           },
                                           {
                                               "Symbol":  "KAYSE",
@@ -1159,15 +1177,15 @@
                                           },
                                           {
                                               "Symbol":  "ARDYZ",
-                                              "Price":  62.2
+                                              "Price":  62.15
                                           },
                                           {
                                               "Symbol":  "CRFSA",
-                                              "Price":  150.8
+                                              "Price":  150.5
                                           },
                                           {
                                               "Symbol":  "TNZTP",
-                                              "Price":  25.46
+                                              "Price":  25.44
                                           },
                                           {
                                               "Symbol":  "CEOEM",
@@ -1179,7 +1197,7 @@
                                           },
                                           {
                                               "Symbol":  "TUKAS",
-                                              "Price":  2.42
+                                              "Price":  2.43
                                           },
                                           {
                                               "Symbol":  "ISBTR",
@@ -1187,7 +1205,7 @@
                                           },
                                           {
                                               "Symbol":  "DUNYH",
-                                              "Price":  111.9
+                                              "Price":  111.5
                                           },
                                           {
                                               "Symbol":  "BURCE",
@@ -1195,11 +1213,11 @@
                                           },
                                           {
                                               "Symbol":  "RYSAS",
-                                              "Price":  25.72
+                                              "Price":  25.74
                                           },
                                           {
                                               "Symbol":  "KRDMD",
-                                              "Price":  41.34
+                                              "Price":  41.3
                                           },
                                           {
                                               "Symbol":  "FORMT",
@@ -1207,11 +1225,11 @@
                                           },
                                           {
                                               "Symbol":  "GARAN",
-                                              "Price":  142
+                                              "Price":  142.1
                                           },
                                           {
                                               "Symbol":  "ARCLK",
-                                              "Price":  105.6
+                                              "Price":  105.4
                                           },
                                           {
                                               "Symbol":  "IHEVA",
@@ -1219,15 +1237,15 @@
                                           },
                                           {
                                               "Symbol":  "OTTO",
-                                              "Price":  220.8
+                                              "Price":  220.3
                                           },
                                           {
                                               "Symbol":  "INGRM",
-                                              "Price":  423
+                                              "Price":  422.5
                                           },
                                           {
                                               "Symbol":  "PLTUR",
-                                              "Price":  22.78
+                                              "Price":  22.74
                                           },
                                           {
                                               "Symbol":  "CMENT",
@@ -1239,27 +1257,27 @@
                                           },
                                           {
                                               "Symbol":  "PETKM",
-                                              "Price":  19.44
+                                              "Price":  19.43
                                           },
                                           {
                                               "Symbol":  "RAYSG",
-                                              "Price":  200.4
+                                              "Price":  200.1
                                           },
                                           {
                                               "Symbol":  "ARASE",
-                                              "Price":  117.7
+                                              "Price":  118.6
                                           },
                                           {
                                               "Symbol":  "GRSEL",
-                                              "Price":  316
+                                              "Price":  316.75
                                           },
                                           {
-                                              "Symbol":  "IEYHO",
-                                              "Price":  126.6
+                                              "Symbol":  "KARSN",
+                                              "Price":  12.61
                                           },
                                           {
                                               "Symbol":  "KOCMT",
-                                              "Price":  2.74
+                                              "Price":  2.76
                                           },
                                           {
                                               "Symbol":  "REEDR",
@@ -1271,11 +1289,11 @@
                                           },
                                           {
                                               "Symbol":  "GZNMI",
-                                              "Price":  71.4
+                                              "Price":  71.15
                                           },
                                           {
                                               "Symbol":  "QUAGR",
-                                              "Price":  4.13
+                                              "Price":  4.12
                                           },
                                           {
                                               "Symbol":  "EKGYO",
@@ -1283,7 +1301,7 @@
                                           },
                                           {
                                               "Symbol":  "EBEBK",
-                                              "Price":  85.9
+                                              "Price":  86.05
                                           },
                                           {
                                               "Symbol":  "GSRAY",
@@ -1291,31 +1309,27 @@
                                           },
                                           {
                                               "Symbol":  "AKENR",
-                                              "Price":  13.74
+                                              "Price":  13.66
                                           },
                                           {
                                               "Symbol":  "VKGYO",
-                                              "Price":  2.81
+                                              "Price":  2.8
                                           },
                                           {
                                               "Symbol":  "EGGUB",
-                                              "Price":  110.8
+                                              "Price":  111
                                           },
                                           {
                                               "Symbol":  "ENPRA",
                                               "Price":  72.55
                                           },
                                           {
-                                              "Symbol":  "EMPAE",
-                                              "Price":  128.6
-                                          },
-                                          {
                                               "Symbol":  "AGROT",
-                                              "Price":  2.87
+                                              "Price":  2.86
                                           },
                                           {
                                               "Symbol":  "PSGYO",
-                                              "Price":  3.28
+                                              "Price":  3.26
                                           },
                                           {
                                               "Symbol":  "QNBFK",
@@ -1323,39 +1337,39 @@
                                           },
                                           {
                                               "Symbol":  "BINHO",
-                                              "Price":  9.16
+                                              "Price":  9.15
                                           },
                                           {
                                               "Symbol":  "IHGZT",
-                                              "Price":  1.37
+                                              "Price":  1.36
                                           },
                                           {
                                               "Symbol":  "AYCES",
-                                              "Price":  617.5
+                                              "Price":  616
                                           },
                                           {
                                               "Symbol":  "INDES",
-                                              "Price":  11.44
+                                              "Price":  11.41
                                           },
                                           {
                                               "Symbol":  "ONRYT",
-                                              "Price":  63.75
+                                              "Price":  63.55
                                           },
                                           {
                                               "Symbol":  "KOPOL",
-                                              "Price":  6.53
+                                              "Price":  6.52
                                           },
                                           {
                                               "Symbol":  "INFO",
-                                              "Price":  4.11
+                                              "Price":  4.04
                                           },
                                           {
                                               "Symbol":  "BAHKM",
-                                              "Price":  114.3
+                                              "Price":  114.7
                                           },
                                           {
                                               "Symbol":  "KLRHO",
-                                              "Price":  99.75
+                                              "Price":  99.5
                                           },
                                           {
                                               "Symbol":  "ANHYT",
@@ -1371,31 +1385,31 @@
                                           },
                                           {
                                               "Symbol":  "AKSUE",
-                                              "Price":  37.32
+                                              "Price":  37.28
                                           },
                                           {
                                               "Symbol":  "GSDHO",
-                                              "Price":  6.14
+                                              "Price":  6.13
                                           },
                                           {
-                                              "Symbol":  "ATATR",
-                                              "Price":  18.24
+                                              "Symbol":  "DGGYO",
+                                              "Price":  34.54
                                           },
                                           {
                                               "Symbol":  "BIENY",
-                                              "Price":  23.74
+                                              "Price":  23.72
                                           },
                                           {
                                               "Symbol":  "GIPTA",
-                                              "Price":  71.6
+                                              "Price":  71.65
                                           },
                                           {
                                               "Symbol":  "HEKTS",
-                                              "Price":  4.07
+                                              "Price":  4.04
                                           },
                                           {
                                               "Symbol":  "MTRKS",
-                                              "Price":  28.54
+                                              "Price":  28.5
                                           },
                                           {
                                               "Symbol":  "TBORG",
@@ -1403,7 +1417,7 @@
                                           },
                                           {
                                               "Symbol":  "CEMAS",
-                                              "Price":  4.94
+                                              "Price":  4.95
                                           },
                                           {
                                               "Symbol":  "SODSN",
@@ -1411,27 +1425,27 @@
                                           },
                                           {
                                               "Symbol":  "GOLTS",
-                                              "Price":  334.5
+                                              "Price":  334.25
                                           },
                                           {
                                               "Symbol":  "EDATA",
-                                              "Price":  19.56
+                                              "Price":  19.54
                                           },
                                           {
                                               "Symbol":  "LKMNH",
-                                              "Price":  15.71
+                                              "Price":  15.72
                                           },
                                           {
                                               "Symbol":  "KZGYO",
-                                              "Price":  23.96
+                                              "Price":  23.98
                                           },
                                           {
                                               "Symbol":  "PAGYO",
-                                              "Price":  134.2
+                                              "Price":  133.9
                                           },
                                           {
                                               "Symbol":  "KLMSN",
-                                              "Price":  32.92
+                                              "Price":  32.9
                                           },
                                           {
                                               "Symbol":  "HLGYO",
@@ -1439,7 +1453,7 @@
                                           },
                                           {
                                               "Symbol":  "KONKA",
-                                              "Price":  14.48
+                                              "Price":  14.52
                                           },
                                           {
                                               "Symbol":  "DESA",
@@ -1447,11 +1461,11 @@
                                           },
                                           {
                                               "Symbol":  "FRMPL",
-                                              "Price":  47.72
+                                              "Price":  47.62
                                           },
                                           {
                                               "Symbol":  "ENTRA",
-                                              "Price":  4.95
+                                              "Price":  4.94
                                           },
                                           {
                                               "Symbol":  "MNDRS",
@@ -1459,23 +1473,23 @@
                                           },
                                           {
                                               "Symbol":  "LUKSK",
-                                              "Price":  105
+                                              "Price":  105.4
                                           },
                                           {
                                               "Symbol":  "VAKBN",
-                                              "Price":  34.02
+                                              "Price":  34.08
                                           },
                                           {
-                                              "Symbol":  "IZINV",
-                                              "Price":  63.05
+                                              "Symbol":  "DOKTA",
+                                              "Price":  26.38
                                           },
                                           {
                                               "Symbol":  "KLSYN",
-                                              "Price":  14.89
+                                              "Price":  14.88
                                           },
                                           {
                                               "Symbol":  "MIATK",
-                                              "Price":  46.68
+                                              "Price":  46.7
                                           },
                                           {
                                               "Symbol":  "CONSE",
@@ -1483,7 +1497,7 @@
                                           },
                                           {
                                               "Symbol":  "MAALT",
-                                              "Price":  1159
+                                              "Price":  1160
                                           },
                                           {
                                               "Symbol":  "ESCOM",
@@ -1491,7 +1505,7 @@
                                           },
                                           {
                                               "Symbol":  "SKYLP",
-                                              "Price":  305.75
+                                              "Price":  304.5
                                           },
                                           {
                                               "Symbol":  "KLNMA",
@@ -1499,31 +1513,31 @@
                                           },
                                           {
                                               "Symbol":  "ISCTR",
-                                              "Price":  14.96
+                                              "Price":  14.95
                                           },
                                           {
                                               "Symbol":  "PRKAB",
-                                              "Price":  40.2
+                                              "Price":  40.18
                                           },
                                           {
                                               "Symbol":  "YYAPI",
                                               "Price":  0.97
                                           },
                                           {
-                                              "Symbol":  "GLBMD",
-                                              "Price":  12.68
+                                              "Symbol":  "BIOEN",
+                                              "Price":  17.6
                                           },
                                           {
                                               "Symbol":  "USAK",
-                                              "Price":  1.53
+                                              "Price":  1.54
                                           },
                                           {
                                               "Symbol":  "CWENE",
-                                              "Price":  39.26
+                                              "Price":  39.3
                                           },
                                           {
                                               "Symbol":  "BULGS",
-                                              "Price":  41.76
+                                              "Price":  42.04
                                           },
                                           {
                                               "Symbol":  "TCELL",
@@ -1531,7 +1545,7 @@
                                           },
                                           {
                                               "Symbol":  "BORLS",
-                                              "Price":  5.42
+                                              "Price":  5.43
                                           },
                                           {
                                               "Symbol":  "ENSRI",
@@ -1543,11 +1557,11 @@
                                           },
                                           {
                                               "Symbol":  "AKSGY",
-                                              "Price":  9.31
+                                              "Price":  9.32
                                           },
                                           {
                                               "Symbol":  "BARMA",
-                                              "Price":  73.6
+                                              "Price":  73.65
                                           },
                                           {
                                               "Symbol":  "LIDER",
@@ -1555,39 +1569,39 @@
                                           },
                                           {
                                               "Symbol":  "GSDDE",
-                                              "Price":  13.24
+                                              "Price":  13.28
                                           },
                                           {
                                               "Symbol":  "MERKO",
-                                              "Price":  1.81
+                                              "Price":  1.8
                                           },
                                           {
                                               "Symbol":  "TTKOM",
-                                              "Price":  65.35
+                                              "Price":  65.4
                                           },
                                           {
                                               "Symbol":  "PENTA",
-                                              "Price":  15.23
+                                              "Price":  15.22
                                           },
                                           {
                                               "Symbol":  "KTLEV",
-                                              "Price":  173.7
+                                              "Price":  173.8
                                           },
                                           {
                                               "Symbol":  "KONTR",
-                                              "Price":  6.25
+                                              "Price":  6.21
                                           },
                                           {
                                               "Symbol":  "MTRYO",
-                                              "Price":  10.65
+                                              "Price":  10.64
                                           },
                                           {
                                               "Symbol":  "ULUFA",
-                                              "Price":  1.94
+                                              "Price":  1.95
                                           },
                                           {
                                               "Symbol":  "TKFEN",
-                                              "Price":  136.5
+                                              "Price":  136.4
                                           },
                                           {
                                               "Symbol":  "EGSER",
@@ -1595,7 +1609,7 @@
                                           },
                                           {
                                               "Symbol":  "TATGD",
-                                              "Price":  19.94
+                                              "Price":  19.92
                                           },
                                           {
                                               "Symbol":  "IHYAY",
@@ -1603,11 +1617,11 @@
                                           },
                                           {
                                               "Symbol":  "SEYKM",
-                                              "Price":  4.7
+                                              "Price":  4.71
                                           },
                                           {
                                               "Symbol":  "GUBRF",
-                                              "Price":  522.5
+                                              "Price":  524
                                           },
                                           {
                                               "Symbol":  "KARTN",
@@ -1615,23 +1629,23 @@
                                           },
                                           {
                                               "Symbol":  "AYDEM",
-                                              "Price":  25.66
+                                              "Price":  25.6
                                           },
                                           {
                                               "Symbol":  "KLYPV",
-                                              "Price":  59.6
+                                              "Price":  59.55
                                           },
                                           {
                                               "Symbol":  "UCAYM",
-                                              "Price":  38.68
+                                              "Price":  38.64
                                           },
                                           {
                                               "Symbol":  "EFOR",
-                                              "Price":  13.86
+                                              "Price":  13.87
                                           },
                                           {
                                               "Symbol":  "BASGZ",
-                                              "Price":  50.6
+                                              "Price":  50.55
                                           },
                                           {
                                               "Symbol":  "TUPRS",
@@ -1639,11 +1653,11 @@
                                           },
                                           {
                                               "Symbol":  "INTEM",
-                                              "Price":  269
+                                              "Price":  268.75
                                           },
                                           {
                                               "Symbol":  "PKENT",
-                                              "Price":  151.7
+                                              "Price":  151.4
                                           },
                                           {
                                               "Symbol":  "MPARK",
@@ -1655,19 +1669,19 @@
                                           },
                                           {
                                               "Symbol":  "YEOTK",
-                                              "Price":  108.7
+                                              "Price":  108.4
                                           },
                                           {
                                               "Symbol":  "ACSEL",
-                                              "Price":  161.9
+                                              "Price":  164.1
                                           },
                                           {
                                               "Symbol":  "ALFAS",
-                                              "Price":  60.3
+                                              "Price":  60.15
                                           },
                                           {
                                               "Symbol":  "SUNTK",
-                                              "Price":  32.02
+                                              "Price":  32
                                           },
                                           {
                                               "Symbol":  "MEGMT",
@@ -1675,31 +1689,31 @@
                                           },
                                           {
                                               "Symbol":  "MAKIM",
-                                              "Price":  18.33
+                                              "Price":  18.31
                                           },
                                           {
                                               "Symbol":  "DARDL",
-                                              "Price":  2.17
+                                              "Price":  2.16
                                           },
                                           {
                                               "Symbol":  "IMASM",
-                                              "Price":  3.14
+                                              "Price":  3.13
                                           },
                                           {
                                               "Symbol":  "LMKDC",
-                                              "Price":  28.94
+                                              "Price":  28.96
                                           },
                                           {
                                               "Symbol":  "IHAAS",
-                                              "Price":  85.5
+                                              "Price":  85.6
                                           },
                                           {
-                                              "Symbol":  "BIOEN",
-                                              "Price":  17.58
+                                              "Symbol":  "BEYAZ",
+                                              "Price":  27.2
                                           },
                                           {
                                               "Symbol":  "TMSN",
-                                              "Price":  92.25
+                                              "Price":  92.4
                                           },
                                           {
                                               "Symbol":  "EUYO",
@@ -1711,11 +1725,11 @@
                                           },
                                           {
                                               "Symbol":  "EGEEN",
-                                              "Price":  5715
+                                              "Price":  5712.5
                                           },
                                           {
                                               "Symbol":  "ADEL",
-                                              "Price":  32.8
+                                              "Price":  32.82
                                           },
                                           {
                                               "Symbol":  "DZGYO",
@@ -1723,31 +1737,31 @@
                                           },
                                           {
                                               "Symbol":  "CUSAN",
-                                              "Price":  24.56
+                                              "Price":  24.58
                                           },
                                           {
-                                              "Symbol":  "MARKA",
-                                              "Price":  71.35
+                                              "Symbol":  "ARMGD",
+                                              "Price":  152
                                           },
                                           {
-                                              "Symbol":  "YAYLA",
-                                              "Price":  23.04
+                                              "Symbol":  "TRGYO",
+                                              "Price":  100.1
                                           },
                                           {
                                               "Symbol":  "PCILT",
-                                              "Price":  34.54
+                                              "Price":  34.46
                                           },
                                           {
                                               "Symbol":  "SUWEN",
-                                              "Price":  7.47
+                                              "Price":  7.48
                                           },
                                           {
                                               "Symbol":  "TUREX",
-                                              "Price":  8.3
+                                              "Price":  8.29
                                           },
                                           {
                                               "Symbol":  "PRKME",
-                                              "Price":  17.78
+                                              "Price":  17.8
                                           },
                                           {
                                               "Symbol":  "DENGE",
@@ -1755,11 +1769,11 @@
                                           },
                                           {
                                               "Symbol":  "GLYHO",
-                                              "Price":  16.61
+                                              "Price":  16.63
                                           },
                                           {
                                               "Symbol":  "RALYH",
-                                              "Price":  214.2
+                                              "Price":  214.6
                                           },
                                           {
                                               "Symbol":  "AYES",
@@ -1767,11 +1781,11 @@
                                           },
                                           {
                                               "Symbol":  "MARMR",
-                                              "Price":  2.46
+                                              "Price":  2.47
                                           },
                                           {
                                               "Symbol":  "ESCAR",
-                                              "Price":  47.06
+                                              "Price":  47.04
                                           },
                                           {
                                               "Symbol":  "YESIL",
@@ -1779,27 +1793,27 @@
                                           },
                                           {
                                               "Symbol":  "HATEK",
-                                              "Price":  16.17
+                                              "Price":  16.16
                                           },
                                           {
                                               "Symbol":  "IZFAS",
-                                              "Price":  62.1
+                                              "Price":  62.15
                                           },
                                           {
                                               "Symbol":  "LXGYO",
-                                              "Price":  18.37
+                                              "Price":  18.4
                                           },
                                           {
                                               "Symbol":  "DITAS",
-                                              "Price":  43.26
+                                              "Price":  43.54
                                           },
                                           {
                                               "Symbol":  "DCTTR",
-                                              "Price":  12.02
+                                              "Price":  12.04
                                           },
                                           {
                                               "Symbol":  "AVHOL",
-                                              "Price":  47.72
+                                              "Price":  47.32
                                           },
                                           {
                                               "Symbol":  "MRGYO",
@@ -1811,7 +1825,7 @@
                                           },
                                           {
                                               "Symbol":  "GEREL",
-                                              "Price":  39.32
+                                              "Price":  39.34
                                           },
                                           {
                                               "Symbol":  "IHLAS",
@@ -1819,55 +1833,55 @@
                                           },
                                           {
                                               "Symbol":  "OZSUB",
-                                              "Price":  29.58
+                                              "Price":  29.64
                                           },
                                           {
                                               "Symbol":  "PINSU",
-                                              "Price":  11.39
+                                              "Price":  11.4
                                           },
                                           {
                                               "Symbol":  "ERCB",
-                                              "Price":  59.15
+                                              "Price":  59.2
                                           },
                                           {
-                                              "Symbol":  "DOKTA",
-                                              "Price":  26.34
+                                              "Symbol":  "MARKA",
+                                              "Price":  71.4
                                           },
                                           {
                                               "Symbol":  "OSMEN",
-                                              "Price":  7.45
+                                              "Price":  7.46
                                           },
                                           {
                                               "Symbol":  "BRKVY",
-                                              "Price":  94.45
+                                              "Price":  94.15
                                           },
                                           {
                                               "Symbol":  "BRKSN",
-                                              "Price":  8.13
+                                              "Price":  8.18
                                           },
                                           {
                                               "Symbol":  "NTGAZ",
-                                              "Price":  12.58
+                                              "Price":  12.62
                                           },
                                           {
                                               "Symbol":  "BRSAN",
-                                              "Price":  636.5
+                                              "Price":  641.5
                                           },
                                           {
                                               "Symbol":  "AKCNS",
-                                              "Price":  221.5
+                                              "Price":  221.1
                                           },
                                           {
                                               "Symbol":  "OBASE",
-                                              "Price":  41.24
+                                              "Price":  41.26
                                           },
                                           {
                                               "Symbol":  "GWIND",
-                                              "Price":  26.96
+                                              "Price":  26.94
                                           },
                                           {
                                               "Symbol":  "RUBNS",
-                                              "Price":  28.1
+                                              "Price":  27.86
                                           },
                                           {
                                               "Symbol":  "BRKO",
@@ -1883,7 +1897,7 @@
                                           },
                                           {
                                               "Symbol":  "SNGYO",
-                                              "Price":  3.82
+                                              "Price":  3.81
                                           },
                                           {
                                               "Symbol":  "ANELE",
@@ -1895,7 +1909,7 @@
                                           },
                                           {
                                               "Symbol":  "MCARD",
-                                              "Price":  190.9
+                                              "Price":  190.4
                                           },
                                           {
                                               "Symbol":  "OBAMS",
@@ -1915,15 +1929,15 @@
                                           },
                                           {
                                               "Symbol":  "PGSUS",
-                                              "Price":  180.9
+                                              "Price":  181
                                           },
                                           {
                                               "Symbol":  "AKBNK",
-                                              "Price":  77.85
+                                              "Price":  77.75
                                           },
                                           {
                                               "Symbol":  "MNDTR",
-                                              "Price":  5.95
+                                              "Price":  5.96
                                           },
                                           {
                                               "Symbol":  "BALAT",
@@ -1931,11 +1945,11 @@
                                           },
                                           {
                                               "Symbol":  "SONME",
-                                              "Price":  124.9
+                                              "Price":  125.5
                                           },
                                           {
                                               "Symbol":  "VBTYZ",
-                                              "Price":  32.6
+                                              "Price":  32.48
                                           },
                                           {
                                               "Symbol":  "SASA",
@@ -1943,11 +1957,11 @@
                                           },
                                           {
                                               "Symbol":  "A1YEN",
-                                              "Price":  3.33
+                                              "Price":  3.31
                                           },
                                           {
                                               "Symbol":  "SARKY",
-                                              "Price":  29.02
+                                              "Price":  29.04
                                           },
                                           {
                                               "Symbol":  "BURVA",
@@ -1959,11 +1973,11 @@
                                           },
                                           {
                                               "Symbol":  "FRIGO",
-                                              "Price":  2.94
+                                              "Price":  2.96
                                           },
                                           {
                                               "Symbol":  "GEDIK",
-                                              "Price":  7.24
+                                              "Price":  7.23
                                           },
                                           {
                                               "Symbol":  "KMPUR",
@@ -1979,7 +1993,7 @@
                                           },
                                           {
                                               "Symbol":  "HKTM",
-                                              "Price":  14.22
+                                              "Price":  14.2
                                           },
                                           {
                                               "Symbol":  "VSNMD",
@@ -1987,7 +2001,7 @@
                                           },
                                           {
                                               "Symbol":  "SKYMD",
-                                              "Price":  13.57
+                                              "Price":  13.55
                                           },
                                           {
                                               "Symbol":  "KRVGD",
@@ -1995,43 +2009,43 @@
                                           },
                                           {
                                               "Symbol":  "BEGYO",
-                                              "Price":  4.17
+                                              "Price":  4.18
                                           },
                                           {
                                               "Symbol":  "GLCVY",
-                                              "Price":  59.15
+                                              "Price":  59.05
                                           },
                                           {
                                               "Symbol":  "THYAO",
-                                              "Price":  327
+                                              "Price":  327.25
                                           },
                                           {
                                               "Symbol":  "BRYAT",
-                                              "Price":  2029
+                                              "Price":  2033
                                           },
                                           {
                                               "Symbol":  "KCHOL",
-                                              "Price":  197.4
+                                              "Price":  197.5
                                           },
                                           {
                                               "Symbol":  "ALBRK",
-                                              "Price":  8.89
+                                              "Price":  8.88
                                           },
                                           {
                                               "Symbol":  "VKING",
-                                              "Price":  25.96
+                                              "Price":  25.98
                                           },
                                           {
                                               "Symbol":  "KRTEK",
-                                              "Price":  23.78
+                                              "Price":  23.8
                                           },
                                           {
                                               "Symbol":  "CMBTN",
-                                              "Price":  1555
+                                              "Price":  1557
                                           },
                                           {
                                               "Symbol":  "PNSUT",
-                                              "Price":  12.45
+                                              "Price":  12.44
                                           },
                                           {
                                               "Symbol":  "ALKIM",
@@ -2051,7 +2065,7 @@
                                           },
                                           {
                                               "Symbol":  "PEKGY",
-                                              "Price":  12.7
+                                              "Price":  12.58
                                           },
                                           {
                                               "Symbol":  "IDGYO",
@@ -2063,19 +2077,19 @@
                                           },
                                           {
                                               "Symbol":  "BOSSA",
-                                              "Price":  6.53
+                                              "Price":  6.54
                                           },
                                           {
                                               "Symbol":  "BOBET",
-                                              "Price":  19.13
+                                              "Price":  19.11
                                           },
                                           {
                                               "Symbol":  "DSTKF",
-                                              "Price":  2667.5
+                                              "Price":  2660
                                           },
                                           {
                                               "Symbol":  "BIGCH",
-                                              "Price":  6.8
+                                              "Price":  6.82
                                           },
                                           {
                                               "Symbol":  "PETUN",
@@ -2083,15 +2097,15 @@
                                           },
                                           {
                                               "Symbol":  "YKBNK",
-                                              "Price":  40.08
+                                              "Price":  40.02
                                           },
                                           {
                                               "Symbol":  "BIZIM",
-                                              "Price":  27.42
+                                              "Price":  27.38
                                           },
                                           {
                                               "Symbol":  "BANVT",
-                                              "Price":  151
+                                              "Price":  150.9
                                           },
                                           {
                                               "Symbol":  "TSGYO",
@@ -2102,12 +2116,8 @@
                                               "Price":  46.58
                                           },
                                           {
-                                              "Symbol":  "BEYAZ",
-                                              "Price":  27.26
-                                          },
-                                          {
                                               "Symbol":  "PAPIL",
-                                              "Price":  14.83
+                                              "Price":  14.82
                                           },
                                           {
                                               "Symbol":  "EKIZ",
@@ -2115,11 +2125,11 @@
                                           },
                                           {
                                               "Symbol":  "TABGD",
-                                              "Price":  263.25
+                                              "Price":  264
                                           },
                                           {
                                               "Symbol":  "IHLGM",
-                                              "Price":  1.91
+                                              "Price":  1.9
                                           },
                                           {
                                               "Symbol":  "DIRIT",
@@ -2127,39 +2137,39 @@
                                           },
                                           {
                                               "Symbol":  "TEZOL",
-                                              "Price":  17.57
+                                              "Price":  17.51
                                           },
                                           {
                                               "Symbol":  "HRKET",
-                                              "Price":  113.7
+                                              "Price":  113.6
                                           },
                                           {
                                               "Symbol":  "TMPOL",
-                                              "Price":  441.5
+                                              "Price":  442
                                           },
                                           {
                                               "Symbol":  "VRGYO",
-                                              "Price":  2.15
+                                              "Price":  2.16
                                           },
                                           {
                                               "Symbol":  "BJKAS",
-                                              "Price":  1.67
+                                              "Price":  1.66
                                           },
                                           {
                                               "Symbol":  "GRTHO",
-                                              "Price":  236.6
+                                              "Price":  237
                                           },
                                           {
                                               "Symbol":  "MARTI",
-                                              "Price":  1.93
+                                              "Price":  1.92
                                           },
                                           {
                                               "Symbol":  "TURGG",
                                               "Price":  28.42
                                           },
                                           {
-                                              "Symbol":  "DGATE",
-                                              "Price":  116.8
+                                              "Symbol":  "EMPAE",
+                                              "Price":  128.5
                                           },
                                           {
                                               "Symbol":  "MSGYO",
@@ -2167,23 +2177,23 @@
                                           },
                                           {
                                               "Symbol":  "BAKAB",
-                                              "Price":  49.8
+                                              "Price":  49.92
                                           },
                                           {
                                               "Symbol":  "SEGMN",
-                                              "Price":  52.5
+                                              "Price":  52.55
                                           },
                                           {
                                               "Symbol":  "SEKUR",
-                                              "Price":  8.85
+                                              "Price":  8.87
                                           },
                                           {
                                               "Symbol":  "DGNMO",
-                                              "Price":  8.88
+                                              "Price":  8.84
                                           },
                                           {
                                               "Symbol":  "DOGUB",
-                                              "Price":  94.85
+                                              "Price":  94.45
                                           },
                                           {
                                               "Symbol":  "KUVVA",
@@ -2191,7 +2201,7 @@
                                           },
                                           {
                                               "Symbol":  "RYGYO",
-                                              "Price":  33.24
+                                              "Price":  33.1
                                           },
                                           {
                                               "Symbol":  "KSTUR",
@@ -2203,7 +2213,7 @@
                                           },
                                           {
                                               "Symbol":  "FADE",
-                                              "Price":  17.64
+                                              "Price":  17.66
                                           },
                                           {
                                               "Symbol":  "KONYA",
@@ -2211,43 +2221,43 @@
                                           },
                                           {
                                               "Symbol":  "ASELS",
-                                              "Price":  378.75
+                                              "Price":  377.75
                                           },
                                           {
                                               "Symbol":  "HOROZ",
-                                              "Price":  63.5
+                                              "Price":  63.35
                                           },
                                           {
                                               "Symbol":  "NIBAS",
-                                              "Price":  4.58
+                                              "Price":  4.59
                                           },
                                           {
                                               "Symbol":  "ULUUN",
-                                              "Price":  8.46
+                                              "Price":  8.47
                                           },
                                           {
                                               "Symbol":  "ALGYO",
-                                              "Price":  6.01
+                                              "Price":  6
                                           },
                                           {
                                               "Symbol":  "OSTIM",
-                                              "Price":  2.75
+                                              "Price":  2.76
                                           },
                                           {
-                                              "Symbol":  "ALKA",
-                                              "Price":  9.79
+                                              "Symbol":  "YAYLA",
+                                              "Price":  22.98
                                           },
                                           {
                                               "Symbol":  "OZGYO",
-                                              "Price":  2.15
+                                              "Price":  2.16
                                           },
                                           {
-                                              "Symbol":  "ORCAY",
-                                              "Price":  4.41
+                                              "Symbol":  "IEYHO",
+                                              "Price":  126.5
                                           },
                                           {
                                               "Symbol":  "LYDHO",
-                                              "Price":  181.5
+                                              "Price":  181.8
                                           },
                                           {
                                               "Symbol":  "DURDO",
@@ -2259,23 +2269,23 @@
                                           },
                                           {
                                               "Symbol":  "MOPAS",
-                                              "Price":  35.64
+                                              "Price":  35.62
                                           },
                                           {
                                               "Symbol":  "ELITE",
-                                              "Price":  38.1
+                                              "Price":  38
                                           },
                                           {
                                               "Symbol":  "TSKB",
-                                              "Price":  12.3
+                                              "Price":  12.31
                                           },
                                           {
                                               "Symbol":  "TURSG",
-                                              "Price":  6.6
+                                              "Price":  6.59
                                           },
                                           {
                                               "Symbol":  "HATSN",
-                                              "Price":  56.85
+                                              "Price":  57.3
                                           },
                                           {
                                               "Symbol":  "ATATP",
@@ -2283,27 +2293,27 @@
                                           },
                                           {
                                               "Symbol":  "AGHOL",
-                                              "Price":  34.46
+                                              "Price":  34.44
                                           },
                                           {
                                               "Symbol":  "GMTAS",
-                                              "Price":  44.42
+                                              "Price":  44.36
                                           },
                                           {
                                               "Symbol":  "RODRG",
-                                              "Price":  27.28
+                                              "Price":  27.18
                                           },
                                           {
                                               "Symbol":  "ISSEN",
-                                              "Price":  7.61
+                                              "Price":  7.6
                                           },
                                           {
                                               "Symbol":  "AZTEK",
-                                              "Price":  5.41
+                                              "Price":  5.42
                                           },
                                           {
                                               "Symbol":  "ALCTL",
-                                              "Price":  153
+                                              "Price":  152.8
                                           },
                                           {
                                               "Symbol":  "BMSTL",
@@ -2311,7 +2321,7 @@
                                           },
                                           {
                                               "Symbol":  "RUZYE",
-                                              "Price":  10.54
+                                              "Price":  10.53
                                           },
                                           {
                                               "Symbol":  "POLTK",
@@ -2323,7 +2333,7 @@
                                           },
                                           {
                                               "Symbol":  "YYLGD",
-                                              "Price":  11.58
+                                              "Price":  11.59
                                           },
                                           {
                                               "Symbol":  "TTRAK",
@@ -2331,15 +2341,19 @@
                                           },
                                           {
                                               "Symbol":  "AYGAZ",
-                                              "Price":  229.7
+                                              "Price":  229.8
+                                          },
+                                          {
+                                              "Symbol":  "DGATE",
+                                              "Price":  117
                                           },
                                           {
                                               "Symbol":  "DOHOL",
-                                              "Price":  23.1
+                                              "Price":  23.12
                                           },
                                           {
                                               "Symbol":  "BTCIM",
-                                              "Price":  5.95
+                                              "Price":  5.93
                                           },
                                           {
                                               "Symbol":  "CEMTS",
@@ -2359,7 +2373,7 @@
                                           },
                                           {
                                               "Symbol":  "NETAS",
-                                              "Price":  65.3
+                                              "Price":  65.25
                                           },
                                           {
                                               "Symbol":  "TRCAS",
@@ -2371,15 +2385,15 @@
                                           },
                                           {
                                               "Symbol":  "PRDGS",
-                                              "Price":  7.62
+                                              "Price":  7.6
                                           },
                                           {
                                               "Symbol":  "EKDMR",
-                                              "Price":  63.1
+                                              "Price":  62.9
                                           },
                                           {
                                               "Symbol":  "ISMEN",
-                                              "Price":  37.62
+                                              "Price":  37.64
                                           },
                                           {
                                               "Symbol":  "ESEN",
@@ -2387,15 +2401,15 @@
                                           },
                                           {
                                               "Symbol":  "ISDMR",
-                                              "Price":  60.05
+                                              "Price":  60
                                           },
                                           {
                                               "Symbol":  "ISFIN",
-                                              "Price":  20.08
+                                              "Price":  20.06
                                           },
                                           {
                                               "Symbol":  "EGEPO",
-                                              "Price":  18.96
+                                              "Price":  18.97
                                           },
                                           {
                                               "Symbol":  "KGYO",
@@ -2407,7 +2421,7 @@
                                           },
                                           {
                                               "Symbol":  "POLHO",
-                                              "Price":  20.56
+                                              "Price":  20.58
                                           },
                                           {
                                               "Symbol":  "MEKAG",
@@ -2419,15 +2433,15 @@
                                           },
                                           {
                                               "Symbol":  "DMRGD",
-                                              "Price":  11.82
+                                              "Price":  11.83
                                           },
                                           {
                                               "Symbol":  "ARFYE",
-                                              "Price":  29.84
+                                              "Price":  29.9
                                           },
                                           {
                                               "Symbol":  "ARENA",
-                                              "Price":  27.42
+                                              "Price":  27.38
                                           },
                                           {
                                               "Symbol":  "MEYSU",
@@ -2435,7 +2449,7 @@
                                           },
                                           {
                                               "Symbol":  "BESTE",
-                                              "Price":  44.2
+                                              "Price":  44.34
                                           },
                                           {
                                               "Symbol":  "YBTAS",
@@ -2443,7 +2457,7 @@
                                           },
                                           {
                                               "Symbol":  "OFSYM",
-                                              "Price":  57.9
+                                              "Price":  57.95
                                           },
                                           {
                                               "Symbol":  "ECOGR",
@@ -2455,7 +2469,7 @@
                                           },
                                           {
                                               "Symbol":  "PNLSN",
-                                              "Price":  46.98
+                                              "Price":  47
                                           },
                                           {
                                               "Symbol":  "BIMAS",
@@ -2467,27 +2481,27 @@
                                           },
                                           {
                                               "Symbol":  "KAREL",
-                                              "Price":  11.32
+                                              "Price":  11.31
                                           },
                                           {
                                               "Symbol":  "HUNER",
-                                              "Price":  3.8
+                                              "Price":  3.81
                                           },
                                           {
                                               "Symbol":  "OYAYO",
-                                              "Price":  47.06
+                                              "Price":  46.88
                                           },
                                           {
                                               "Symbol":  "ATAKP",
-                                              "Price":  55.6
+                                              "Price":  55.65
                                           },
                                           {
                                               "Symbol":  "ENJSA",
-                                              "Price":  108.7
+                                              "Price":  108.5
                                           },
                                           {
                                               "Symbol":  "TEHOL",
-                                              "Price":  33.18
+                                              "Price":  33.1
                                           },
                                           {
                                               "Symbol":  "TRILC",
@@ -2499,11 +2513,11 @@
                                           },
                                           {
                                               "Symbol":  "GOZDE",
-                                              "Price":  21.22
+                                              "Price":  21.2
                                           },
                                           {
                                               "Symbol":  "AVGYO",
-                                              "Price":  15.76
+                                              "Price":  15.8
                                           },
                                           {
                                               "Symbol":  "SUMAS",
@@ -2511,23 +2525,23 @@
                                           },
                                           {
                                               "Symbol":  "A1CAP",
-                                              "Price":  10.13
+                                              "Price":  10.12
                                           },
                                           {
                                               "Symbol":  "YUNSA",
-                                              "Price":  10.71
+                                              "Price":  10.86
                                           },
                                           {
                                               "Symbol":  "BLUME",
-                                              "Price":  33.34
+                                              "Price":  33.3
                                           },
                                           {
                                               "Symbol":  "PAHOL",
-                                              "Price":  1.69
+                                              "Price":  1.68
                                           },
                                           {
                                               "Symbol":  "ENDAE",
-                                              "Price":  19.21
+                                              "Price":  19.17
                                           },
                                           {
                                               "Symbol":  "ZERGY",
@@ -2535,7 +2549,7 @@
                                           },
                                           {
                                               "Symbol":  "AHGAZ",
-                                              "Price":  34.02
+                                              "Price":  33.98
                                           },
                                           {
                                               "Symbol":  "OYYAT",
@@ -2543,7 +2557,7 @@
                                           },
                                           {
                                               "Symbol":  "ASUZU",
-                                              "Price":  62.05
+                                              "Price":  62.1
                                           },
                                           {
                                               "Symbol":  "ARSAN",
@@ -2551,11 +2565,11 @@
                                           },
                                           {
                                               "Symbol":  "GOKNR",
-                                              "Price":  26.76
+                                              "Price":  26.74
                                           },
                                           {
                                               "Symbol":  "MANAS",
-                                              "Price":  27.94
+                                              "Price":  27.86
                                           },
                                           {
                                               "Symbol":  "VESTL",
@@ -2563,27 +2577,27 @@
                                           },
                                           {
                                               "Symbol":  "METRO",
-                                              "Price":  8.94
+                                              "Price":  8.95
                                           },
                                           {
                                               "Symbol":  "SOKM",
-                                              "Price":  50.95
+                                              "Price":  51
                                           },
                                           {
                                               "Symbol":  "DERIM",
-                                              "Price":  43.2
+                                              "Price":  43.14
                                           },
                                           {
                                               "Symbol":  "CRDFA",
-                                              "Price":  40.78
+                                              "Price":  40.64
                                           },
                                           {
                                               "Symbol":  "HALKB",
-                                              "Price":  48.74
+                                              "Price":  48.92
                                           },
                                           {
                                               "Symbol":  "VAKKO",
-                                              "Price":  80.3
+                                              "Price":  80.35
                                           },
                                           {
                                               "Symbol":  "KERVN",
@@ -2591,11 +2605,11 @@
                                           },
                                           {
                                               "Symbol":  "YATAS",
-                                              "Price":  40.5
+                                              "Price":  40.56
                                           },
                                           {
                                               "Symbol":  "SVGYO",
-                                              "Price":  21.4
+                                              "Price":  21.44
                                           },
                                           {
                                               "Symbol":  "KRDMA",
@@ -2603,15 +2617,11 @@
                                           },
                                           {
                                               "Symbol":  "SAFKR",
-                                              "Price":  25.18
+                                              "Price":  25.24
                                           },
                                           {
                                               "Symbol":  "AYEN",
-                                              "Price":  38.4
-                                          },
-                                          {
-                                              "Symbol":  "ECILC",
-                                              "Price":  83.8
+                                              "Price":  38.44
                                           },
                                           {
                                               "Symbol":  "KRDMB",
@@ -2619,19 +2629,19 @@
                                           },
                                           {
                                               "Symbol":  "ODAS",
-                                              "Price":  7.64
+                                              "Price":  7.63
                                           },
                                           {
                                               "Symbol":  "AVPGY",
-                                              "Price":  59.1
+                                              "Price":  59.05
                                           },
                                           {
                                               "Symbol":  "GEDZA",
-                                              "Price":  34.2
+                                              "Price":  34.22
                                           },
                                           {
                                               "Symbol":  "AKMGY",
-                                              "Price":  262.5
+                                              "Price":  263.5
                                           }
                                       ]
                      }
