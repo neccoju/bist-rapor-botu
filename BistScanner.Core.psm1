@@ -3884,7 +3884,8 @@ function New-SingleModelPortfolio {
         [Parameter(Mandatory)] $Definition,
         [Parameter(Mandatory)] [object[]]$Stocks,
         [datetime]$AsOf = (Get-Date),
-        [double]$InitialCapital = 100000
+        [double]$InitialCapital = 100000,
+        [double]$BenchmarkLevel = 0
     )
 
     $rankBy = Get-ObjectPropertyValue -Object $Definition -Name 'RankBy'
@@ -3928,6 +3929,10 @@ function New-SingleModelPortfolio {
         LastRebalanceDateText = $AsOf.ToString('dd.MM.yyyy HH:mm')
         LastRebalancePeriodEnd = $AsOf.Date.ToString('yyyy-MM-dd')
         NextRebalanceDate = (Get-NextModelPortfolioRebalanceDate -LastRebalancePeriodEnd $AsOf.Date -AsOf $AsOf).ToString('yyyy-MM-dd')
+        BenchmarkStartLevel = if ($BenchmarkLevel -gt 0) { [Math]::Round($BenchmarkLevel, 2) } else { $null }
+        BenchmarkCurrentLevel = if ($BenchmarkLevel -gt 0) { [Math]::Round($BenchmarkLevel, 2) } else { $null }
+        BenchmarkReturnPct = if ($BenchmarkLevel -gt 0) { 0.0 } else { $null }
+        AlphaPct = if ($BenchmarkLevel -gt 0) { 0.0 } else { $null }
         StatusNote = 'İlk model işlem canlı tarama fiyatlarıyla oluşturuldu.'
         Holdings = $holdings.ToArray()
         Transactions = $transactions.ToArray()
@@ -3942,12 +3947,14 @@ function New-ModelPortfolioSet {
 
         [datetime]$AsOf = (Get-Date),
 
-        [double]$InitialCapital = 100000
+        [double]$InitialCapital = 100000,
+
+        [double]$BenchmarkLevel = 0
     )
 
     $portfolios = [System.Collections.Generic.List[object]]::new()
     foreach ($definition in Get-ModelPortfolioDefinitions) {
-        [void]$portfolios.Add((New-SingleModelPortfolio -Definition $definition -Stocks $Stocks -AsOf $AsOf -InitialCapital $InitialCapital))
+        [void]$portfolios.Add((New-SingleModelPortfolio -Definition $definition -Stocks $Stocks -AsOf $AsOf -InitialCapital $InitialCapital -BenchmarkLevel $BenchmarkLevel))
     }
 
     return [pscustomobject][ordered]@{
@@ -3978,7 +3985,8 @@ function Update-ModelPortfolioValuation {
     param(
         $Portfolio,
         [hashtable]$StockMap,
-        [datetime]$AsOf
+        [datetime]$AsOf,
+        [double]$BenchmarkLevel = 0   # guncel BIST100 seviyesi (alfa icin); 0 = bilinmiyor
     )
 
     $holdings = [System.Collections.Generic.List[object]]::new()
@@ -4033,11 +4041,25 @@ function Update-ModelPortfolioValuation {
     $initialCapital = [double](Get-ObjectPropertyValue -Object $Portfolio -Name 'InitialCapitalTL')
     $totalGain = $totalValue - $initialCapital
     $totalReturnPct = if ($initialCapital -ne 0) { ($totalGain / $initialCapital) * 100 } else { 0 }
+
+    # BIST100 alfa: kurulustan beri portfoy getirisi - BIST100 getirisi.
+    # BenchmarkStartLevel bir kez (kurulusta) saklanir; eski portfoylerde yoksa
+    # ve guncel seviye varsa simdiden baslatilir (alfa bu noktadan ileriye olcer).
+    $benchStart = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Portfolio -Name 'BenchmarkStartLevel')
+    if (($null -eq $benchStart -or $benchStart -le 0) -and $BenchmarkLevel -gt 0) { $benchStart = $BenchmarkLevel }
+    $benchCurrent = if ($BenchmarkLevel -gt 0) { $BenchmarkLevel } else { ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Portfolio -Name 'BenchmarkCurrentLevel') }
+    $benchReturn = if ($null -ne $benchStart -and $benchStart -gt 0 -and $null -ne $benchCurrent -and $benchCurrent -gt 0) {
+        (($benchCurrent / $benchStart) - 1.0) * 100.0
+    }
+    else { $null }
+    $alpha = if ($null -ne $benchReturn) { $totalReturnPct - $benchReturn } else { $null }
+
     $properties = [ordered]@{}
     foreach ($property in $Portfolio.PSObject.Properties) {
         if ($property.Name -notin @(
                 'CurrentValueTL', 'TotalGainTL', 'TotalReturnPct', 'LastValuationAt',
-                'LastValuationAtText', 'NextRebalanceDate', 'Holdings'
+                'LastValuationAtText', 'NextRebalanceDate', 'Holdings',
+                'BenchmarkStartLevel', 'BenchmarkCurrentLevel', 'BenchmarkReturnPct', 'AlphaPct'
             )) {
             $properties[$property.Name] = $property.Value
         }
@@ -4050,6 +4072,10 @@ function Update-ModelPortfolioValuation {
     $properties.LastValuationAt = $AsOf.ToString('o')
     $properties.LastValuationAtText = $AsOf.ToString('dd.MM.yyyy HH:mm')
     $properties.NextRebalanceDate = (Get-NextModelPortfolioRebalanceDate -LastRebalancePeriodEnd $lastPeriodEnd -AsOf $AsOf).ToString('yyyy-MM-dd')
+    $properties.BenchmarkStartLevel = if ($null -ne $benchStart) { [Math]::Round([double]$benchStart, 2) } else { $null }
+    $properties.BenchmarkCurrentLevel = if ($null -ne $benchCurrent) { [Math]::Round([double]$benchCurrent, 2) } else { $null }
+    $properties.BenchmarkReturnPct = if ($null -ne $benchReturn) { [Math]::Round($benchReturn, 2) } else { $null }
+    $properties.AlphaPct = if ($null -ne $alpha) { [Math]::Round($alpha, 2) } else { $null }
     $properties.Holdings = $holdings.ToArray()
 
     return [pscustomobject]$properties
@@ -4061,10 +4087,11 @@ function Invoke-ModelPortfolioRebalance {
         [object[]]$Stocks,
         [hashtable]$StockMap,
         [datetime]$AsOf,
-        [datetime]$PeriodEnd
+        [datetime]$PeriodEnd,
+        [double]$BenchmarkLevel = 0
     )
 
-    $valuedPortfolio = Update-ModelPortfolioValuation -Portfolio $Portfolio -StockMap $StockMap -AsOf $AsOf
+    $valuedPortfolio = Update-ModelPortfolioValuation -Portfolio $Portfolio -StockMap $StockMap -AsOf $AsOf -BenchmarkLevel $BenchmarkLevel
     $missingLivePrices = @(
         $valuedPortfolio.Holdings |
             Where-Object { -not $_.PriceIsFresh } |
@@ -4216,12 +4243,14 @@ function Update-ModelPortfolioSet {
 
         [datetime]$AsOf = (Get-Date),
 
-        [switch]$AllowRebalance
+        [switch]$AllowRebalance,
+
+        [double]$BenchmarkLevel = 0
     )
 
     if ($null -eq $PortfolioSet -or $null -eq (Get-ObjectPropertyValue -Object $PortfolioSet -Name 'Portfolios')) {
         if ($AllowRebalance) {
-            return New-ModelPortfolioSet -Stocks $Stocks -AsOf $AsOf
+            return New-ModelPortfolioSet -Stocks $Stocks -AsOf $AsOf -BenchmarkLevel $BenchmarkLevel
         }
         return $null
     }
@@ -4230,7 +4259,7 @@ function Update-ModelPortfolioSet {
     $latestCompletedPeriodEnd = Get-LatestCompletedModelPortfolioPeriodEnd -AsOf $AsOf
     $portfolios = [System.Collections.Generic.List[object]]::new()
     foreach ($portfolio in @(Get-ObjectPropertyValue -Object $PortfolioSet -Name 'Portfolios')) {
-        $valuedPortfolio = Update-ModelPortfolioValuation -Portfolio $portfolio -StockMap $stockMap -AsOf $AsOf
+        $valuedPortfolio = Update-ModelPortfolioValuation -Portfolio $portfolio -StockMap $stockMap -AsOf $AsOf -BenchmarkLevel $BenchmarkLevel
         $lastPeriodValue = Get-ObjectPropertyValue -Object $valuedPortfolio -Name 'LastRebalancePeriodEnd'
         $lastPeriodEnd = if ($null -ne $lastPeriodValue -and -not [string]::IsNullOrWhiteSpace([string]$lastPeriodValue)) {
             [datetime]$lastPeriodValue
@@ -4245,7 +4274,8 @@ function Update-ModelPortfolioSet {
                         -Stocks $Stocks `
                         -StockMap $stockMap `
                         -AsOf $AsOf `
-                        -PeriodEnd $latestCompletedPeriodEnd))
+                        -PeriodEnd $latestCompletedPeriodEnd `
+                        -BenchmarkLevel $BenchmarkLevel))
         }
         else {
             [void]$portfolios.Add($valuedPortfolio)
@@ -4260,7 +4290,7 @@ function Update-ModelPortfolioSet {
         foreach ($definition in Get-ModelPortfolioDefinitions) {
             if ([string]$definition.Id -notin $existingIds) {
                 try {
-                    [void]$portfolios.Add((New-SingleModelPortfolio -Definition $definition -Stocks $Stocks -AsOf $AsOf -InitialCapital $initCap))
+                    [void]$portfolios.Add((New-SingleModelPortfolio -Definition $definition -Stocks $Stocks -AsOf $AsOf -InitialCapital $initCap -BenchmarkLevel $BenchmarkLevel))
                 }
                 catch {
                     # Uygun hisse yetersizse sessizce atla; sonraki çalışmada tekrar denenir.
@@ -5339,6 +5369,7 @@ Export-ModuleMember -Function `
     Get-ModelPortfolioSelection, `
     Get-LastModelPortfolioTradingDay, `
     Get-MacroSnapshot, `
+    Get-BistIndexBenchmarks, `
     Get-InstantEntryOpportunities, `
     New-ModelPortfolioSet, `
     Update-ModelPortfolioSet

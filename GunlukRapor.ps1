@@ -1345,21 +1345,26 @@ try {
     Save-JsonFile -Path $calibrationPath -Value $signalCalibration -Depth 6
     Write-TimingLog -Step 'Sinyal kalibrasyonu' -StartedAt $stageStartedAt
 
+    # BIST100 seviyesini bir kez cek (portfoy alfasi + makro icin tekrar kullan).
+    $indexSnapshot = Get-BistIndexBenchmarks -TimeoutSec $macroTimeoutSec
+    $bist100Level = [double](Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $indexSnapshot -Name 'Bist100') -Name 'Price')
+    if ($null -eq $bist100Level) { $bist100Level = 0 }
+
     $stageStartedAt = Get-Date
     $portfolioPath = Join-Path $PSScriptRoot 'data\model_portfolios.json'
     $portfolioSet = $null
     if (Test-Path $portfolioPath) {
         $portfolioSet = Get-Content -Path $portfolioPath -Raw -Encoding UTF8 | ConvertFrom-Json
     }
-    $updatedPortfolioSet = Update-ModelPortfolioSet -PortfolioSet $portfolioSet -Stocks $stocks -AsOf $runAt -AllowRebalance
+    $updatedPortfolioSet = Update-ModelPortfolioSet -PortfolioSet $portfolioSet -Stocks $stocks -AsOf $runAt -AllowRebalance -BenchmarkLevel $bist100Level
     if ($null -eq $updatedPortfolioSet) {
-        $updatedPortfolioSet = New-ModelPortfolioSet -Stocks $stocks -AsOf $runAt
+        $updatedPortfolioSet = New-ModelPortfolioSet -Stocks $stocks -AsOf $runAt -BenchmarkLevel $bist100Level
     }
     Save-JsonFile -Path $portfolioPath -Value $updatedPortfolioSet -Depth 8
     Write-TimingLog -Step 'Model portfoy degerleme' -StartedAt $stageStartedAt
 
     $stageStartedAt = Get-Date
-    $macroSnapshot = Get-MacroSnapshot -AsOf $runAt -TimeoutSec $macroTimeoutSec
+    $macroSnapshot = Get-MacroSnapshot -IndexSnapshot $indexSnapshot -AsOf $runAt -TimeoutSec $macroTimeoutSec
     Write-TimingLog -Step 'Makro gorunum' -StartedAt $stageStartedAt
 
     # KAP son bildirimleri (best-effort; erisilemezse bos doner, rapor bozulmaz).
@@ -1608,6 +1613,8 @@ try {
                 Portfoy = ConvertTo-PlainText $_.Name
                 Deger = Format-ReportNumber -Value $_.CurrentValueTL -Format 'N2' -Suffix ' TL'
                 'Getiri' = Format-ReportNumber -Value $_.TotalReturnPct -Format 'N2' -Suffix '%'
+                'BIST100' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'BenchmarkReturnPct') -Format 'N2' -Suffix '%'
+                'Alfa' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'AlphaPct') -Format 'N2' -Suffix '%'
                 Hisseler = ((@($_.Holdings) | ForEach-Object Symbol) -join ', ')
                 'Baslangic' = ConvertTo-PlainText $_.StartDateText
                 'Son Islem' = ConvertTo-PlainText $_.LastRebalanceDateText
@@ -1778,7 +1785,7 @@ $(if ($kapRows.Count -gt 0) { New-HtmlTable -Rows $kapRows } else { '<p class="m
 <p class="muted">Fark sütunları sektör endeksi/proxy getirisi eksi BIST100 getirisi olarak okunur. Pozitif değer sektörün BIST100'e göre daha güçlü aktığını gösterir.</p>
 $(New-HtmlTable -Rows $sectorRows)
 <h2>Model Portföyler</h2>
-<p class="muted">Portföyler her çalışmada sadece değerlenir; ay sonu son işlem günü 18:10 sonrası tamamlanmış dönem varsa yeniden sıralanır ve AL/SAT/EŞİTLEME işlemleri state dosyasına yazılır. <b>Dengeli / Değer / Momentum / Kalite</b> portföyleri strateji skoruna (Get-BistScore) göre seçilir. <b>RFS100</b> portföyü ise — backtest bulgusuna dayanarak — aynı uygunluk filtresini geçen hisseleri, eşik puanlaması yerine ham teknik faktörlerin kesitsel z-skor karışımı olan <b>RawFactorScore100</b> ile sıralayıp seçer (walk-forward testlerde botun skorunun ~2 katı IC). Tüm model portföyler teoriktir; komisyon/vergi/kayma içermez.</p>
+<p class="muted">Portföyler her çalışmada sadece değerlenir; ay sonu son işlem günü 18:10 sonrası tamamlanmış dönem varsa yeniden sıralanır ve AL/SAT/EŞİTLEME işlemleri state dosyasına yazılır. <b>Dengeli / Değer / Momentum / Kalite</b> portföyleri strateji skoruna (Get-BistScore) göre seçilir. <b>RFS100</b> portföyü ise — backtest bulgusuna dayanarak — aynı uygunluk filtresini geçen hisseleri, eşik puanlaması yerine ham teknik faktörlerin kesitsel z-skor karışımı olan <b>RawFactorScore100</b> ile sıralayıp seçer (walk-forward testlerde botun skorunun ~2 katı IC). Her portföyün kuruluştan beri getirisi, aynı dönemde <b>BIST100</b> getirisiyle kıyaslanır; <b>Alfa = portföy getirisi − BIST100 getirisi</b> (pozitif alfa endeksi yenmek demektir). Alfa, hangi stratejinin gerçekten değer kattığını gösteren temel ölçüdür. (Eski portföylerde BIST100 başlangıç seviyesi kayıtlı olmadığından alfa bu güncellemeden ileriye doğru ölçülür.) Tüm model portföyler teoriktir; komisyon/vergi/kayma içermez.</p>
 $(New-HtmlTable -Rows $portfolioRows)
 <h2>Model Portföy Hisse Dağılımı</h2>
 <p class="muted">Her model portföydeki güncel hisse ağırlıkları pasta grafik olarak gösterilir.</p>

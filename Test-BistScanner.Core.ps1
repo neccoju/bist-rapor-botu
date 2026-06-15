@@ -361,6 +361,31 @@ if ((Get-EarningsTimingAdjustment -Stock $adjStock) -le 0) { throw 'Kalibre pozi
 Set-SignalCalibration -Calibration $null  # varsayilana don (digerlerini etkilemesin)
 Write-Host "Sinyal kalibrasyonu testi başarılı (sell-the-news=$($calNeg.PostEarningsAdjustment), PEAD=$($calPos.PostEarningsAdjustment))."
 
+# --- Model portfoy BIST100 alfa takibi ---
+$pfAlpha = [pscustomobject]@{
+    Id = 'ALPHATEST'; Name = 'Alpha Test'; Strategy = 'Dengeli'; RankBy = 'Score'
+    InitialCapitalTL = 100000; CurrentValueTL = 100000; TotalGainTL = 0; TotalReturnPct = 0
+    StartDate = '2026-06-01T00:00:00'; LastRebalancePeriodEnd = '2026-05-26'
+    BenchmarkStartLevel = 10000
+    Holdings = @([pscustomobject]@{ Symbol = 'ALP'; Company = 'Alp'; SectorTR = 'Test'; Quantity = 1000; CostBasisTL = 100000; CurrentPrice = 100; RebalancePrice = 100; StrategyScore = 90; MacroSectorScore = 50; EvEbitda = 5; SelectionReason = 't' })
+    Transactions = @()
+}
+$pfSet = [pscustomobject]@{ Version = 1; InitialCapitalPerPortfolioTL = 100000; Portfolios = @($pfAlpha) }
+$alphaStocks = @([pscustomobject]@{ Symbol = 'ALP'; Price = 110 })   # +%10
+$alphaOut = Update-ModelPortfolioSet -PortfolioSet $pfSet -Stocks $alphaStocks -AsOf ([datetime]'2026-06-15T18:15:00') -BenchmarkLevel 10500  # BIST +%5
+$p0 = $alphaOut.Portfolios[0]
+if ([Math]::Abs([double]$p0.TotalReturnPct - 10) -gt 0.05) { throw "Portföy getirisi yanlis: $($p0.TotalReturnPct)" }
+if ([Math]::Abs([double]$p0.BenchmarkReturnPct - 5) -gt 0.05) { throw "BIST100 getirisi yanlis: $($p0.BenchmarkReturnPct)" }
+if ([Math]::Abs([double]$p0.AlphaPct - 5) -gt 0.05) { throw "Alfa yanlis: $($p0.AlphaPct)" }
+# Backfill: BenchmarkStartLevel yoksa guncel seviyeden baslar -> alfa = portfoy getirisi
+$pfNoBench = $pfAlpha.PSObject.Copy()
+$pfNoBench.PSObject.Properties.Remove('BenchmarkStartLevel')
+$pfSet2 = [pscustomobject]@{ Version = 1; InitialCapitalPerPortfolioTL = 100000; Portfolios = @($pfNoBench) }
+$alphaOut2 = Update-ModelPortfolioSet -PortfolioSet $pfSet2 -Stocks $alphaStocks -AsOf ([datetime]'2026-06-15T18:15:00') -BenchmarkLevel 10500
+$p0b = $alphaOut2.Portfolios[0]
+if ([Math]::Abs([double]$p0b.BenchmarkReturnPct - 0) -gt 0.05) { throw "Backfill BIST100 getirisi 0 olmaliydi: $($p0b.BenchmarkReturnPct)" }
+Write-Host "Model portföy alfa testi başarılı (getiri %$($p0.TotalReturnPct), BIST100 %$($p0.BenchmarkReturnPct), alfa %$($p0.AlphaPct))."
+
 if ($Live) {
     $stocks = @(Invoke-BistStockScan)
     if ($stocks.Count -lt 400) {
