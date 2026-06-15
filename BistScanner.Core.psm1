@@ -1020,6 +1020,55 @@ function Get-YahooQuoteSnapshot {
     }
 }
 
+function Get-TradingViewQuoteSnapshot {
+    <#
+        TradingView global scanner'dan tek sembol icin deger + gunluk degisim.
+        TVC:TR10Y gibi BIST disi semboller icin (runner'da scanner POST calisir).
+        Hata/bos veride $null doner.
+    #>
+    param(
+        [string]$Ticker,
+        [string]$Id,
+        [string]$Name,
+        [string]$Unit = '',
+        [int]$TimeoutSec = 8
+    )
+
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    $payload = @{ symbols = @{ tickers = @($Ticker) }; columns = @('close', 'change') }
+    $headers = @{ 'User-Agent' = 'BIST-Hisse-Tarayici/1.0'; 'Accept' = 'application/json' }
+    $body = $payload | ConvertTo-Json -Depth 6 -Compress
+
+    try {
+        $resp = Invoke-WithRetry -OperationName "TradingView $Ticker" -MaxAttempts 2 -BaseDelaySec 1 -ScriptBlock {
+            Invoke-RestMethod -Method Post -Uri 'https://scanner.tradingview.com/global/scan' `
+                -ContentType 'application/json' -Headers $headers -Body $body -TimeoutSec $TimeoutSec -ErrorAction Stop
+        }
+    }
+    catch { return $null }
+
+    $data = @(Get-ObjectPropertyValue -Object $resp -Name 'data')
+    if ($data.Count -eq 0) { return $null }
+    $d = @(Get-ObjectPropertyValue -Object $data[0] -Name 'd')
+    if ($d.Count -lt 1) { return $null }
+    $value = ConvertTo-DoubleOrNull $d[0]
+    if ($null -eq $value) { return $null }
+    $chgPct = if ($d.Count -ge 2) { ConvertTo-DoubleOrNull $d[1] } else { $null }
+
+    return [pscustomobject][ordered]@{
+        Id = $Id
+        Name = $Name
+        Value = [Math]::Round([double]$value, 2)
+        Change = $null
+        ChangePct = if ($null -ne $chgPct) { [Math]::Round([double]$chgPct, 2) } else { $null }
+        Unit = $Unit
+        Status = 'Veri Yok'
+        Source = 'TradingView'
+        Url = "https://www.tradingview.com/symbols/$($Ticker -replace ':', '-')/"
+        Note = 'TradingView kaynağı.'
+    }
+}
+
 function Get-MacroSnapshot {
     param(
         $IndexSnapshot = $null,
@@ -1083,11 +1132,14 @@ function Get-MacroSnapshot {
     $yahooMacroMap = @{ 'DXY' = 'DX-Y.NYB'; 'VIX' = '^VIX' }
     foreach ($instrument in $script:MacroInvestingInstruments) {
         $snapshot = $null
-        # TR10Y: EVDS birincil (seri kodu BIST_EVDS_TR10Y_SERIES'ten); yoksa Investing.
+        # TR10Y: EVDS (seri kodu varsa) -> TradingView (TVC:TR10Y) -> Investing.
         if ($instrument.Id -eq 'TR_10Y') {
             $tr10ySeries = $env:BIST_EVDS_TR10Y_SERIES
             if (-not [string]::IsNullOrWhiteSpace($tr10ySeries)) {
                 $snapshot = Get-EvdsRateSnapshot -Series $tr10ySeries -Id 'TR_10Y' -Name $instrument.Name -Unit '%' -TimeoutSec $TimeoutSec
+            }
+            if ($null -eq $snapshot -or $null -eq $snapshot.Value) {
+                $snapshot = Get-TradingViewQuoteSnapshot -Ticker 'TVC:TR10Y' -Id 'TR_10Y' -Name $instrument.Name -Unit '%' -TimeoutSec $TimeoutSec
             }
         }
         if (($null -eq $snapshot -or $null -eq $snapshot.Value) -and $yahooMacroMap.ContainsKey($instrument.Id)) {
