@@ -226,6 +226,29 @@ if ($null -eq $afsGood.AnnualizedVolatilityPct -or $null -eq $afsGood.RiskAdjust
 [void](Add-AcademicFactorScore -Stocks @())
 Write-Host "Add-AcademicFactorScore testi başarılı (GOOD=$($afsGood.AcademicFactorScore100), BAD=$($afsBad.AcademicFactorScore100))."
 
+# --- Dinamik enflasyon (EVDS TUFE endeksi -> 1Y/3Y/5Y birikimli) ---
+# Aylik endeks noktalari (eskiden yeniye). 61 nokta: t-60 ... t.
+$cpiPoints = @(0..60 | ForEach-Object { [pscustomobject]@{ Date = "m$_"; Value = 100.0 * [Math]::Pow(1.02, $_) } })
+$infl = Get-CumulativeInflationFromIndexPoints -Points $cpiPoints -AsOfText 'test'
+# 12 ayda %2 aylik bilesik -> (1.02^12 -1)*100 ~ %26.82
+if ([Math]::Abs($infl.Inflation1YPct - 26.82) -gt 0.1) { throw "1Y enflasyon yanlis: $($infl.Inflation1YPct)" }
+# 36 ay -> (1.02^36 -1)*100 ~ %103.9 ; 60 ay -> (1.02^60 -1)*100 ~ %228.0
+if ([Math]::Abs($infl.Inflation3YPct - 103.9) -gt 0.5) { throw "3Y enflasyon yanlis: $($infl.Inflation3YPct)" }
+if ([Math]::Abs($infl.Inflation5YPct - 228.0) -gt 0.5) { throw "5Y enflasyon yanlis: $($infl.Inflation5YPct)" }
+# Yetersiz veri -> null
+if ($null -ne (Get-CumulativeInflationFromIndexPoints -Points @([pscustomobject]@{ Date = 'a'; Value = 100 }))) {
+    throw 'Yetersiz noktada null donmeliydi.'
+}
+# Fallback: EVDS anahtari yoksa statik benchmark'a dusmeli (1Y = 32.37)
+$savedKey = $env:BIST_EVDS_API_KEY
+$env:BIST_EVDS_API_KEY = ''
+$fallback = Resolve-InflationBenchmark -AsOf ([datetime]'2026-06-15')
+if ($null -eq $fallback -or [Math]::Abs([double]$fallback.Inflation1YPct - 32.37) -gt 0.001) {
+    throw "Enflasyon fallback statik degere dusmedi: $($fallback.Inflation1YPct)"
+}
+if ($null -ne $savedKey) { $env:BIST_EVDS_API_KEY = $savedKey } else { Remove-Item Env:\BIST_EVDS_API_KEY -ErrorAction SilentlyContinue }
+Write-Host "Dinamik enflasyon testi başarılı (1Y=$($infl.Inflation1YPct)% 3Y=$($infl.Inflation3YPct)% 5Y=$($infl.Inflation5YPct)%; fallback OK)."
+
 if ($Live) {
     $stocks = @(Invoke-BistStockScan)
     if ($stocks.Count -lt 400) {

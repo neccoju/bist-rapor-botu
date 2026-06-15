@@ -2353,6 +2353,11 @@ function Invoke-BistStockScan {
     }
 
     $usdTryRates = Get-TcmbUsdTryRates -Dates @($quarterEndDates) -TimeoutSec ([Math]::Min(3, $TimeoutSec)) -MaxElapsedSec 20
+
+    # Enflasyon kiyaslamasini EVDS'ten dinamik tazele (anahtar yoksa statik kalir).
+    # Bir kez cozulur; Add-QuarterlyFinancials her hisseye $script:InflationBenchmark'i iliştirir.
+    $script:InflationBenchmark = Resolve-InflationBenchmark -AsOf (Get-Date) -TimeoutSec ([Math]::Min(8, $TimeoutSec))
+
     $enrichedStocks = foreach ($stock in $stocks) {
         Add-QuarterlyFinancials -Stock $stock -UsdTryRates $usdTryRates
     }
@@ -4378,6 +4383,98 @@ function Get-EvdsSeries {
     }
 }
 
+function Get-EvdsInflationBenchmark {
+    <#
+        TCMB EVDS TUFE endeksinden (TP.FG.J0, 2003=100) 1Y/3Y/5Y birikimli
+        enflasyonu dinamik hesaplar. Anahtar yoksa/veri yetersizse $null doner
+        (cagiran statik degere duser). Boylece "Nisan 2026" gibi sabit deger
+        her ay otomatik guncellenir.
+    #>
+    param(
+        [datetime]$AsOf = (Get-Date),
+        [int]$TimeoutSec = 8
+    )
+
+    if ([string]::IsNullOrWhiteSpace($env:BIST_EVDS_API_KEY)) { return $null }
+
+    $series = Get-EvdsSeries -Series 'TP.FG.J0' -Frequency 5 -Aggregation 'last' `
+        -StartDate $AsOf.AddMonths(-66) -EndDate $AsOf -TimeoutSec $TimeoutSec
+    if ($null -eq $series) { return $null }
+
+    return Get-CumulativeInflationFromIndexPoints -Points @($series.Points) -AsOfText ([string]$series.Date)
+}
+
+function Get-CumulativeInflationFromIndexPoints {
+    <#
+        Aylik TUFE endeks noktalarindan (eskiden yeniye sirali) 1Y/3Y/5Y
+        birikimli enflasyonu hesaplar. Saf fonksiyon (ag yok) -> test edilebilir.
+    #>
+    param(
+        [AllowNull()][AllowEmptyCollection()][object[]]$Points,
+        [string]$AsOfText = ''
+    )
+
+    $pts = @($Points)
+    if ($pts.Count -lt 13) { return $null }
+
+    $lastIdx = $pts.Count - 1
+    $last = [double](Get-ObjectPropertyValue -Object $pts[$lastIdx] -Name 'Value')
+
+    $valueMonthsAgo = {
+        param([int]$n)
+        $idx = $lastIdx - $n
+        if ($idx -ge 0) { [double](Get-ObjectPropertyValue -Object $pts[$idx] -Name 'Value') } else { $null }
+    }
+
+    $v12 = & $valueMonthsAgo 12
+    $v36 = & $valueMonthsAgo 36
+    $v60 = & $valueMonthsAgo 60
+
+    $infl1 = if ($null -ne $v12 -and $v12 -gt 0) { (($last / $v12) - 1.0) * 100.0 } else { $null }
+    if ($null -eq $infl1) { return $null }
+    $infl3 = if ($null -ne $v36 -and $v36 -gt 0) { (($last / $v36) - 1.0) * 100.0 } else { $null }
+    $infl5 = if ($null -ne $v60 -and $v60 -gt 0) { (($last / $v60) - 1.0) * 100.0 } else { $null }
+
+    return [pscustomobject][ordered]@{
+        AsOf = $AsOfText
+        Inflation1YPct = [Math]::Round($infl1, 2)
+        Inflation3YPct = if ($null -ne $infl3) { [Math]::Round($infl3, 1) } else { $null }
+        Inflation5YPct = if ($null -ne $infl5) { [Math]::Round($infl5, 1) } else { $null }
+        SourceNote = "TCMB EVDS TÜFE endeksi (2003=100) ile dinamik hesaplandı; 1Y/3Y/5Y birikimli enflasyon. Son endeks tarihi: $AsOfText."
+    }
+}
+
+function Resolve-InflationBenchmark {
+    <#
+        Dinamik (EVDS) enflasyon kiyaslamasini dener; basarisizsa modulun
+        statik $script:InflationBenchmark degerine duser. Dinamik 3Y/5Y
+        uretilmezse o alanlar statik degerle tamamlanir.
+    #>
+    param(
+        [datetime]$AsOf = (Get-Date),
+        [int]$TimeoutSec = 8
+    )
+
+    $dynamic = $null
+    try { $dynamic = Get-EvdsInflationBenchmark -AsOf $AsOf -TimeoutSec $TimeoutSec }
+    catch { $dynamic = $null }
+
+    if ($null -eq $dynamic -or $null -eq $dynamic.Inflation1YPct) {
+        return $script:InflationBenchmark
+    }
+
+    $infl3 = if ($null -ne $dynamic.Inflation3YPct) { $dynamic.Inflation3YPct } else { $script:InflationBenchmark.Inflation3YPct }
+    $infl5 = if ($null -ne $dynamic.Inflation5YPct) { $dynamic.Inflation5YPct } else { $script:InflationBenchmark.Inflation5YPct }
+
+    return [pscustomobject][ordered]@{
+        AsOf = $dynamic.AsOf
+        Inflation1YPct = $dynamic.Inflation1YPct
+        Inflation3YPct = $infl3
+        Inflation5YPct = $infl5
+        SourceNote = $dynamic.SourceNote
+    }
+}
+
 function Get-EvdsMacroMetrics {
     # Anahtar yoksa bos donerek mevcut akisi bozmaz. Seri kodlari EVDS'de
     # dogrulanmalidir; yanlis kod sessizce atlanir.
@@ -4553,6 +4650,8 @@ Export-ModuleMember -Function `
     Update-SignalPerformance, `
     Add-AcademicFactorScore, `
     Get-Momentum12_1Pct, `
+    Resolve-InflationBenchmark, `
+    Get-CumulativeInflationFromIndexPoints, `
     Invoke-BistStockScan, `
     Get-ObjectPropertyValue, `
     Get-BistScore, `
