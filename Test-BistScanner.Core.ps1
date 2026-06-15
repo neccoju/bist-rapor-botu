@@ -386,6 +386,38 @@ $p0b = $alphaOut2.Portfolios[0]
 if ([Math]::Abs([double]$p0b.BenchmarkReturnPct - 0) -gt 0.05) { throw "Backfill BIST100 getirisi 0 olmaliydi: $($p0b.BenchmarkReturnPct)" }
 Write-Host "Model portföy alfa testi başarılı (getiri %$($p0.TotalReturnPct), BIST100 %$($p0.BenchmarkReturnPct), alfa %$($p0.AlphaPct))."
 
+# --- Drawdown: deger duserse maks dusus negatif olur ---
+$pfDD = [pscustomobject]@{
+    Id = 'DD'; Name = 'DD'; Strategy = 'Dengeli'; RankBy = 'Score'
+    InitialCapitalTL = 100000; CurrentValueTL = 100000; TotalReturnPct = 0; PeakValueTL = 120000; LastRebalancePeriodEnd = '2026-05-26'
+    Holdings = @([pscustomobject]@{ Symbol = 'DDX'; Company = 'D'; SectorTR = 'T'; Quantity = 1000; CostBasisTL = 100000; CurrentPrice = 100; RebalancePrice = 100; StrategyScore = 80; MacroSectorScore = 50; EvEbitda = 5; SelectionReason = 't' })
+    Transactions = @()
+}
+$ddSet = [pscustomobject]@{ Version = 1; InitialCapitalPerPortfolioTL = 100000; Portfolios = @($pfDD) }
+$ddStocks = @([pscustomobject]@{ Symbol = 'DDX'; Price = 90 })   # zirve 120k, deger 90k -> dusus -%25
+$ddOut = Update-ModelPortfolioSet -PortfolioSet $ddSet -Stocks $ddStocks -AsOf ([datetime]'2026-06-15T18:15:00')
+$pdd = $ddOut.Portfolios[0]
+if ([Math]::Abs([double]$pdd.CurrentDrawdownPct - (-25)) -gt 0.05) { throw "Guncel drawdown yanlis: $($pdd.CurrentDrawdownPct)" }
+if ([double]$pdd.MaxDrawdownPct -gt -25 + 0.05) { throw "Maks drawdown <= -25 olmaliydi: $($pdd.MaxDrawdownPct)" }
+Write-Host "Drawdown testi başarılı (guncel %$($pdd.CurrentDrawdownPct), maks %$($pdd.MaxDrawdownPct))."
+
+# --- Islem maliyeti: giris ve rebalance maliyeti dusulur ($sample klonlariyla) ---
+$costStocks = @(0..6 | ForEach-Object {
+        $c = $sample.PSObject.Copy()
+        $c.Symbol = "CST$_"
+        $c.Company = "Cost $_"
+        $c.Price = 100.0 + $_
+        $c
+    })
+$costSet0 = New-ModelPortfolioSet -Stocks $costStocks -AsOf ([datetime]'2026-05-26T18:30:00') -InitialCapital 100000 -BenchmarkLevel 10000 -CostBps 50
+$cp0 = $costSet0.Portfolios[0]
+if (-not ([double]$cp0.CurrentValueTL -lt 100000)) { throw "Giris maliyeti uygulanmadi: $($cp0.CurrentValueTL)" }
+if (-not ([double]$cp0.CumulativeModelCostsTL -gt 0)) { throw "Kumulatif maliyet 0 (giris): $($cp0.CumulativeModelCostsTL)" }
+$costSet1 = Update-ModelPortfolioSet -PortfolioSet $costSet0 -Stocks $costStocks -AsOf ([datetime]'2026-06-30T18:30:00') -AllowRebalance -BenchmarkLevel 10500 -CostBps 50
+$cp1 = $costSet1.Portfolios[0]
+if (-not ([double]$cp1.CumulativeModelCostsTL -ge [double]$cp0.CumulativeModelCostsTL)) { throw "Rebalance maliyeti birikmedi: $($cp1.CumulativeModelCostsTL)" }
+Write-Host "İşlem maliyeti testi başarılı (giriş maliyeti $($cp0.CumulativeModelCostsTL) TL, rebalance sonrası $($cp1.CumulativeModelCostsTL) TL)."
+
 if ($Live) {
     $stocks = @(Invoke-BistStockScan)
     if ($stocks.Count -lt 400) {

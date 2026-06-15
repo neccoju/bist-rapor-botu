@@ -1261,6 +1261,7 @@ $instantEntryMaxElapsedSec = [int](Get-ConfigValue -Object $settings.Report -Nam
 $instantEntryPortfolioDailyBudgetTL = [double](Get-ConfigValue -Object $settings.Report -Name 'InstantEntryPortfolioDailyBudgetTL' -Default 5000)
 $instantEntryPortfolioMinBuyScore = [double](Get-ConfigValue -Object $settings.Report -Name 'InstantEntryPortfolioMinBuyScore' -Default 90)
 $instantEntryPortfolioMaxBuysPerDay = [int](Get-ConfigValue -Object $settings.Report -Name 'InstantEntryPortfolioMaxBuysPerDay' -Default 3)
+$modelCostBps = [double](Get-EnvironmentValue -Names @('BIST_MODEL_COST_BPS') -Default ([string](Get-ConfigValue -Object $settings.Report -Name 'ModelPortfolioCostBps' -Default 20)))
 $outputDirectory = Resolve-ReportPath -Path ([string](Get-ConfigValue -Object $settings.Report -Name 'OutputDirectory' -Default 'reports'))
 if (-not (Test-Path $outputDirectory)) {
     [void](New-Item -ItemType Directory -Path $outputDirectory -Force)
@@ -1356,9 +1357,9 @@ try {
     if (Test-Path $portfolioPath) {
         $portfolioSet = Get-Content -Path $portfolioPath -Raw -Encoding UTF8 | ConvertFrom-Json
     }
-    $updatedPortfolioSet = Update-ModelPortfolioSet -PortfolioSet $portfolioSet -Stocks $stocks -AsOf $runAt -AllowRebalance -BenchmarkLevel $bist100Level
+    $updatedPortfolioSet = Update-ModelPortfolioSet -PortfolioSet $portfolioSet -Stocks $stocks -AsOf $runAt -AllowRebalance -BenchmarkLevel $bist100Level -CostBps $modelCostBps
     if ($null -eq $updatedPortfolioSet) {
-        $updatedPortfolioSet = New-ModelPortfolioSet -Stocks $stocks -AsOf $runAt -BenchmarkLevel $bist100Level
+        $updatedPortfolioSet = New-ModelPortfolioSet -Stocks $stocks -AsOf $runAt -BenchmarkLevel $bist100Level -CostBps $modelCostBps
     }
     Save-JsonFile -Path $portfolioPath -Value $updatedPortfolioSet -Depth 8
     Write-TimingLog -Step 'Model portfoy degerleme' -StartedAt $stageStartedAt
@@ -1615,6 +1616,7 @@ try {
                 'Getiri' = Format-ReportNumber -Value $_.TotalReturnPct -Format 'N2' -Suffix '%'
                 'BIST100' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'BenchmarkReturnPct') -Format 'N2' -Suffix '%'
                 'Alfa' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'AlphaPct') -Format 'N2' -Suffix '%'
+                'Maks Düşüş' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'MaxDrawdownPct') -Format 'N1' -Suffix '%'
                 Hisseler = ((@($_.Holdings) | ForEach-Object Symbol) -join ', ')
                 'Baslangic' = ConvertTo-PlainText $_.StartDateText
                 'Son Islem' = ConvertTo-PlainText $_.LastRebalanceDateText
@@ -1623,6 +1625,25 @@ try {
                 Durum = ConvertTo-PlainText $_.StatusNote
             }
         })
+
+    # Kendini-ogrenen lider strateji: alfaya (yoksa getiriye) gore en iyi portfoy.
+    $leaderPortfolio = @($updatedPortfolioSet.Portfolios |
+            Sort-Object @{ Expression = {
+                    $a = Get-ObjectPropertyValue -Object $_ -Name 'AlphaPct'
+                    if ($null -ne $a) { [double]$a } else { [double](Get-ObjectPropertyValue -Object $_ -Name 'TotalReturnPct') }
+                }; Descending = $true
+            } | Select-Object -First 1)[0]
+    $leaderText = if ($null -ne $leaderPortfolio) {
+        $la = Get-ObjectPropertyValue -Object $leaderPortfolio -Name 'AlphaPct'
+        if ($null -ne $la) {
+            'Lider strateji (alfaya göre): {0} — alfa %{1}, getiri %{2}, BIST100 %{3}.' -f $leaderPortfolio.Name, $la, $leaderPortfolio.TotalReturnPct, (Get-ObjectPropertyValue -Object $leaderPortfolio -Name 'BenchmarkReturnPct')
+        }
+        else {
+            'Lider strateji (getiriye göre; alfa için BIST100 verisi henüz birikmedi): {0} — getiri %{1}.' -f $leaderPortfolio.Name, $leaderPortfolio.TotalReturnPct
+        }
+    }
+    else { 'Lider strateji henüz belirlenemedi.' }
+
     $portfolioHoldingRows = Get-ModelPortfolioHoldingRows -PortfolioSet $updatedPortfolioSet
     $portfolioTransactionRows = Get-ModelPortfolioTransactionRows -PortfolioSet $updatedPortfolioSet -PerPortfolio 12
     $portfolioHoldingGroupsHtml = New-ModelPortfolioHoldingGroupsHtml -PortfolioSet $updatedPortfolioSet -HoldingRows $portfolioHoldingRows
@@ -1785,7 +1806,7 @@ $(if ($kapRows.Count -gt 0) { New-HtmlTable -Rows $kapRows } else { '<p class="m
 <p class="muted">Fark sütunları sektör endeksi/proxy getirisi eksi BIST100 getirisi olarak okunur. Pozitif değer sektörün BIST100'e göre daha güçlü aktığını gösterir.</p>
 $(New-HtmlTable -Rows $sectorRows)
 <h2>Model Portföyler</h2>
-<p class="muted">Portföyler her çalışmada sadece değerlenir; ay sonu son işlem günü 18:10 sonrası tamamlanmış dönem varsa yeniden sıralanır ve AL/SAT/EŞİTLEME işlemleri state dosyasına yazılır. <b>Dengeli / Değer / Momentum / Kalite</b> portföyleri strateji skoruna (Get-BistScore) göre seçilir. <b>RFS100</b> portföyü ise — backtest bulgusuna dayanarak — aynı uygunluk filtresini geçen hisseleri, eşik puanlaması yerine ham teknik faktörlerin kesitsel z-skor karışımı olan <b>RawFactorScore100</b> ile sıralayıp seçer (walk-forward testlerde botun skorunun ~2 katı IC). Her portföyün kuruluştan beri getirisi, aynı dönemde <b>BIST100</b> getirisiyle kıyaslanır; <b>Alfa = portföy getirisi − BIST100 getirisi</b> (pozitif alfa endeksi yenmek demektir). Alfa, hangi stratejinin gerçekten değer kattığını gösteren temel ölçüdür. (Eski portföylerde BIST100 başlangıç seviyesi kayıtlı olmadığından alfa bu güncellemeden ileriye doğru ölçülür.) Tüm model portföyler teoriktir; komisyon/vergi/kayma içermez.</p>
+<p class="muted">Portföyler her çalışmada sadece değerlenir; ay sonu son işlem günü 18:10 sonrası tamamlanmış dönem varsa yeniden sıralanır ve AL/SAT/EŞİTLEME işlemleri state dosyasına yazılır. <b>Dengeli / Değer / Momentum / Kalite</b> portföyleri strateji skoruna (Get-BistScore) göre seçilir. <b>RFS100</b> portföyü ise — backtest bulgusuna dayanarak — aynı uygunluk filtresini geçen hisseleri, eşik puanlaması yerine ham teknik faktörlerin kesitsel z-skor karışımı olan <b>RawFactorScore100</b> ile sıralayıp seçer (walk-forward testlerde botun skorunun ~2 katı IC). Her portföyün kuruluştan beri getirisi, aynı dönemde <b>BIST100</b> getirisiyle kıyaslanır; <b>Alfa = portföy getirisi − BIST100 getirisi</b> (pozitif alfa endeksi yenmek demektir). Alfa, hangi stratejinin gerçekten değer kattığını gösteren temel ölçüdür. (Eski portföylerde BIST100 başlangıç seviyesi kayıtlı olmadığından alfa bu güncellemeden ileriye doğru ölçülür.) Tablo ayrıca her portföyün <b>maksimum düşüşünü</b> (zirveden en sert geri çekilme) gösterir. Artık ay sonu işlemlerinde <b>işlem maliyeti + kayma</b> ($([string]$modelCostBps) bps) düşülür; getiriler bu maliyetlere göre nettir. <b>$leaderText</b></p>
 $(New-HtmlTable -Rows $portfolioRows)
 <h2>Model Portföy Hisse Dağılımı</h2>
 <p class="muted">Her model portföydeki güncel hisse ağırlıkları pasta grafik olarak gösterilir.</p>

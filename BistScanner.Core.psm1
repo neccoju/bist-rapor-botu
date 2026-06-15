@@ -3619,6 +3619,13 @@ function Test-ModelPortfolioEligibleStock {
         return $false
     }
 
+    # Asiri volatilite kapisi: gunluk oynakligi cok yuksek hisseler tek-isim
+    # riskini buyutur; model portfoye alinmaz (risk-bilincli secim).
+    $volD = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Stock -Name 'VolatilityD')
+    if ($null -ne $volD -and $volD -gt 8) {
+        return $false
+    }
+
     $evEbitda = Get-ObjectPropertyValue -Object $Stock -Name 'EvEbitda'
     $latestEbitda = Get-ObjectPropertyValue -Object $Stock -Name 'LatestEbitdaUSDMn'
     $positiveEbitdaCount = Get-ObjectPropertyValue -Object $Stock -Name 'PositiveEbitdaQuarterCount'
@@ -3763,6 +3770,9 @@ function Get-BistFullClosureDates {
         2026 = @('03-20', '03-21', '03-22', '05-27', '05-28', '05-29')
         2027 = @('03-10', '03-11', '03-12', '05-16', '05-17', '05-18', '05-19')
         2028 = @('02-26', '02-27', '02-28', '05-04', '05-05', '05-06', '05-07')
+        # 2029-2030 yaklasik (astronomik); BIST resmi tatil takviminden dogrulanmalidir.
+        2029 = @('02-14', '02-15', '02-16', '04-23', '04-24', '04-25', '04-26')
+        2030 = @('02-04', '02-05', '02-06', '04-13', '04-14', '04-15', '04-16')
     }
     if ($religious.ContainsKey($Year)) {
         foreach ($md in $religious[$Year]) {
@@ -3885,13 +3895,17 @@ function New-SingleModelPortfolio {
         [Parameter(Mandatory)] [object[]]$Stocks,
         [datetime]$AsOf = (Get-Date),
         [double]$InitialCapital = 100000,
-        [double]$BenchmarkLevel = 0
+        [double]$BenchmarkLevel = 0,
+        [double]$CostBps = 0
     )
 
     $rankBy = Get-ObjectPropertyValue -Object $Definition -Name 'RankBy'
     if ([string]::IsNullOrWhiteSpace([string]$rankBy)) { $rankBy = 'Score' }
     $selection = @(Get-ModelPortfolioSelection -Stocks $Stocks -Strategy $Definition.Strategy -RankBy $rankBy)
-    $targetValue = $InitialCapital / $selection.Count
+    # Giris maliyeti: tum sermaye alindigi icin sermaye * maliyet orani.
+    $entryCost = [Math]::Round($InitialCapital * ([double]$CostBps / 10000.0), 2)
+    $investable = $InitialCapital - $entryCost
+    $targetValue = $investable / $selection.Count
     $holdings = [System.Collections.Generic.List[object]]::new()
     $transactions = [System.Collections.Generic.List[object]]::new()
 
@@ -3911,6 +3925,14 @@ function New-SingleModelPortfolio {
         $sequence++
     }
 
+    if ($entryCost -gt 0) {
+        [void]$transactions.Add((New-ModelPortfolioTransaction `
+                    -Sequence $sequence -ExecutionDate $AsOf -Action 'MALİYET' -Symbol 'KOMİSYON' `
+                    -Company $Definition.Name -Price $null -Quantity $null -AmountTL (- $entryCost) `
+                    -Note ('Giriş işlem maliyeti + kayma (~{0} bps).' -f $CostBps)))
+        $sequence++
+    }
+
     return [pscustomobject][ordered]@{
         Id = $Definition.Id
         Name = $Definition.Name
@@ -3920,9 +3942,13 @@ function New-SingleModelPortfolio {
         StartDate = $AsOf.ToString('o')
         StartDateText = $AsOf.ToString('dd.MM.yyyy HH:mm')
         InitialCapitalTL = [Math]::Round($InitialCapital, 2)
-        CurrentValueTL = [Math]::Round($InitialCapital, 2)
-        TotalGainTL = 0.0
-        TotalReturnPct = 0.0
+        CurrentValueTL = [Math]::Round($investable, 2)
+        TotalGainTL = [Math]::Round($investable - $InitialCapital, 2)
+        TotalReturnPct = if ($InitialCapital -ne 0) { [Math]::Round((($investable - $InitialCapital) / $InitialCapital) * 100, 2) } else { 0.0 }
+        CumulativeModelCostsTL = $entryCost
+        PeakValueTL = [Math]::Round($investable, 2)
+        CurrentDrawdownPct = 0.0
+        MaxDrawdownPct = 0.0
         LastValuationAt = $AsOf.ToString('o')
         LastValuationAtText = $AsOf.ToString('dd.MM.yyyy HH:mm')
         LastRebalanceDate = $AsOf.ToString('o')
@@ -3949,12 +3975,14 @@ function New-ModelPortfolioSet {
 
         [double]$InitialCapital = 100000,
 
-        [double]$BenchmarkLevel = 0
+        [double]$BenchmarkLevel = 0,
+
+        [double]$CostBps = 0
     )
 
     $portfolios = [System.Collections.Generic.List[object]]::new()
     foreach ($definition in Get-ModelPortfolioDefinitions) {
-        [void]$portfolios.Add((New-SingleModelPortfolio -Definition $definition -Stocks $Stocks -AsOf $AsOf -InitialCapital $InitialCapital -BenchmarkLevel $BenchmarkLevel))
+        [void]$portfolios.Add((New-SingleModelPortfolio -Definition $definition -Stocks $Stocks -AsOf $AsOf -InitialCapital $InitialCapital -BenchmarkLevel $BenchmarkLevel -CostBps $CostBps))
     }
 
     return [pscustomobject][ordered]@{
@@ -3962,7 +3990,7 @@ function New-ModelPortfolioSet {
         CreatedAt = $AsOf.ToString('o')
         UpdatedAt = $AsOf.ToString('o')
         InitialCapitalPerPortfolioTL = [Math]::Round($InitialCapital, 2)
-        Notes = 'Fiyat bazlı teorik modeldir. Kesirli adet kullanır; komisyon, vergi, kayma, temettü ve bedelli/bedelsiz sermaye hareketleri otomatik olarak hesaba katılmaz.'
+        Notes = 'Fiyat bazlı teorik modeldir. Kesirli adet kullanır; işlem maliyeti + kayma modellenir (varsayılan ~20 bps); vergi, temettü ve bedelli/bedelsiz sermaye hareketleri hesaba katılmaz.'
         Portfolios = $portfolios.ToArray()
     }
 }
@@ -4054,12 +4082,22 @@ function Update-ModelPortfolioValuation {
     else { $null }
     $alpha = if ($null -ne $benchReturn) { $totalReturnPct - $benchReturn } else { $null }
 
+    # Maksimum dusus (drawdown): zirve degere gore guncel dusus ve gorulen en kotu dusus.
+    $priorPeak = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Portfolio -Name 'PeakValueTL')
+    if ($null -eq $priorPeak -or $priorPeak -le 0) { $priorPeak = $initialCapital }
+    $peak = [Math]::Max([double]$priorPeak, $totalValue)
+    $currentDrawdown = if ($peak -gt 0) { (($totalValue / $peak) - 1.0) * 100.0 } else { 0.0 }
+    $priorMaxDd = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Portfolio -Name 'MaxDrawdownPct')
+    if ($null -eq $priorMaxDd) { $priorMaxDd = 0.0 }
+    $maxDrawdown = [Math]::Min([double]$priorMaxDd, $currentDrawdown)
+
     $properties = [ordered]@{}
     foreach ($property in $Portfolio.PSObject.Properties) {
         if ($property.Name -notin @(
                 'CurrentValueTL', 'TotalGainTL', 'TotalReturnPct', 'LastValuationAt',
                 'LastValuationAtText', 'NextRebalanceDate', 'Holdings',
-                'BenchmarkStartLevel', 'BenchmarkCurrentLevel', 'BenchmarkReturnPct', 'AlphaPct'
+                'BenchmarkStartLevel', 'BenchmarkCurrentLevel', 'BenchmarkReturnPct', 'AlphaPct',
+                'PeakValueTL', 'CurrentDrawdownPct', 'MaxDrawdownPct'
             )) {
             $properties[$property.Name] = $property.Value
         }
@@ -4076,6 +4114,9 @@ function Update-ModelPortfolioValuation {
     $properties.BenchmarkCurrentLevel = if ($null -ne $benchCurrent) { [Math]::Round([double]$benchCurrent, 2) } else { $null }
     $properties.BenchmarkReturnPct = if ($null -ne $benchReturn) { [Math]::Round($benchReturn, 2) } else { $null }
     $properties.AlphaPct = if ($null -ne $alpha) { [Math]::Round($alpha, 2) } else { $null }
+    $properties.PeakValueTL = [Math]::Round($peak, 2)
+    $properties.CurrentDrawdownPct = [Math]::Round($currentDrawdown, 2)
+    $properties.MaxDrawdownPct = [Math]::Round($maxDrawdown, 2)
     $properties.Holdings = $holdings.ToArray()
 
     return [pscustomobject]$properties
@@ -4088,7 +4129,8 @@ function Invoke-ModelPortfolioRebalance {
         [hashtable]$StockMap,
         [datetime]$AsOf,
         [datetime]$PeriodEnd,
-        [double]$BenchmarkLevel = 0
+        [double]$BenchmarkLevel = 0,
+        [double]$CostBps = 0
     )
 
     $valuedPortfolio = Update-ModelPortfolioValuation -Portfolio $Portfolio -StockMap $StockMap -AsOf $AsOf -BenchmarkLevel $BenchmarkLevel
@@ -4117,6 +4159,19 @@ function Invoke-ModelPortfolioRebalance {
     $removedSymbols = @($oldSymbols | Where-Object { $_ -notin $newSymbols })
     $addedSymbols = @($newSymbols | Where-Object { $_ -notin $oldSymbols })
     $keptSymbols = @($newSymbols | Where-Object { $_ -in $oldSymbols })
+
+    # Islem maliyeti + kayma: ciro (satilan + alinan + esitleme deltalari) uzerinden.
+    $costRate = [double]$CostBps / 10000.0
+    $turnover = 0.0
+    foreach ($s in $removedSymbols) { $turnover += [double]$oldHoldings[$s].CurrentValueTL }
+    $turnover += $addedSymbols.Count * $targetValue
+    foreach ($s in $keptSymbols) { $turnover += [Math]::Abs($targetValue - [double]$oldHoldings[$s].CurrentValueTL) }
+    $rebalanceCost = [Math]::Round($turnover * $costRate, 2)
+    if ($rebalanceCost -lt 0) { $rebalanceCost = 0 }
+    # Maliyeti dus: net deger ve esit hedef yeniden hesaplanir.
+    $totalValue = $totalValue - $rebalanceCost
+    $targetValue = $totalValue / $selection.Count
+
     $actionLabel = if ($removedSymbols.Count -gt 0 -or $addedSymbols.Count -gt 0) {
         'AY SONU DEĞİŞİM + EŞİTLEME'
     }
@@ -4207,12 +4262,28 @@ function Invoke-ModelPortfolioRebalance {
         }
     }
 
+    if ($rebalanceCost -gt 0) {
+        [void]$transactions.Add((New-ModelPortfolioTransaction `
+                    -Sequence $sequence `
+                    -ExecutionDate $AsOf `
+                    -Action 'MALİYET' `
+                    -Symbol 'KOMİSYON' `
+                    -Company $valuedPortfolio.Name `
+                    -Price $null `
+                    -Quantity $null `
+                    -AmountTL (- $rebalanceCost) `
+                    -Note ('İşlem maliyeti + kayma (~{0} bps; ciro {1:N0} TL).' -f $CostBps, $turnover)))
+        $sequence++
+    }
+    $priorCosts = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $valuedPortfolio -Name 'CumulativeModelCostsTL')
+    if ($null -eq $priorCosts) { $priorCosts = 0.0 }
+
     $properties = [ordered]@{}
     foreach ($property in $valuedPortfolio.PSObject.Properties) {
         if ($property.Name -notin @(
                 'CurrentValueTL', 'TotalGainTL', 'TotalReturnPct', 'LastRebalanceDate',
                 'LastRebalanceDateText', 'LastRebalancePeriodEnd', 'NextRebalanceDate',
-                'StatusNote', 'Holdings', 'Transactions'
+                'StatusNote', 'Holdings', 'Transactions', 'CumulativeModelCostsTL'
             )) {
             $properties[$property.Name] = $property.Value
         }
@@ -4227,6 +4298,7 @@ function Invoke-ModelPortfolioRebalance {
     $properties.LastRebalancePeriodEnd = $PeriodEnd.ToString('yyyy-MM-dd')
     $properties.NextRebalanceDate = (Get-NextModelPortfolioRebalanceDate -LastRebalancePeriodEnd $PeriodEnd -AsOf $AsOf).ToString('yyyy-MM-dd')
     $properties.StatusNote = $summaryNote
+    $properties.CumulativeModelCostsTL = [Math]::Round($priorCosts + $rebalanceCost, 2)
     $properties.Holdings = $newHoldings.ToArray()
     $properties.Transactions = $transactions.ToArray()
 
@@ -4245,12 +4317,14 @@ function Update-ModelPortfolioSet {
 
         [switch]$AllowRebalance,
 
-        [double]$BenchmarkLevel = 0
+        [double]$BenchmarkLevel = 0,
+
+        [double]$CostBps = 0
     )
 
     if ($null -eq $PortfolioSet -or $null -eq (Get-ObjectPropertyValue -Object $PortfolioSet -Name 'Portfolios')) {
         if ($AllowRebalance) {
-            return New-ModelPortfolioSet -Stocks $Stocks -AsOf $AsOf -BenchmarkLevel $BenchmarkLevel
+            return New-ModelPortfolioSet -Stocks $Stocks -AsOf $AsOf -BenchmarkLevel $BenchmarkLevel -CostBps $CostBps
         }
         return $null
     }
@@ -4275,7 +4349,8 @@ function Update-ModelPortfolioSet {
                         -StockMap $stockMap `
                         -AsOf $AsOf `
                         -PeriodEnd $latestCompletedPeriodEnd `
-                        -BenchmarkLevel $BenchmarkLevel))
+                        -BenchmarkLevel $BenchmarkLevel `
+                        -CostBps $CostBps))
         }
         else {
             [void]$portfolios.Add($valuedPortfolio)
@@ -4290,7 +4365,7 @@ function Update-ModelPortfolioSet {
         foreach ($definition in Get-ModelPortfolioDefinitions) {
             if ([string]$definition.Id -notin $existingIds) {
                 try {
-                    [void]$portfolios.Add((New-SingleModelPortfolio -Definition $definition -Stocks $Stocks -AsOf $AsOf -InitialCapital $initCap -BenchmarkLevel $BenchmarkLevel))
+                    [void]$portfolios.Add((New-SingleModelPortfolio -Definition $definition -Stocks $Stocks -AsOf $AsOf -InitialCapital $initCap -BenchmarkLevel $BenchmarkLevel -CostBps $CostBps))
                 }
                 catch {
                     # Uygun hisse yetersizse sessizce atla; sonraki çalışmada tekrar denenir.
