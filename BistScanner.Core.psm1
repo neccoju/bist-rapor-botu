@@ -984,6 +984,42 @@ function Get-TcmbUsdTrySnapshot {
     }
 }
 
+function Get-YahooQuoteSnapshot {
+    <#
+        Makro metrik icin Yahoo Finance chart API'sinden anlik deger + gunluk
+        degisim. Runner'da calistigi kanitli (Investing.com engelli, TCMB 404
+        olabilir); bu yuzden coklu-kaynak fallback'inde birincil kaynaktir.
+        Bos veride $null doner.
+    #>
+    param(
+        [string]$Id,
+        [string]$Name,
+        [string]$YahooSymbol,
+        [string]$Unit = '',
+        [string]$Source = 'Yahoo Finance',
+        [int]$TimeoutSec = 8
+    )
+
+    $series = @(Get-YahooDailyCloseSeries -Symbol $YahooSymbol -Range '1mo' -TimeoutSec $TimeoutSec -AsRawTicker)
+    if ($series.Count -lt 1) { return $null }
+    $last = [double]$series[$series.Count - 1].Close
+    $prev = if ($series.Count -ge 2) { [double]$series[$series.Count - 2].Close } else { $null }
+    $chg = if ($null -ne $prev -and $prev -ne 0) { (($last / $prev) - 1.0) * 100.0 } else { $null }
+
+    return [pscustomobject][ordered]@{
+        Id = $Id
+        Name = $Name
+        Value = [Math]::Round($last, 4)
+        Change = if ($null -ne $prev) { [Math]::Round($last - $prev, 4) } else { $null }
+        ChangePct = if ($null -ne $chg) { [Math]::Round($chg, 2) } else { $null }
+        Unit = $Unit
+        Status = 'Veri Yok'
+        Source = $Source
+        Url = "https://finance.yahoo.com/quote/$YahooSymbol"
+        Note = ''
+    }
+}
+
 function Get-MacroSnapshot {
     param(
         $IndexSnapshot = $null,
@@ -1026,15 +1062,41 @@ function Get-MacroSnapshot {
             })
     }
 
-    [void]$metrics.Add((Get-TcmbUsdTrySnapshot -AsOf $AsOf -TimeoutSec $TimeoutSec))
+    # USD/TRY: once TCMB, alinamazsa Yahoo Finance (USDTRY=X) yedegi.
+    $usdTry = Get-TcmbUsdTrySnapshot -AsOf $AsOf -TimeoutSec $TimeoutSec
+    if ($null -eq $usdTry.Value) {
+        $usdTryYahoo = Get-YahooQuoteSnapshot -Id 'USDTRY_Tcmb' -Name 'USD/TRY' -YahooSymbol 'USDTRY=X' -Unit 'TL' -Source 'Yahoo Finance' -TimeoutSec $TimeoutSec
+        if ($null -ne $usdTryYahoo -and $null -ne $usdTryYahoo.Value) {
+            $pct = $usdTryYahoo.ChangePct
+            $usdTryYahoo.Status = if ($null -eq $pct) { 'Veri Yok' }
+            elseif ([Math]::Abs([double]$pct) -lt 0.5) { 'Kur sakin' }
+            elseif ([double]$pct -ge 0.5) { 'Kur yukarı baskı' }
+            else { 'TL lehine' }
+            $usdTryYahoo.Note = 'TCMB kuru alınamadı; Yahoo Finance USDTRY=X kullanıldı.'
+            $usdTry = $usdTryYahoo
+        }
+    }
+    [void]$metrics.Add($usdTry)
+
+    # CDS/TR10Y/DXY/VIX: DXY ve VIX icin Yahoo birincil, Investing yedek.
+    # CDS ve TR10Y'nin guvenilir ucretsiz Yahoo karsiligi yok -> Investing (best-effort).
+    $yahooMacroMap = @{ 'DXY' = 'DX-Y.NYB'; 'VIX' = '^VIX' }
     foreach ($instrument in $script:MacroInvestingInstruments) {
-        $snapshot = Get-InvestingInstrumentSnapshot `
-            -Id $instrument.Id `
-            -Name $instrument.Name `
-            -Urls $instrument.Urls `
-            -Unit $instrument.Unit `
-            -LowerIsBetter $instrument.LowerIsBetter `
-            -TimeoutSec $TimeoutSec
+        $snapshot = $null
+        if ($yahooMacroMap.ContainsKey($instrument.Id)) {
+            $snapshot = Get-YahooQuoteSnapshot -Id $instrument.Id -Name $instrument.Name `
+                -YahooSymbol $yahooMacroMap[$instrument.Id] -Unit $instrument.Unit -TimeoutSec $TimeoutSec
+            if ($null -ne $snapshot -and $null -ne $snapshot.Value) { $snapshot.Note = 'Yahoo Finance kaynağı.' }
+        }
+        if ($null -eq $snapshot -or $null -eq $snapshot.Value) {
+            $snapshot = Get-InvestingInstrumentSnapshot `
+                -Id $instrument.Id `
+                -Name $instrument.Name `
+                -Urls $instrument.Urls `
+                -Unit $instrument.Unit `
+                -LowerIsBetter $instrument.LowerIsBetter `
+                -TimeoutSec $TimeoutSec
+        }
         $snapshot.Status = Get-MarketMetricStatus -Id $snapshot.Id -Value $snapshot.Value -ChangePct $snapshot.ChangePct
         [void]$metrics.Add($snapshot)
     }
@@ -2624,10 +2686,11 @@ function Get-YahooDailyCloseSeries {
     param(
         [Parameter(Mandatory)][string]$Symbol,
         [string]$Range = '1y',
-        [int]$TimeoutSec = 12
+        [int]$TimeoutSec = 12,
+        [switch]$AsRawTicker   # BIST disi makro semboller icin .IS ekleme (USDTRY=X, ^VIX, DX-Y.NYB)
     )
 
-    $ticker = Get-YahooFinanceSymbol -Symbol $Symbol
+    $ticker = if ($AsRawTicker) { $Symbol } else { Get-YahooFinanceSymbol -Symbol $Symbol }
     if ([string]::IsNullOrWhiteSpace($ticker)) { return @() }
 
     $url = 'https://query1.finance.yahoo.com/v8/finance/chart/{0}?range={1}&interval=1d' -f ([Uri]::EscapeDataString($ticker)), $Range
