@@ -769,7 +769,7 @@ function Get-InvestingInstrumentSnapshot {
     $lastError = 'URL listesi boş'
     foreach ($url in @($Urls)) {
         try {
-        $response = Invoke-WithRetry -OperationName "Investing $url" -MaxAttempts 2 -BaseDelaySec 1 -ScriptBlock {
+        $response = Invoke-WithRetry -OperationName "Investing $url" -MaxAttempts 1 -BaseDelaySec 1 -ScriptBlock {
             Invoke-WebRequest -Uri $url -Headers $headers -UseBasicParsing -TimeoutSec $TimeoutSec -ErrorAction Stop
         }
         $content = [string]$response.Content
@@ -4873,7 +4873,7 @@ function Get-KapDisclosures {
     $raw = $null
     foreach ($url in $endpoints) {
         try {
-            $raw = Invoke-WithRetry -OperationName "KAP $url" -MaxAttempts 2 -BaseDelaySec 1 -ScriptBlock {
+            $raw = Invoke-WithRetry -OperationName "KAP $url" -MaxAttempts 1 -BaseDelaySec 1 -ScriptBlock {
                 Invoke-RestMethod -Uri $url -Headers $headers -TimeoutSec $TimeoutSec -ErrorAction Stop
             }
             if ($null -ne $raw) { break }
