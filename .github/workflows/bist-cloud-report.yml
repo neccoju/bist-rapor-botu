@@ -16,12 +16,19 @@ on:
     # GitHub Actions cron UTC kullanir; Turkiye yil boyu UTC+3 oldugundan 15:15 UTC = 18:15 Istanbul.
     - cron: "15 15 * * 1-5"
 
+# Bot state'i (model portfoyler, anlik firsat portfoyu, sinyal performansi)
+# repoya geri yazilir; bu yuzden contents: write gerekir.
 permissions:
-  contents: read
+  contents: write
   actions: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+# Ayni anda iki kosu state'i bozmasin diye seri calistir.
+concurrency:
+  group: bist-cloud-report-state
+  cancel-in-progress: false
 
 jobs:
   run-report:
@@ -43,6 +50,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          persist-credentials: true
 
       - name: Verify report runtime
         shell: powershell
@@ -60,15 +69,26 @@ jobs:
           }
           Write-Host "Runtime dosyalari dogrulandi: $($required -join ', ')"
 
-      - name: Restore bot state
+      - name: Check committed state
+        id: check_state
+        shell: powershell
+        run: |
+          $has = Test-Path -LiteralPath 'data\model_portfolios.json'
+          "has_state=$($has.ToString().ToLower())" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Repoda kayitli state var mi: $has"
+
+      # Gecis donemi kurtarmasi: repoda henuz commit'li state yoksa, eski cache
+      # versiyonundan (3 dosyali yol) son tam gecmisi geri yukle. Bu yol, eski
+      # workflow'un kaydettigi cache'in versiyonuyla birebir ayni olmalidir.
+      - name: Recover legacy state from cache
+        if: steps.check_state.outputs.has_state != 'true'
         uses: actions/cache/restore@v5
         with:
           path: |
             data/last_scan.json
             data/model_portfolios.json
             data/instant_entry_portfolio.json
-            data/signal_performance.json
-          key: bist-state-${{ github.run_id }}
+          key: bist-state-recover-${{ github.run_id }}
           restore-keys: |
             bist-state-
 
@@ -97,14 +117,42 @@ jobs:
             data\signal_performance.json
           if-no-files-found: warn
 
-      - name: Save bot state
+      # Kalici state: model portfoyler, anlik firsat portfoyu ve sinyal
+      # performansi repoya commit edilir. Boylece state, cache'in kirilgan
+      # versiyon/tahliye davranisina bagli kalmaz; gecmis git'te gorunur olur.
+      # last_scan.json kasten haric (buyuk ve kosular arasi okunmuyor).
+      - name: Persist state to repo
         if: always()
-        continue-on-error: true
-        uses: actions/cache/save@v5
-        with:
-          path: |
-            data/last_scan.json
-            data/model_portfolios.json
-            data/instant_entry_portfolio.json
-            data/signal_performance.json
-          key: bist-state-${{ github.run_id }}
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Continue'
+          git config user.name 'bist-report-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          $files = @(
+            'data/model_portfolios.json',
+            'data/instant_entry_portfolio.json',
+            'data/signal_performance.json'
+          ) | Where-Object { Test-Path -LiteralPath $_ }
+          if ($files.Count -eq 0) {
+            Write-Host 'Kaydedilecek state dosyasi bulunamadi.'
+            exit 0
+          }
+          git add -f $files
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host 'State degismedi; commit yok.'
+            exit 0
+          }
+          git commit -m 'chore(state): bot state guncellendi [skip ci]'
+          $pushed = $false
+          for ($i = 0; $i -lt 4; $i++) {
+            git push origin "HEAD:${env:GITHUB_REF_NAME}"
+            if ($LASTEXITCODE -eq 0) { $pushed = $true; break }
+            Write-Warning "State push denemesi $($i + 1) basarisiz; rebase ile tekrar denenecek."
+            git pull --rebase origin "${env:GITHUB_REF_NAME}"
+            Start-Sleep -Seconds ([Math]::Pow(2, $i + 1))
+          }
+          if (-not $pushed) {
+            throw 'State repoya push edilemedi. Branch korumasi push erisimini engelliyor olabilir.'
+          }
+          Write-Host 'State repoya kaydedildi.'
