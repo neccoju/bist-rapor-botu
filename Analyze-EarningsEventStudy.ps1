@@ -37,60 +37,94 @@ function Get-Pearson {
 }
 
 function Limit-Pct { param([double]$V, [double]$Cap) if ($V -gt $Cap) { $Cap } elseif ($V -lt - $Cap) { - $Cap } else { $V } }
+function D { param($V) $n = $V -as [double]; if ($null -ne $n) { [double]$n } else { $null } }
 
-Write-Host "=== Bilanço Olay Çalışması başlıyor ==="
+# Ceyrek-bazli surpriz proxy'si (cok-ceyrekli mod icin): ceyrek i'yi onceki
+# ceyrege (i+1) gore net kar QoQ + pozitiflik + FAVOK QoQ ile 0-100 (50 notr).
+function Get-QuarterSurprise {
+    param([object[]]$NiHist, [object[]]$EbHist, [int]$Index)
+    if ($null -eq $NiHist -or ($Index + 1) -ge $NiHist.Count) { return $null }
+    $ni = D $NiHist[$Index]; $niPrev = D $NiHist[$Index + 1]
+    if ($null -eq $ni -or $null -eq $niPrev) { return $null }
+    $score = 50.0
+    if ($niPrev -ne 0) {
+        $qoq = (($ni - $niPrev) / [Math]::Abs($niPrev)) * 100.0
+        $score += [Math]::Max(-35, [Math]::Min(35, $qoq * 0.3))
+    }
+    if ($ni -gt 0) { $score += 8 } else { $score -= 10 }
+    if ($null -ne $EbHist -and ($Index + 1) -lt $EbHist.Count) {
+        $eb = D $EbHist[$Index]; $ebPrev = D $EbHist[$Index + 1]
+        if ($null -ne $eb -and $null -ne $ebPrev -and $ebPrev -ne 0) {
+            $eq = (($eb - $ebPrev) / [Math]::Abs($ebPrev)) * 100.0
+            $score += [Math]::Max(-15, [Math]::Min(15, $eq * 0.2))
+        }
+    }
+    return [Math]::Round([Math]::Max(0, [Math]::Min(100, $score)), 1)
+}
+
+Write-Host "=== Bilanço Olay Çalışması başlıyor (çok-çeyrekli) ==="
 $startedAt = Get-Date
 $stocks = @(Invoke-BistStockScan)
 Write-Host "Taranan hisse: $($stocks.Count)"
 
 $today = (Get-Date).Date
-# Kullanilabilir pencere: aciklama ~ (WindowDays+5) ile ~330 gun once olsun ki
-# hem oncesi hem sonrasi gunluk veri bulunsun. Likit + gecerli fiyat.
 $minAgo = $WindowDays + 8
+# Likit + gecerli, ceyreklik gecmisi ve donem sonu olan hisseler.
 $candidates = @($stocks | Where-Object {
-        $rd = $_.LatestReportDate
-        $surprise = Get-EarningsSurpriseScore -Stock $_
         $avgVol = $_.AverageVolume10D
-        $rd -is [datetime] -and $null -ne $surprise -and
-        $null -ne $avgVol -and $avgVol -ge $MinAvgVol -and
-        ($today - $rd.Date).TotalDays -ge $minAgo -and ($today - $rd.Date).TotalDays -le 330
+        $_.FiscalPeriodEnd -is [datetime] -and
+        $null -ne $_.NetIncomeHistory -and @($_.NetIncomeHistory).Count -ge 2 -and
+        $null -ne $avgVol -and $avgVol -ge $MinAvgVol
     } | Sort-Object @{ Expression = { [double]$_.MarketCap }; Descending = $true } | Select-Object -First $MaxStocks)
 
-Write-Host "Olay penceresine uygun aday: $($candidates.Count) (en fazla $MaxStocks, piyasa değerine göre)"
+Write-Host "Uygun hisse: $($candidates.Count) (en fazla $MaxStocks). Her hissenin son ~4 çeyreği yaklaşık açıklama tarihiyle (dönem sonu + 50 gün) incelenir."
 
 $rows = [System.Collections.Generic.List[object]]::new()
 $fetched = 0
+$eventTried = 0
 foreach ($s in $candidates) {
     if (((Get-Date) - $startedAt).TotalSeconds -gt $MaxElapsedSec) {
         Write-Host "Zaman sınırı; $fetched hisse işlendikten sonra durduruldu."
         break
     }
     $sym = [string]$s.Symbol
-    $announce = ([datetime]$s.LatestReportDate).Date
-    $surprise = [double](Get-EarningsSurpriseScore -Stock $s)
-    $series = @(Get-YahooDailyCloseSeries -Symbol $sym -Range '1y' -TimeoutSec 8)
+    $niHist = @($s.NetIncomeHistory)
+    $ebHist = @(if ($null -ne $s.EbitdaHistory) { $s.EbitdaHistory } else { @() })
+    $periodEnd0 = ([datetime]$s.FiscalPeriodEnd).Date
+    $series = @(Get-YahooDailyCloseSeries -Symbol $sym -Range '2y' -TimeoutSec 8)
     $fetched++
     if ($series.Count -lt ($WindowDays * 2 + 5)) { continue }
 
-    # Aciklama gunu/sonrasi ilk islem gunu indeksi
-    $idx0 = -1
-    for ($i = 0; $i -lt $series.Count; $i++) {
-        if ($series[$i].Date.Date -ge $announce) { $idx0 = $i; break }
+    $maxQuarter = [Math]::Min(4, $niHist.Count - 2)   # i+1 gerektigi icin -2
+    for ($q = 0; $q -le $maxQuarter; $q++) {
+        $surprise = Get-QuarterSurprise -NiHist $niHist -EbHist $ebHist -Index $q
+        if ($null -eq $surprise) { continue }
+        $announce = $periodEnd0.AddMonths(-3 * $q).AddDays(50)
+        $daysAgo = ($today - $announce.Date).TotalDays
+        if ($daysAgo -lt $minAgo -or $daysAgo -gt 600) { continue }
+        $eventTried++
+
+        $idx0 = -1
+        for ($i = 0; $i -lt $series.Count; $i++) {
+            if ($series[$i].Date.Date -ge $announce.Date) { $idx0 = $i; break }
+        }
+        if ($idx0 -lt ($WindowDays + 2) -or $idx0 -gt ($series.Count - ($WindowDays + 2))) { continue }
+
+        $preBase = [double]$series[$idx0 - ($WindowDays + 1)].Close
+        $dayBefore = [double]$series[$idx0 - 1].Close
+        $dayAfter = [double]$series[$idx0 + 1].Close
+        $post = [double]$series[$idx0 + $WindowDays].Close
+        if ($preBase -le 0 -or $dayBefore -le 0 -or $dayAfter -le 0 -or $post -le 0) { continue }
+
+        $preRunup = Limit-Pct ((($dayBefore / $preBase) - 1.0) * 100.0) $WinsorPct
+        $reaction = Limit-Pct ((($dayAfter / $dayBefore) - 1.0) * 100.0) $WinsorPct
+        $drift = Limit-Pct ((($post / $dayAfter) - 1.0) * 100.0) $WinsorPct
+
+        [void]$rows.Add([pscustomobject]@{ Symbol = $sym; Quarter = $q; Surprise = $surprise; PreRunup = $preRunup; Reaction = $reaction; Drift = $drift })
     }
-    if ($idx0 -lt ($WindowDays + 2) -or $idx0 -gt ($series.Count - ($WindowDays + 2))) { continue }
-
-    $preBase = [double]$series[$idx0 - ($WindowDays + 1)].Close
-    $dayBefore = [double]$series[$idx0 - 1].Close
-    $dayAfter = [double]$series[$idx0 + 1].Close
-    $post = [double]$series[$idx0 + $WindowDays].Close
-    if ($preBase -le 0 -or $dayBefore -le 0 -or $dayAfter -le 0 -or $post -le 0) { continue }
-
-    $preRunup = Limit-Pct ((($dayBefore / $preBase) - 1.0) * 100.0) $WinsorPct
-    $reaction = Limit-Pct ((($dayAfter / $dayBefore) - 1.0) * 100.0) $WinsorPct
-    $drift = Limit-Pct ((($post / $dayAfter) - 1.0) * 100.0) $WinsorPct
-
-    [void]$rows.Add([pscustomobject]@{ Symbol = $sym; Surprise = $surprise; PreRunup = $preRunup; Reaction = $reaction; Drift = $drift })
 }
+
+Write-Host "İşlenen hisse: $fetched, denenen çeyrek-olayı: $eventTried"
 
 Write-Host "Geçerli olay örneği: $($rows.Count)"
 if ($rows.Count -lt 10) {
