@@ -11,10 +11,11 @@
     veriyle yaklaşık bir analizdir; yatırım tavsiyesi değildir.
 #>
 param(
-    [int]$MaxStocks = 220,
+    [int]$MaxStocks = 500,
     [int]$WindowDays = 20,          # islem gunu penceresi (~1 ay)
     [double]$WinsorPct = 60.0,      # uc degerleri sinirlama
-    [int]$MaxElapsedSec = 480
+    [double]$MinAvgVol = 75000,     # likidite tabani (dusurmek ornegi buyutur)
+    [int]$MaxElapsedSec = 720
 )
 
 $ErrorActionPreference = 'Stop'
@@ -51,7 +52,7 @@ $candidates = @($stocks | Where-Object {
         $surprise = Get-EarningsSurpriseScore -Stock $_
         $avgVol = $_.AverageVolume10D
         $rd -is [datetime] -and $null -ne $surprise -and
-        $null -ne $avgVol -and $avgVol -ge 150000 -and
+        $null -ne $avgVol -and $avgVol -ge $MinAvgVol -and
         ($today - $rd.Date).TotalDays -ge $minAgo -and ($today - $rd.Date).TotalDays -le 330
     } | Sort-Object @{ Expression = { [double]$_.MarketCap }; Descending = $true } | Select-Object -First $MaxStocks)
 

@@ -116,6 +116,7 @@ jobs:
             data\instant_entry_portfolio.json
             data\signal_performance.json
             data\earnings_reactions.json
+            data\signal_calibration.json
           if-no-files-found: warn
 
       # Kalici state: model portfoyler, anlik firsat portfoyu ve sinyal
@@ -133,7 +134,8 @@ jobs:
             'data/model_portfolios.json',
             'data/instant_entry_portfolio.json',
             'data/signal_performance.json',
-            'data/earnings_reactions.json'
+            'data/earnings_reactions.json',
+            'data/signal_calibration.json'
           ) | Where-Object { Test-Path -LiteralPath $_ }
           if ($files.Count -eq 0) {
             Write-Host 'Kaydedilecek state dosyasi bulunamadi.'

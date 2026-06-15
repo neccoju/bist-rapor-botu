@@ -92,6 +92,9 @@ $script:MacroInvestingInstruments = @(
     [pscustomobject]@{ Id = 'DXY'; Name = 'Dolar Endeksi DXY'; Urls = @('https://tr.investing.com/indices/usdollar', 'https://www.investing.com/indices/usdollar'); Unit = ''; LowerIsBetter = $true },
     [pscustomobject]@{ Id = 'VIX'; Name = 'VIX volatilite'; Urls = @('https://tr.investing.com/indices/volatility-s-p-500', 'https://www.investing.com/indices/volatility-s-p-500'); Unit = ''; LowerIsBetter = $true }
 )
+# Kendini ogrenen sinyal kalibrasyonu (Set-SignalCalibration ile yuklenir).
+$script:SignalCalibration = $null
+
 $script:InflationBenchmark = [pscustomobject][ordered]@{
     AsOf = 'Nisan 2026'
     Inflation1YPct = 32.37
@@ -4489,18 +4492,104 @@ function Add-EarningsTiming {
     return $Stocks
 }
 
+function Get-SignalCalibration {
+    <#
+        Aktif sinyal kalibrasyonunu doner. Set-SignalCalibration ile yuklenmemisse
+        guvenli varsayilanlar (tarihsel olay calismasi: sell-the-news = -5).
+    #>
+    if ($null -ne $script:SignalCalibration) { return $script:SignalCalibration }
+    return [pscustomobject][ordered]@{
+        UpdatedAt = $null
+        PreEarningsRunupBonus = 3.0
+        PostEarningsAdjustment = -5.0
+        Calibrated = $false
+        SampleCount = 0
+        Note = 'Varsayilan degerler (henuz kalibre edilmedi).'
+    }
+}
+
+function Set-SignalCalibration {
+    param($Calibration)
+    $script:SignalCalibration = $Calibration
+}
+
 function Get-EarningsTimingAdjustment {
     <#
-        Bilanço zamanlamasina dayali imzali skor ayari (olay calismasi bulgusu):
-        + bilanço oncesi run-up (anticipation edge), - sell-the-news riski.
-        Kucuk ve sinirli; cekirdek skoru asiri etkilemez.
+        Bilanço zamanlamasina dayali imzali skor ayari. Buyukluk/yon kalibrasyon
+        state'inden gelir (kendini ogrenen): bilanço oncesi run-up bonusu ve
+        bilanço sonrasi ayar (sell-the-news cezasi <-> PEAD bonusu). Kalibrasyon
+        yoksa tarihsel olay calismasi varsayilanlari kullanilir. Sinirli kalir.
     #>
     param($Stock)
 
+    $cal = Get-SignalCalibration
     $adj = 0.0
-    if ([bool](Get-ObjectPropertyValue -Object $Stock -Name 'PreEarningsRunupActive')) { $adj += 3 }
-    if ([bool](Get-ObjectPropertyValue -Object $Stock -Name 'SellTheNewsRisk')) { $adj -= 5 }
+    if ([bool](Get-ObjectPropertyValue -Object $Stock -Name 'PreEarningsRunupActive')) {
+        $adj += [double]$cal.PreEarningsRunupBonus
+    }
+    if ([bool](Get-ObjectPropertyValue -Object $Stock -Name 'SellTheNewsRisk')) {
+        $adj += [double]$cal.PostEarningsAdjustment
+    }
     return $adj
+}
+
+function Update-SignalCalibration {
+    <#
+        Kendini ogrenen kalibrasyon. Canli PEAD takipcisinin (earnings_reactions)
+        TAMAMLANMIS yonlu orneklerinden, pozitif surprizli hisselerin bilanço
+        sonrasi ortalama suruklenmesini olcer ve bilanço sonrasi skor ayarini
+        (sell-the-news cezasi <-> PEAD bonusu) VERIYE GORE gunceller. Yeterli
+        ornek yoksa guvenli varsayilana duser. Buyukluk sinirlidir [-8, +6].
+    #>
+    [CmdletBinding()]
+    param(
+        $Reactions,
+        [datetime]$AsOf = (Get-Date),
+        [int]$MinSamples = 30,
+        [int]$MinPositive = 10,
+        [double]$Scale = 0.6
+    )
+
+    $bonus = 3.0
+    $postAdj = -5.0
+    $calibrated = $false
+    $meanPos = $null
+    $hitPos = $null
+
+    $completed = @(Get-ObjectPropertyValue -Object $Reactions -Name 'Completed')
+    $directional = @($completed | Where-Object { [bool](Get-ObjectPropertyValue -Object $_ -Name 'Directional') })
+    $n = $directional.Count
+
+    $posDrifts = @($directional | Where-Object {
+            $sp = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $_ -Name 'SurpriseScore')
+            $null -ne $sp -and $sp -ge 55
+        } | ForEach-Object { [double](Get-ObjectPropertyValue -Object $_ -Name 'DriftPct') })
+
+    if ($n -ge $MinSamples -and $posDrifts.Count -ge $MinPositive) {
+        $meanPos = [Math]::Round((($posDrifts | Measure-Object -Average).Average), 2)
+        $hitPos = [Math]::Round((@($posDrifts | Where-Object { $_ -gt 0 }).Count / [double]$posDrifts.Count) * 100, 1)
+        $postAdj = [Math]::Round([Math]::Max(-8.0, [Math]::Min(6.0, [double]$meanPos * $Scale)), 2)
+        $calibrated = $true
+    }
+
+    $note = if ($calibrated) {
+        "Kalibre edildi: n=$n yönlü örnek, pozitif sürpriz ort. drift %$meanPos (isabet %$hitPos) -> bilanço sonrası ayar $postAdj."
+    }
+    else {
+        "Yetersiz örnek (yönlü=$n/$MinSamples, pozitif=$($posDrifts.Count)/$MinPositive); varsayılan ayar -5 kullanılıyor."
+    }
+
+    return [pscustomobject][ordered]@{
+        UpdatedAt = $AsOf.ToString('o')
+        PreEarningsRunupBonus = $bonus
+        PostEarningsAdjustment = $postAdj
+        Calibrated = $calibrated
+        SampleCount = $n
+        PositiveSampleCount = $posDrifts.Count
+        PositiveMeanDriftPct = $meanPos
+        PositiveDriftHitRatePct = $hitPos
+        Note = $note
+    }
 }
 
 function Get-EarningsSurpriseScore {
@@ -5075,6 +5164,9 @@ Export-ModuleMember -Function `
     Add-EarningsTiming, `
     Get-EarningsSurpriseScore, `
     Get-EarningsTimingAdjustment, `
+    Get-SignalCalibration, `
+    Set-SignalCalibration, `
+    Update-SignalCalibration, `
     Add-DataQualityAssessment, `
     Update-EarningsReactions, `
     Get-KapDisclosures, `

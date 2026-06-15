@@ -1278,6 +1278,15 @@ try {
     $stocks = @(Invoke-BistStockScan)
     Write-TimingLog -Step 'Canli BIST taramasi' -StartedAt $stageStartedAt
 
+    # Kendini ogrenen sinyal kalibrasyonunu skorlamadan ONCE yukle (varsa).
+    # Get-BistScore, bilanço zamanlama ayarini bu kalibrasyona gore uygular.
+    $calibrationPath = Join-Path $PSScriptRoot 'data\signal_calibration.json'
+    if (Test-Path $calibrationPath) {
+        try { Set-SignalCalibration -Calibration (Get-Content -Path $calibrationPath -Raw -Encoding UTF8 | ConvertFrom-Json) }
+        catch { Write-Warning "Sinyal kalibrasyonu okunamadi: $($_.Exception.Message)" }
+    }
+    $activeCalibration = Get-SignalCalibration
+
     $stageStartedAt = Get-Date
     $scored = @(Get-BistScores -Stocks $stocks -Strategy $strategy | Sort-Object Score -Descending)
     # Ham-faktor eklenti skoru (kesitsel): backtest bulgusu, botun skorunun ~2 kati IC.
@@ -1328,6 +1337,13 @@ try {
     Save-JsonFile -Path $earningsReactionPath -Value $earningsReactions -Depth 10
     $earningsReactionSummary = $earningsReactions.Summary
     Write-TimingLog -Step 'PEAD bilanço tepkisi' -StartedAt $stageStartedAt
+
+    # Kendini ogrenen kalibrasyon: PEAD tamamlanmis orneklerinden bilanço sonrasi
+    # skor ayarini veriye gore guncelle ve SONRAKI kosu icin kaydet.
+    $stageStartedAt = Get-Date
+    $signalCalibration = Update-SignalCalibration -Reactions $earningsReactions -AsOf $runAt
+    Save-JsonFile -Path $calibrationPath -Value $signalCalibration -Depth 6
+    Write-TimingLog -Step 'Sinyal kalibrasyonu' -StartedAt $stageStartedAt
 
     $stageStartedAt = Get-Date
     $portfolioPath = Join-Path $PSScriptRoot 'data\model_portfolios.json'
@@ -1750,7 +1766,7 @@ $(New-HtmlTable -Rows $strongUsdRows)
 <p class="muted">Skora göre öne çıkan hisselerin bir sonraki bilanço/finansal rapor açıklama tarihi (TradingView takviminden; tahmini olabilir) ve son açıklanan bilanço tarihi. "Kalan Gün" 7 ve altındaysa olay riski yüksektir: bilanço öncesi oynaklık artar, kademeli giriş veya bilanço sonrası teyit beklemek daha disiplinlidir. Bilançoya 0-7 gün kalan hisselere skorda olay-riski cezası uygulanır. Açıklanan rakamlar bir sonraki taramada otomatik olarak skorlara yansır.</p>
 $(New-HtmlTable -Rows $earningsCalendarRows)
 <h2>Bilanço Öncesi İvme Radarı (Anticipation)</h2>
-<p class="muted">Olay çalışmamızda (geçmiş bilanço tarihleri analizi) iyi bilanço gelen hisseler, açıklamadan önceki ~1 ayda belirgin yükseliyordu (sürpriz ile açıklama öncesi run-up korelasyonu r≈0,26; pozitif sürpriz grubu öncesinde +%9,4'e karşı negatif grup +%1,7). Bu bölüm, bilançosuna 8-25 gün kalan ve fiyat/hacmi güçlenen (fiyat>SMA20≥SMA50, görece hacim≥1,1x, aylık getiri pozitif) hisseleri öncü aday olarak listeler ve skora küçük bir bonus (+3) verir. Aynı çalışma açıklama <b>sonrası</b> pozitif sürprizlerde "sell-the-news" geri vermesi gösterdiği için (~−%5), yeni açıklamış aşırı uzamış hisselere skorda ceza (−5) uygulanır. Bu sinyaller küçük örneklemli backtest bulgusudur; canlı PEAD takibiyle doğrulanmaktadır.</p>
+<p class="muted">Olay çalışmamızda (geçmiş bilanço tarihleri analizi) iyi bilanço gelen hisseler, açıklamadan önceki ~1 ayda belirgin yükseliyordu (sürpriz ile açıklama öncesi run-up korelasyonu r≈0,26; pozitif sürpriz grubu öncesinde +%9,4'e karşı negatif grup +%1,7). Bu bölüm, bilançosuna 8-25 gün kalan ve fiyat/hacmi güçlenen (fiyat>SMA20≥SMA50, görece hacim≥1,1x, aylık getiri pozitif) hisseleri öncü aday olarak listeler ve skora bilanço öncesi bonus (+$([string]$activeCalibration.PreEarningsRunupBonus)) verir. Yeni açıklamış aşırı uzamış pozitif-sürpriz hisselere ise bilanço sonrası ayar ($([string]$activeCalibration.PostEarningsAdjustment)) uygulanır. <b>Kendini öğrenen kalibrasyon:</b> $($activeCalibration.Note) Bu ayar, canlı PEAD takibi yeterli örnek biriktikçe ($(if ($activeCalibration.Calibrated) { 'şu an veriyle kalibre edilmiş durumda' } else { 'henüz tarihsel varsayılan; ~30 yönlü örnek sonrası otomatik kalibre olacak' })) veriye göre otomatik güncellenir.</p>
 $(if ($preEarningsRows.Count -gt 0) { New-HtmlTable -Rows $preEarningsRows } else { '<p class="muted">Bugün bilanço öncesi ivme kriterini sağlayan hisse yok.</p>' })
 <h2>Bilanço Sonrası Sürüklenme (PEAD) Takibi</h2>
 <p class="muted">Akademik PEAD bulgusu (Bernard-Thomas 1989): hisseler bilanço sürprizinin yönünde haftalarca sürüklenir. Bot, yeni bilanço açıklayan hisseleri tespit anındaki fiyat ve sürpriz proxy'siyle (USD net kâr/FAVÖK Y/Y + FAVÖK trendi; 0-100, 50 nötr) kaydeder; ~28 gün sonra tespit fiyatına göre getiriyi ölçer ve "pozitif sürpriz → pozitif sürüklenme" isabet oranını biriktirir. $(if ($null -ne $earningsReactionSummary.PeadHitRatePct) { "Şu ana kadar $($earningsReactionSummary.DirectionalCount) yönlü örnekte isabet %$($earningsReactionSummary.PeadHitRatePct); pozitif sürpriz ortalama sürüklenmesi %$($earningsReactionSummary.AvgPositiveSurpriseDriftPct). Halen izlenen $($earningsReactionSummary.TrackedCount) hisse." } else { "Henüz tamamlanmış sürüklenme örneği yok; halen izlenen $($earningsReactionSummary.TrackedCount) hisse. İlk isabet ölçümü açıklamalardan ~28 gün sonra üretilecek." })</p>

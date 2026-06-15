@@ -9,7 +9,11 @@ on:
       max_stocks:
         description: "Analize alinacak en fazla hisse (piyasa degerine gore)"
         required: false
-        default: "220"
+        default: "500"
+      min_avg_vol:
+        description: "Likidite tabani (10g ort. hacim); dusurmek ornegi buyutur"
+        required: false
+        default: "75000"
 
 permissions:
   contents: read
@@ -28,4 +32,4 @@ jobs:
       - name: Run earnings event study
         shell: powershell
         run: |
-          powershell -NoProfile -ExecutionPolicy Bypass -File .\Analyze-EarningsEventStudy.ps1 -MaxStocks ([int]"${{ github.event.inputs.max_stocks }}")
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\Analyze-EarningsEventStudy.ps1 -MaxStocks ([int]"${{ github.event.inputs.max_stocks }}") -MinAvgVol ([double]"${{ github.event.inputs.min_avg_vol }}")

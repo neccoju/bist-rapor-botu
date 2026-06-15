@@ -331,6 +331,36 @@ Write-Host "PEAD (Update-EarningsReactions) testi başarılı (isabet %$($peadS2
 $kapList = @(Get-KapDisclosures -TimeoutSec 3)
 Write-Host "Get-KapDisclosures testi başarılı (best-effort, $($kapList.Count) kayıt, hata yok)."
 
+# --- Kendini ogrenen sinyal kalibrasyonu ---
+# Yetersiz ornek -> varsayilan (-5).
+$calInsufficient = Update-SignalCalibration -Reactions ([pscustomobject]@{ Completed = @() }) -AsOf ([datetime]'2026-06-15')
+if ($calInsufficient.Calibrated -or $calInsufficient.PostEarningsAdjustment -ne -5.0) {
+    throw "Yetersiz örnekte varsayılan kalibrasyon bekleniyordu: $($calInsufficient.PostEarningsAdjustment)"
+}
+# Yeterli ornek, pozitif surprizliler geri vermis (sell-the-news) -> negatif ayar.
+$completedNeg = @(1..35 | ForEach-Object {
+        $sp = if ($_ % 2 -eq 0) { 70 } else { 30 }
+        $drift = if ($_ % 2 -eq 0) { -6 } else { 2 }
+        [pscustomobject]@{ SurpriseScore = $sp; DriftPct = $drift; Directional = $true }
+    })
+$calNeg = Update-SignalCalibration -Reactions ([pscustomobject]@{ Completed = $completedNeg }) -AsOf ([datetime]'2026-06-15')
+if (-not $calNeg.Calibrated) { throw 'Yeterli örnekte kalibrasyon bekleniyordu.' }
+if ($calNeg.PostEarningsAdjustment -ge 0) { throw "Sell-the-news verisinde negatif ayar bekleniyordu: $($calNeg.PostEarningsAdjustment)" }
+# Yeterli ornek, pozitif surprizliler yukselmis (PEAD) -> pozitif ayar.
+$completedPos = @(1..35 | ForEach-Object {
+        $sp = if ($_ % 2 -eq 0) { 70 } else { 30 }
+        $drift = if ($_ % 2 -eq 0) { 8 } else { -2 }
+        [pscustomobject]@{ SurpriseScore = $sp; DriftPct = $drift; Directional = $true }
+    })
+$calPos = Update-SignalCalibration -Reactions ([pscustomobject]@{ Completed = $completedPos }) -AsOf ([datetime]'2026-06-15')
+if ($calPos.PostEarningsAdjustment -le 0) { throw "PEAD verisinde pozitif ayar bekleniyordu: $($calPos.PostEarningsAdjustment)" }
+# Set/Get + skora yansima: kalibre edilmis pozitif ayar sell-the-news bayrakli hisseyi yukseltir.
+Set-SignalCalibration -Calibration $calPos
+$adjStock = [pscustomobject]@{ SellTheNewsRisk = $true; PreEarningsRunupActive = $false }
+if ((Get-EarningsTimingAdjustment -Stock $adjStock) -le 0) { throw 'Kalibre pozitif ayar skor ayarina yansimadi.' }
+Set-SignalCalibration -Calibration $null  # varsayilana don (digerlerini etkilemesin)
+Write-Host "Sinyal kalibrasyonu testi başarılı (sell-the-news=$($calNeg.PostEarningsAdjustment), PEAD=$($calPos.PostEarningsAdjustment))."
+
 if ($Live) {
     $stocks = @(Invoke-BistStockScan)
     if ($stocks.Count -lt 400) {
