@@ -1,0 +1,31 @@
+name: Earnings Event Study
+
+# Elle calistirilan analiz: bilanco tarihi etrafindaki run-up / tepki / drift
+# korelasyonlarini gercek veriyle (TradingView + Yahoo) hesaplar ve loga yazar.
+# Gunluk raporu ve state'i ETKILEMEZ; sadece okur.
+on:
+  workflow_dispatch:
+    inputs:
+      max_stocks:
+        description: "Analize alinacak en fazla hisse (piyasa degerine gore)"
+        required: false
+        default: "220"
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  event-study:
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Run earnings event study
+        shell: powershell
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\Analyze-EarningsEventStudy.ps1 -MaxStocks ([int]"${{ github.event.inputs.max_stocks }}")
