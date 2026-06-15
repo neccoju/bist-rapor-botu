@@ -2788,6 +2788,56 @@ function Get-YahooDailyCloseSeries {
     return @($series.ToArray())
 }
 
+function Get-YahooDailyOhlcSeries {
+    <#
+        Tarih-hizali gunluk {Date, Close, Volume} serisi. Geriye-donuk backtest'te
+        point-in-time likidite (TL hacim) ve teknik gosterge kurulumu icin.
+        Hata/eksik veride bos dizi.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Symbol,
+        [string]$Range = '3y',
+        [int]$TimeoutSec = 12,
+        [switch]$AsRawTicker
+    )
+
+    $ticker = if ($AsRawTicker) { $Symbol } else { Get-YahooFinanceSymbol -Symbol $Symbol }
+    if ([string]::IsNullOrWhiteSpace($ticker)) { return @() }
+    $url = 'https://query1.finance.yahoo.com/v8/finance/chart/{0}?range={1}&interval=1d' -f ([Uri]::EscapeDataString($ticker)), $Range
+    $headers = @{ 'User-Agent' = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'; 'Accept' = 'application/json' }
+
+    try {
+        $response = Invoke-WithRetry -OperationName 'Yahoo OHLC' -MaxAttempts 2 -BaseDelaySec 1 -ScriptBlock {
+            Invoke-RestMethod -Uri $url -Headers $headers -TimeoutSec $TimeoutSec -ErrorAction Stop
+        }
+    }
+    catch { return @() }
+
+    $chart = Get-ObjectPropertyValue -Object $response -Name 'chart'
+    $results = @(Get-ObjectPropertyValue -Object $chart -Name 'result')
+    if ($results.Count -eq 0 -or $null -eq $results[0]) { return @() }
+    $timestamps = @(Get-ObjectPropertyValue -Object $results[0] -Name 'timestamp')
+    $indicators = Get-ObjectPropertyValue -Object $results[0] -Name 'indicators'
+    $quotes = @(Get-ObjectPropertyValue -Object $indicators -Name 'quote')
+    if ($quotes.Count -eq 0 -or $null -eq $quotes[0]) { return @() }
+    $closeValues = @(Get-ObjectPropertyValue -Object $quotes[0] -Name 'close')
+    $volumeValues = @(Get-ObjectPropertyValue -Object $quotes[0] -Name 'volume')
+    if ($timestamps.Count -eq 0 -or $closeValues.Count -ne $timestamps.Count) { return @() }
+
+    $series = [System.Collections.Generic.List[object]]::new()
+    for ($i = 0; $i -lt $timestamps.Count; $i++) {
+        $close = ConvertTo-DoubleOrNull $closeValues[$i]
+        $date = ConvertFrom-UnixSecondsOrNull $timestamps[$i]
+        $vol = if ($i -lt $volumeValues.Count) { ConvertTo-DoubleOrNull $volumeValues[$i] } else { $null }
+        if ($null -ne $close -and $close -gt 0 -and $null -ne $date) {
+            [void]$series.Add([pscustomobject]@{ Date = $date; Close = [double]$close; Volume = if ($null -ne $vol) { [double]$vol } else { 0.0 } })
+        }
+    }
+
+    return @($series.ToArray())
+}
+
 function Get-EmaSeries {
     param(
         [AllowNull()]
@@ -5433,6 +5483,7 @@ Export-ModuleMember -Function `
     Update-EarningsReactions, `
     Get-KapDisclosures, `
     Get-YahooDailyCloseSeries, `
+    Get-YahooDailyOhlcSeries, `
     Invoke-BistStockScan, `
     Get-ObjectPropertyValue, `
     Get-BistScore, `
