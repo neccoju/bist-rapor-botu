@@ -1,0 +1,27 @@
+name: EVDS Series Discovery
+
+# Elle calistirilir: EVDS metadata'sindan tahvil/getiri seri kodlarini bulur
+# ve loga yazar. Gunluk raporu/state'i ETKILEMEZ. Sadece dogru TR10Y seri
+# kodunu tespit etmek icin gecici/tanilama amacli.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  discover:
+    runs-on: windows-2025
+    timeout-minutes: 10
+    env:
+      BIST_EVDS_API_KEY: ${{ secrets.BIST_EVDS_API_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Discover EVDS bond series
+        shell: powershell
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\Find-EvdsBondSeries.ps1
