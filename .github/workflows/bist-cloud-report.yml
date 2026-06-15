@@ -46,6 +46,8 @@ jobs:
       BIST_TELEGRAM_BOT_TOKEN: ${{ secrets.BIST_TELEGRAM_BOT_TOKEN }}
       BIST_TELEGRAM_CHAT_ID: ${{ secrets.BIST_TELEGRAM_CHAT_ID }}
       BIST_EVDS_API_KEY: ${{ secrets.BIST_EVDS_API_KEY }}
+      # TR10Y icin EVDS seri kodu (repo Variable; or. TP.xxx). Bos ise Investing'e duser.
+      BIST_EVDS_TR10Y_SERIES: ${{ vars.BIST_EVDS_TR10Y_SERIES }}
 
     steps:
       - name: Checkout

@@ -1083,7 +1083,14 @@ function Get-MacroSnapshot {
     $yahooMacroMap = @{ 'DXY' = 'DX-Y.NYB'; 'VIX' = '^VIX' }
     foreach ($instrument in $script:MacroInvestingInstruments) {
         $snapshot = $null
-        if ($yahooMacroMap.ContainsKey($instrument.Id)) {
+        # TR10Y: EVDS birincil (seri kodu BIST_EVDS_TR10Y_SERIES'ten); yoksa Investing.
+        if ($instrument.Id -eq 'TR_10Y') {
+            $tr10ySeries = $env:BIST_EVDS_TR10Y_SERIES
+            if (-not [string]::IsNullOrWhiteSpace($tr10ySeries)) {
+                $snapshot = Get-EvdsRateSnapshot -Series $tr10ySeries -Id 'TR_10Y' -Name $instrument.Name -Unit '%' -TimeoutSec $TimeoutSec
+            }
+        }
+        if (($null -eq $snapshot -or $null -eq $snapshot.Value) -and $yahooMacroMap.ContainsKey($instrument.Id)) {
             $snapshot = Get-YahooQuoteSnapshot -Id $instrument.Id -Name $instrument.Name `
                 -YahooSymbol $yahooMacroMap[$instrument.Id] -Unit $instrument.Unit -TimeoutSec $TimeoutSec
             if ($null -ne $snapshot -and $null -ne $snapshot.Value) { $snapshot.Note = 'Yahoo Finance kaynağı.' }
@@ -5044,6 +5051,41 @@ function Resolve-InflationBenchmark {
         Inflation3YPct = $infl3
         Inflation5YPct = $infl5
         SourceNote = $dynamic.SourceNote
+    }
+}
+
+function Get-EvdsRateSnapshot {
+    <#
+        EVDS veri ucundan (kanitli; header key) bir faiz/oran serisini makro
+        metrige cevirir. Seri kodu bos veya veri yoksa $null. TR10Y gibi
+        metrikler icin seri kodu disaridan (env/config) verilir.
+    #>
+    param(
+        [string]$Series,
+        [string]$Id,
+        [string]$Name,
+        [string]$Unit = '%',
+        [int]$TimeoutSec = 8
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Series)) { return $null }
+    $s = Get-EvdsSeries -Series $Series -Frequency 1 -StartDate ((Get-Date).AddDays(-25)) -TimeoutSec $TimeoutSec
+    if ($null -eq $s -or $null -eq $s.Value) { return $null }
+
+    $chg = if ($null -ne $s.Previous) { [double]$s.Value - [double]$s.Previous } else { $null }
+    $chgPct = if ($null -ne $s.Previous -and [double]$s.Previous -ne 0) { (([double]$s.Value / [double]$s.Previous) - 1.0) * 100.0 } else { $null }
+
+    return [pscustomobject][ordered]@{
+        Id = $Id
+        Name = $Name
+        Value = [Math]::Round([double]$s.Value, 2)
+        Change = if ($null -ne $chg) { [Math]::Round($chg, 2) } else { $null }
+        ChangePct = if ($null -ne $chgPct) { [Math]::Round($chgPct, 2) } else { $null }
+        Unit = $Unit
+        Status = 'Veri Yok'
+        Source = 'TCMB EVDS'
+        Url = 'https://evds2.tcmb.gov.tr/'
+        Note = "EVDS seri: $Series ($($s.Date))"
     }
 }
 
