@@ -7,6 +7,14 @@
     "InstantEntryCandidateLimit": 40,
     "InstantEntryTimeoutSec": 5,
     "InstantEntryMaxElapsedSec": 75,
+    "SnapshotMaxStocks": 120,
+    "RiskRules": {
+      "StopLossPct": -8,
+      "ReduceLossPct": -5,
+      "TakeProfitPct": 18,
+      "TrailingStopPct": 7,
+      "MinScoreForHold": 55
+    },
     "OutputDirectory": "reports"
   },
   "Send": {

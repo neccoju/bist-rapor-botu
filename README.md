@@ -14,7 +14,8 @@ ve sonucu e-posta + artifact olarak veren bulut botu. Bilgisayar kapalıyken de
 - Workflow doğrudan repodaki `GunlukRapor.ps1` ve `BistScanner.Core.psm1`'i çalıştırır
   (eski "base64 runtime zip" kaldırıldı). **Repoda gördüğünüz kod = çalışan kod.**
 - **State git'te kalıcıdır:** model portföyler, anlık fırsat portföyü, sinyal
-  performansı, PEAD ve kalibrasyon dosyaları her çalışmada `data/` altına commit
+  performansı, PEAD, kalibrasyon, paper emir niyetleri, PaperBroker defteri ve
+  point-in-time snapshot dosyaları her başarılı çalışmada `data/` altına commit
   edilir (`[skip ci]`). Böylece geçmiş cache tahliyesine bağlı kalmaz, git'te
   görünür/denetlenebilir olur.
 - Dayanıklılık: tüm dış veri çağrıları üstel beklemeli **retry**'lıdır; hata olursa
@@ -45,22 +46,50 @@ ve sonucu e-posta + artifact olarak veren bulut botu. Bilgisayar kapalıyken de
   avantajı (edge) üretir.
 - **Sektör Rotasyonu:** günlük/haftalık/1A/3A/1Y sektör vs BIST100 farkları.
 - **Model Portföyler (aylık):** Dengeli/Değer/Momentum/Kalite (Get-BistScore) +
-  RFS100 (ham teknik faktör). Aşağıya bakın.
+  RFS100 (ham teknik faktör) + ayrı `RiskDengeli` portföy. Aşağıya bakın.
+- **Risk / Exit Paneli:** her model portföy pozisyonu için teorik stop seviyesi,
+  risk kararı (`Tut`, `Azalt`, `Stop Adayı`, `Kar Al / Stop Yükselt`) ve gerekçe.
+- **Paper Order Intents + PaperBroker:** gerçek emir göndermez; botun ürettiği
+  teorik AL/SAT niyetlerini ve kağıt üzerinde doldurulmuş pozisyon defterini raporlar.
 
 ## Model Portföyler — aylık karar mantığı
 
 - Her **ayın son BIST işlem gününde** 18:15 çalışmasında yeniden dengelenir
   (sıralama + AL/SAT/EŞİTLEME); diğer günler yalnız değerlenir. Tatil/hafta sonu
   `Get-BistFullClosureDates` ile dışlanır (2026-2030 dini bayramlar dahil).
-- Eşit ağırlık (5 hisse × %20). Uygunluk: ROE/değer/FAVÖK/makro/teknik + **veri
-  kalitesi kapısı** + **aşırı volatilite kapısı** (günlük vol > 8 elenir) + sektör
-  sınırı.
+- Dengeli/Değer/Momentum/Kalite/RFS100 portföyleri eşit ağırlıkla çalışır
+  (5 hisse × %20). Bu portföylerin ağırlık davranışı korunur. Uygunluk:
+  ROE/değer/FAVÖK/makro/teknik + **veri kalitesi kapısı** + **aşırı volatilite
+  kapısı** (günlük vol > 8 elenir) + sektör sınırı.
+- **RiskDengeli** portföy ayrı izlenir: seçim yine Dengeli skor ve aynı uygunluk
+  filtresiyle yapılır; ağırlıklar günlük volatilitenin tersine göre dağıtılır ve
+  tek hisse riskini sınırlamak için min/max ağırlık sınırları uygulanır. Normal
+  model portföylerin eşit ağırlığı bu portföy yüzünden değişmez.
 - **İşlem maliyeti + kayma** modellenir (varsayılan 20 bps; `BIST_MODEL_COST_BPS`
   veya config `ModelPortfolioCostBps`); getiriler nettir.
 - **BIST100 alfa:** her portföyün kuruluştan beri getirisi BIST100 ile kıyaslanır;
   **Alfa = getiri − BIST100**. Hangi stratejinin endeksi yendiğini gösterir.
 - **Maksimum düşüş (drawdown)** her değerlemede izlenir.
 - **Lider strateji:** rapor, alfaya göre en iyi stratejiyi öne çıkarır.
+
+## Platform Kontrolleri
+
+- **Risk kuralları:** `config/report_settings.*.json` içindeki `RiskRules`
+  bloğu teorik stop-loss, zarar azaltma, kar alma, iz süren stop ve minimum elde
+  tutma skoru eşiklerini belirler. Bu kararlar raporda uyarı/denetim amaçlıdır;
+  gerçek emir üretmez.
+- **PaperBroker / OrderIntent:** günlük raporun ürettiği teorik AL/SAT işlemleri
+  `data/order_intents.json` içine yazılır; `data/paper_broker.json` bu niyetleri
+  kağıt üzerinde doldurulmuş varsayan ayrı bir denetim defteridir. Aracı kurum
+  entegrasyonu yoktur ve varsayılan mod `PaperOnly` kalır.
+- **Point-in-time snapshot arşivi:** her başarılı çalışmada en yüksek skorlu
+  kompakt evren kesiti `data/latest_point_in_time_snapshot.json` ve
+  `data/point_in_time_snapshots/YYYYMMDD_HHMM.json` altında saklanır. Amaç,
+  gelecekte lookahead/survivorship riskini azaltan canlı veri arşivi oluşturmaktır.
+- **Validation sweep:** `Validate-StrategySweep.ps1` ve `strategy-validation.yml`
+  TopN, maliyet ve likidite eşiği kombinasyonlarını manuel olarak dener; günlük
+  rapor state'ini değiştirmez, `reports/strategy_validation.md` ve `.json`
+  artifact üretir.
 
 ## Kendini Öğrenen / Öz-Değerlendiren Mekanizmalar
 
@@ -91,10 +120,12 @@ ve sonucu e-posta + artifact olarak veren bulut botu. Bilgisayar kapalıyken de
 - `BistScanner.Core.psm1` — tarama, skorlama, AFS, model portföy, makro, EVDS,
   PEAD/kalibrasyon, Yahoo/TradingView yardımcıları.
 - `Test-BistScanner.Core.ps1` — workflow başında çalışan smoke + birim testler.
+- `Validate-StrategySweep.ps1` — manuel parametre taraması ve validation raporu.
 - `config/report_settings.cloud.json` / `.example.json` — ayarlar.
 - `data/` — kalıcı bot state'i (git'te tutulur): `model_portfolios.json`,
   `instant_entry_portfolio.json`, `signal_performance.json`, `earnings_reactions.json`,
-  `signal_calibration.json`.
+  `signal_calibration.json`, `order_intents.json`, `paper_broker.json`,
+  `latest_point_in_time_snapshot.json` ve `point_in_time_snapshots/*.json`.
 
 ### Analiz / araştırma araçları (elle tetiklenir; günlük raporu etkilemez)
 
@@ -103,6 +134,8 @@ ve sonucu e-posta + artifact olarak veren bulut botu. Bilgisayar kapalıyken de
 - `Backtest-ModelPortfolio.ps1` + `backtest.yml` — momentum 12-1 aylık backtest.
 - `Backtest-Realistic.ps1` + `backtest-realistic.yml` — RFS teknik (point-in-time) +
   o anki likidite kapısı + karekök piyasa-etkisi maliyetiyle gerçekçi backtest.
+- `Validate-StrategySweep.ps1` + `strategy-validation.yml` — TopN/maliyet/likidite
+  kombinasyonlarını manuel deneyen validation sweep; günlük raporu/state'i etkilemez.
 - `Find-EvdsBondSeries.ps1` + `evds-discovery.yml` — EVDS seri kodu keşfi (tanılama).
 
 > Backtest uyarısı: ücretsiz veride **survivorship** (bugün listede olmayan/delist
@@ -131,6 +164,8 @@ Opsiyonel **Variables** (`Actions > Variables`):
 - **BIST Cloud Report** — günlük raporu hemen üretir ve e-posta gönderir.
 - **Model Portfolio Backtest (Realistic)** / **... Backtest** — geriye dönük analiz
   (sonuçlar çalışma log'una yazılır).
+- **Strategy Validation Sweep** — parametre kombinasyonlarını dener ve markdown/JSON
+  validation artifact üretir.
 - **Earnings Event Study** — bilanço olay çalışması.
 
 Çalışma bitince e-posta gelir; `Artifacts` altından HTML/CSV rapor + state
