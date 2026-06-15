@@ -1283,6 +1283,10 @@ try {
     # Ham-faktor eklenti skoru (kesitsel): backtest bulgusu, botun skorunun ~2 kati IC.
     # Mevcut Score'u degistirmez; her hisseye RawFactorScore100 (0-100) ekler.
     $scored = @(Add-RawFactorScore -Stocks $scored)
+    # Akademik cok-faktor skoru (kesitsel beklenen-getiri proxy'si): deger +
+    # kalite + momentum(12-1) + dusuk-vol + boyut. Mevcut Score'u degistirmez;
+    # AcademicFactorScore100 (0-100) ve risk/getiri metrikleri ekler.
+    $scored = @(Add-AcademicFactorScore -Stocks $scored)
     Write-TimingLog -Step 'Skorlama' -StartedAt $stageStartedAt
 
     $stageStartedAt = Get-Date
@@ -1358,6 +1362,7 @@ try {
             [pscustomobject][ordered]@{
                 Skor = Format-ReportNumber -Value $_.Score -Format 'N1'
                 'RFS100' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'RawFactorScore100') -Format 'N1'
+                'AFS' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'AcademicFactorScore100') -Format 'N1'
                 Gorus = ConvertTo-PlainText $_.Signal
                 Teyit = ConvertTo-PlainText $_.ConfirmationLabel
                 'Teyit n' = '{0}/{1}' -f (ConvertTo-PlainText $_.TechnicalPassCount), (ConvertTo-PlainText $_.TechnicalCheckCount)
@@ -1371,6 +1376,24 @@ try {
                 'Hacim' = Format-ReportNumber -Value $_.RelativeVolume -Format 'N1' -Suffix 'x'
             }
         })
+
+    $academicRows = @($scored |
+            Sort-Object @{ Expression = { [double](Get-ObjectPropertyValue -Object $_ -Name 'AcademicFactorScore100') }; Descending = $true } |
+            Select-Object -First 12 |
+            ForEach-Object {
+                [pscustomobject][ordered]@{
+                    Sembol = ConvertTo-PlainText $_.Symbol
+                    Sirket = ConvertTo-PlainText $_.Company
+                    Sektor = ConvertTo-PlainText $_.SectorTR
+                    'AFS' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'AcademicFactorScore100') -Format 'N1'
+                    'Momentum 12-1' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'Momentum12_1Pct') -Format 'N1' -Suffix '%'
+                    'Yillik Vol' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'AnnualizedVolatilityPct') -Format 'N1' -Suffix '%'
+                    'Getiri/Risk' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'RiskAdjustedMomentum') -Format 'N2'
+                    'FD/FAVOK' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'EvEbitda') -Format 'N1'
+                    ROE = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'ROE') -Format 'N1' -Suffix '%'
+                    Skor = Format-ReportNumber -Value $_.Score -Format 'N1'
+                }
+            })
 
     $rankedForDetails = @($scored | Sort-Object @{ Expression = { Get-ConfirmationRank -Stock $_ }; Ascending = $true }, @{ Expression = { $_.Score }; Descending = $true })
     $detailedStocks = @($rankedForDetails | Select-Object -First $detailedCount)
@@ -1628,6 +1651,9 @@ $detailedCardsHtml
 $(New-HtmlTable -Rows $topRows)
 <h2>Skor İsabet Takibi (Öz-Değerlendirme)</h2>
 <p class="muted">Bot, her çalışmada o günkü Top $topCount seçimini ve fiyatlarını saklar; bir sonraki çalışmada bu seçimlerin gerçekleşen getirisini tüm taranan evrenin ortalama getirisiyle karşılaştırır. <b>İsabet oranı</b>, seçimlerin evren ortalamasını geçtiği gün yüzdesidir; <b>ortalama fark (edge)</b> ise seçimlerin evrene kıyasla ortalama getiri üstünlüğüdür. Bu, skorlama mantığının zaman içinde gerçekten ayrıştırıcı olup olmadığını ölçen kendi kendine öğrenme/denetim sinyalidir. $(if ($null -ne $signalPerfSummary.HitRatePct) { "Şu ana kadar $($signalPerfSummary.SampleCount) değerlendirme gününde isabet oranı %$($signalPerfSummary.HitRatePct), ortalama fark %$($signalPerfSummary.AvgEdgePct)." } else { 'Henüz karşılaştırılacak önceki seçim yok; ilk isabet ölçümü bir sonraki çalışmada üretilecek.' })</p>
+<h2>Akademik Çok-Faktör Skoru (AFS)</h2>
+<p class="muted">AFS, akademik literatürde getiriyi kesitsel olarak en tutarlı açıklayan faktörlerin standartlaştırılmış (z-skor) bir karışımıdır ve bağımsız bir beklenen-getiri sıralamasıdır (mevcut Skor'u değiştirmez). Bileşenler ve yönleri: <b>Momentum 12-1</b> (Jegadeesh-Titman 1993; son ay hariç 12 aylık getiri, kısa vadeli ters dönüşten arındırılmış), <b>Kalite</b> (Novy-Marx 2013 / Fama-French RMW; yüksek ROE, düşük borç, FAVÖK ardışık artışı), <b>Değer</b> (düşük FD/FAVÖK, PD/DD, F/K), <b>Düşük Volatilite</b> (Frazzini-Pedersen 2014; düşük volatilite primi) ve <b>Boyut</b> (küçük piyasa değeri hafif prim). Ağırlıklar momentum 0.30 · kalite 0.25 · değer 0.20 · düşük-vol 0.20 · boyut 0.05. "Getiri/Risk", momentum 12-1'in yıllıklandırılmış volatiliteye oranıdır (Sharpe benzeri). Tüm metrikler teoriktir; işlem maliyeti/kayma içermez.</p>
+$(New-HtmlTable -Rows $academicRows)
 <h2>USD Güçlü Bilanço</h2>
 $(New-HtmlTable -Rows $strongUsdRows)
 <h2>Sektor Rotasyonu</h2>

@@ -4160,6 +4160,178 @@ function Add-RawFactorScore {
 }
 
 # ============================================================================
+# Akademik cok-faktor skoru (AFS): kesitsel beklenen-getiri proxy'si.
+# Literatur temelli, uzun-yonlu faktor karisimi:
+#   - Momentum 12-1 (Jegadeesh & Titman 1993): son 1 ay atlanarak 12 aylik
+#     getiri; kisa vadeli ters donusten arindirilir.
+#   - Kalite (Novy-Marx 2013; Fama-French RMW): ROE +, borc/ozkaynak -,
+#     FAVOK ardisik artisi +.
+#   - Deger (Fama-French HML): dusuk FD/FAVOK, dusuk PD/DD, dusuk F/K.
+#   - Dusuk volatilite (Frazzini & Pedersen 2014; Ang ve ark. 2006):
+#     dusuk gunluk volatilite primi.
+#   - Boyut (Fama-French SMB): kucuk piyasa degeri hafif prim.
+# Mevcut Score'u ve RawFactorScore'u DEGISTIRMEZ; bagimsiz bir siralama
+# sinyali olarak AcademicFactorScore (ham) + AcademicFactorScore100 (0-100)
+# ve yardimci metrikler (Momentum12_1Pct, AnnualizedVolatilityPct,
+# RiskAdjustedMomentum) ekler.
+# ============================================================================
+
+function Get-Momentum12_1Pct {
+    param($Stock)
+    $py = Get-RfNumber (Get-ObjectPropertyValue -Object $Stock -Name 'PerfYear')
+    $pm = Get-RfNumber (Get-ObjectPropertyValue -Object $Stock -Name 'PerfMonth')
+    if ($null -eq $py) { return $null }
+    $yearFactor = 1.0 + ($py / 100.0)
+    $monthFactor = if ($null -ne $pm) { 1.0 + ($pm / 100.0) } else { 1.0 }
+    if ($yearFactor -le 0 -or $monthFactor -le 0) { return $null }
+    # Son ayi disla: (1+12ay)/(1+1ay) - 1
+    return (($yearFactor / $monthFactor) - 1.0) * 100.0
+}
+
+function Get-AcademicFactorVector {
+    param($Stock)
+
+    $evEbitda = Get-RfNumber (Get-ObjectPropertyValue -Object $Stock -Name 'EvEbitda')
+    $pb = Get-RfNumber (Get-ObjectPropertyValue -Object $Stock -Name 'PB')
+    $pe = Get-RfNumber (Get-ObjectPropertyValue -Object $Stock -Name 'PE')
+    $roe = Get-RfNumber (Get-ObjectPropertyValue -Object $Stock -Name 'ROE')
+    $de = Get-RfNumber (Get-ObjectPropertyValue -Object $Stock -Name 'DebtToEquity')
+    $ebTrend = Get-RfNumber (Get-ObjectPropertyValue -Object $Stock -Name 'EbitdaSequentialIncreaseCount')
+    $volD = Get-RfNumber (Get-ObjectPropertyValue -Object $Stock -Name 'VolatilityD')
+    $mcap = Get-RfNumber (Get-ObjectPropertyValue -Object $Stock -Name 'MarketCap')
+    $mom = Get-Momentum12_1Pct -Stock $Stock
+
+    # Deger: ucuz = yuksek skor. Negatif/sifir carpanlar anlamsiz -> null.
+    $valEvEbitda = if ($null -ne $evEbitda -and $evEbitda -gt 0) { - $evEbitda } else { $null }
+    $valPb = if ($null -ne $pb -and $pb -gt 0) { - $pb } else { $null }
+    $valPe = if ($null -ne $pe -and $pe -gt 0) { - $pe } else { $null }
+
+    # Kalite: yuksek ROE, dusuk borc, FAVOK ardisik artisi.
+    $qualRoe = $roe
+    $qualDebt = if ($null -ne $de) { - $de } else { $null }
+    $qualEbTrend = $ebTrend
+
+    # Dusuk volatilite primi: dusuk gunluk vol = yuksek skor.
+    $lowVol = if ($null -ne $volD) { - $volD } else { $null }
+
+    # Boyut: kucuk = hafif prim. log ile sikistir.
+    $size = if ($null -ne $mcap -and $mcap -gt 0) { - [Math]::Log10($mcap) } else { $null }
+
+    [ordered]@{
+        ValEvEbitda = $valEvEbitda
+        ValPb = $valPb
+        ValPe = $valPe
+        QualRoe = $qualRoe
+        QualDebt = $qualDebt
+        QualEbTrend = $qualEbTrend
+        Mom = $mom
+        LowVol = $lowVol
+        Size = $size
+    }
+}
+
+function Add-AcademicFactorScore {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Stocks,
+        [hashtable]$CategoryWeights
+    )
+
+    if ($Stocks.Count -eq 0) { return $Stocks }
+
+    if (-not $CategoryWeights) {
+        # Uzun-yonlu, gelismekte olan piyasa egilimli literatur agirliklari.
+        $CategoryWeights = @{
+            Momentum = 0.30
+            Quality = 0.25
+            Value = 0.20
+            LowVol = 0.20
+            Size = 0.05
+        }
+    }
+
+    # Her kategorinin alt-faktorleri (esit agirlikli ortalama).
+    $categoryFactors = [ordered]@{
+        Value = @('ValEvEbitda', 'ValPb', 'ValPe')
+        Quality = @('QualRoe', 'QualDebt', 'QualEbTrend')
+        Momentum = @('Mom')
+        LowVol = @('LowVol')
+        Size = @('Size')
+    }
+    $allFactorNames = @($categoryFactors.Values | ForEach-Object { $_ })
+
+    $vectors = New-Object System.Collections.Generic.List[object]
+    foreach ($s in $Stocks) { $vectors.Add((Get-AcademicFactorVector -Stock $s)) }
+
+    # Kesitsel ortalama/standart sapma (populasyon).
+    $stats = @{}
+    foreach ($fn in $allFactorNames) {
+        $vals = New-Object System.Collections.Generic.List[double]
+        foreach ($v in $vectors) { if ($null -ne $v[$fn]) { $vals.Add([double]$v[$fn]) } }
+        if ($vals.Count -ge 3) {
+            $mean = ($vals | Measure-Object -Average).Average
+            $var = 0.0; foreach ($x in $vals) { $var += ($x - $mean) * ($x - $mean) }
+            $std = [Math]::Sqrt($var / $vals.Count)
+        }
+        else { $mean = 0.0; $std = 0.0 }
+        $stats[$fn] = [pscustomobject]@{ Mean = $mean; Std = $std }
+    }
+
+    $composite = New-Object double[] $Stocks.Count
+    for ($i = 0; $i -lt $Stocks.Count; $i++) {
+        $v = $vectors[$i]
+        $score = 0.0
+        $weightUsed = 0.0
+        foreach ($cat in $categoryFactors.Keys) {
+            $zSum = 0.0; $zCount = 0
+            foreach ($fn in $categoryFactors[$cat]) {
+                $st = $stats[$fn]
+                if ($st.Std -gt 1e-9 -and $null -ne $v[$fn]) {
+                    $z = ([double]$v[$fn] - $st.Mean) / $st.Std
+                    if ($z -gt 3) { $z = 3 } elseif ($z -lt -3) { $z = -3 }  # winsorize
+                    $zSum += $z; $zCount++
+                }
+            }
+            if ($zCount -gt 0) {
+                $catZ = $zSum / $zCount
+                $w = [double]$CategoryWeights[$cat]
+                $score += $w * $catZ
+                $weightUsed += $w
+            }
+        }
+        # Eksik kategorileri telafi et (kullanilan agirliga normalize).
+        $composite[$i] = if ($weightUsed -gt 1e-9) { $score / $weightUsed } else { 0.0 }
+    }
+
+    # Yuzdelik (0-100) sirala.
+    $order = 0..($Stocks.Count - 1) | Sort-Object { $composite[$_] }
+    $pct = New-Object double[] $Stocks.Count
+    $n = $Stocks.Count
+    for ($rank = 0; $rank -lt $n; $rank++) {
+        $idx = $order[$rank]
+        $pct[$idx] = if ($n -gt 1) { [Math]::Round(($rank / ($n - 1.0)) * 100, 1) } else { 50 }
+    }
+
+    for ($i = 0; $i -lt $Stocks.Count; $i++) {
+        $mom = $vectors[$i]['Mom']
+        $volD = Get-RfNumber (Get-ObjectPropertyValue -Object $Stocks[$i] -Name 'VolatilityD')
+        $annVol = if ($null -ne $volD) { [double]$volD * [Math]::Sqrt(252.0) } else { $null }
+        $riskAdjMom = if ($null -ne $mom -and $null -ne $annVol -and $annVol -gt 1e-9) {
+            [Math]::Round([double]$mom / $annVol, 3)
+        }
+        else { $null }
+
+        $Stocks[$i] | Add-Member -NotePropertyName AcademicFactorScore -NotePropertyValue ([Math]::Round($composite[$i], 4)) -Force
+        $Stocks[$i] | Add-Member -NotePropertyName AcademicFactorScore100 -NotePropertyValue $pct[$i] -Force
+        $Stocks[$i] | Add-Member -NotePropertyName Momentum12_1Pct -NotePropertyValue $(if ($null -ne $mom) { [Math]::Round([double]$mom, 2) } else { $null }) -Force
+        $Stocks[$i] | Add-Member -NotePropertyName AnnualizedVolatilityPct -NotePropertyValue $(if ($null -ne $annVol) { [Math]::Round([double]$annVol, 2) } else { $null }) -Force
+        $Stocks[$i] | Add-Member -NotePropertyName RiskAdjustedMomentum -NotePropertyValue $riskAdjMom -Force
+    }
+
+    return $Stocks
+}
+
+# ============================================================================
 # TCMB EVDS (Elektronik Veri Dagitim Sistemi) entegrasyonu.
 # API anahtari ASLA kodda saklanmaz; $env:BIST_EVDS_API_KEY'den okunur
 # (bulutta GitHub Secret, yerelde ortam degiskeni). Anahtar yoksa sessizce
@@ -4379,6 +4551,8 @@ function Update-SignalPerformance {
 Export-ModuleMember -Function `
     Invoke-WithRetry, `
     Update-SignalPerformance, `
+    Add-AcademicFactorScore, `
+    Get-Momentum12_1Pct, `
     Invoke-BistStockScan, `
     Get-ObjectPropertyValue, `
     Get-BistScore, `

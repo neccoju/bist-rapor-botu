@@ -10,7 +10,8 @@ Bu surum masaustundeki gunluk rapor motoruyla ayni mantigi calistirir: workflow 
 - Anlik Giris Firsati: temel filtre + haftalik MACD histogram ivmesi + 52 hafta konumu + BIST rejimi.
 - Top Radar: skor, gorus, teyit etiketi, eksik teyitler, temel/teknik/makro kolonlari.
 - Sektor Rotasyonu: gunluk, haftalik, 1 ay, 3 ay ve 1 yil sektor/BIST100 farklari.
-- Model Portfoyler: dengeli, deger, momentum ve kalite portfoyleri; state cache ile ay sonu yeniden dengeleme mantigi korunur.
+- Model Portfoyler: dengeli, deger, momentum ve kalite portfoyleri; state repoda (git) kalici tutulur ve ay sonu yeniden dengeleme mantigi korunur.
+- Akademik Cok-Faktor Skoru (AFS): kesitsel beklenen-getiri proxy'si. Momentum 12-1 (Jegadeesh-Titman), kalite (Novy-Marx/RMW), deger, dusuk volatilite (Frazzini-Pedersen) ve boyut faktorlerinin standartlastirilmis (z-skor) karisimi; mevcut skoru degistirmez, bagimsiz siralama + risk/getiri metrikleri (yillik vol, getiri/risk) verir.
 - Skor Isabet Takibi (oz-degerlendirme): her kosu o gunku Top secimleri ve fiyatlari saklar; sonraki kosuda secimlerin gerceklesen getirisini tum evren ortalamasiyla kiyaslayarak yuvarlanan isabet orani (hit-rate) ve ortalama getiri avantaji (edge) uretir. Bu, skorlama mantiginin zaman icinde gercekten ayristirici olup olmadigini olcen geri-besleme sinyalidir.
 
 ## Dosyalar

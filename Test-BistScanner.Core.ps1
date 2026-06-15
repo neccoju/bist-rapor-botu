@@ -185,6 +185,47 @@ $spEmpty = Update-SignalPerformance -Previous $null -ScoredStocks @() -AsOf (Get
 if ($spEmpty.Summary.SampleCount -ne 0) { throw 'Bos evrende sinyal performansi guvenli calismaliydi.' }
 Write-Host "Update-SignalPerformance testi başarılı (isabet %$($spState2.Summary.HitRatePct), fark %$($spState2.Summary.LastEdgePct))."
 
+# --- Momentum 12-1 (Jegadeesh-Titman) ---
+$mom = Get-Momentum12_1Pct -Stock ([pscustomobject]@{ PerfYear = 50.0; PerfMonth = 10.0 })
+if ([Math]::Abs($mom - 36.3636) -gt 0.05) { throw "Momentum 12-1 yanlis hesaplandi: $mom" }
+if ($null -ne (Get-Momentum12_1Pct -Stock ([pscustomobject]@{ PerfYear = $null; PerfMonth = 5.0 }))) {
+    throw 'Momentum 12-1, yillik getiri yoksa null donmeli.'
+}
+Write-Host "Momentum 12-1 testi başarılı ($([Math]::Round($mom, 2))%)."
+
+# --- Akademik cok-faktor skoru (AFS) ---
+function New-AfsTestStock {
+    param($Symbol, $Ev, $Pb, $Pe, $Roe, $De, $EbTrend, $PerfYear, $PerfMonth, $Vol, $MarketCap)
+    [pscustomobject]@{
+        Symbol = $Symbol; EvEbitda = $Ev; PB = $Pb; PE = $Pe; ROE = $Roe; DebtToEquity = $De
+        EbitdaSequentialIncreaseCount = $EbTrend; PerfYear = $PerfYear; PerfMonth = $PerfMonth
+        VolatilityD = $Vol; MarketCap = $MarketCap
+    }
+}
+$afsStocks = @(
+    New-AfsTestStock 'GOOD' 4 0.8 6 35 20 4 80 5 1.5 1e9
+    New-AfsTestStock 'BAD' 20 5 40 5 200 0 -20 5 5.0 1e11
+    New-AfsTestStock 'MID1' 8 1.5 12 18 60 2 25 4 2.5 1e10
+    New-AfsTestStock 'MID2' 10 2.0 15 15 80 1 15 3 3.0 2e10
+    New-AfsTestStock 'MID3' 6 1.2 9 22 40 3 40 6 2.0 5e9
+)
+$afsRes = Add-AcademicFactorScore -Stocks $afsStocks
+foreach ($r in $afsRes) {
+    if ($r.AcademicFactorScore100 -lt 0 -or $r.AcademicFactorScore100 -gt 100) {
+        throw "AFS100 aralik disinda: $($r.Symbol) $($r.AcademicFactorScore100)"
+    }
+}
+$afsGood = $afsRes | Where-Object Symbol -eq 'GOOD'
+$afsBad = $afsRes | Where-Object Symbol -eq 'BAD'
+if ($afsGood.AcademicFactorScore100 -le $afsBad.AcademicFactorScore100) {
+    throw "AFS: güçlü faktör profili zayıfı geçmeliydi (GOOD=$($afsGood.AcademicFactorScore100), BAD=$($afsBad.AcademicFactorScore100))."
+}
+if ($null -eq $afsGood.AnnualizedVolatilityPct -or $null -eq $afsGood.RiskAdjustedMomentum) {
+    throw 'AFS yardimci metrikleri (yillik vol / getiri-risk) uretilmedi.'
+}
+[void](Add-AcademicFactorScore -Stocks @())
+Write-Host "Add-AcademicFactorScore testi başarılı (GOOD=$($afsGood.AcademicFactorScore100), BAD=$($afsBad.AcademicFactorScore100))."
+
 if ($Live) {
     $stocks = @(Invoke-BistStockScan)
     if ($stocks.Count -lt 400) {
