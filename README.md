@@ -86,6 +86,10 @@ ve sonucu e-posta + artifact olarak veren bulut botu. Bilgisayar kapalıyken de
   kompakt evren kesiti `data/latest_point_in_time_snapshot.json` ve
   `data/point_in_time_snapshots/YYYYMMDD_HHMM.json` altında saklanır. Amaç,
   gelecekte lookahead/survivorship riskini azaltan canlı veri arşivi oluşturmaktır.
+  **Otomatiktir:** günlük rapor her BIST işlem günü (Pzt-Cum) 18:15 Europe/Istanbul
+  cron'unda çalışırken (ayrıca `main`'e her push'ta ve manuel `Run workflow`'da)
+  snapshot üretilip git'e commit edilir; ek bir kurulum gerekmez. Böylece arşiv
+  gün gün ileriye dönük olarak kendiliğinden birikir.
 - **Validation sweep:** `Validate-StrategySweep.ps1` ve `strategy-validation.yml`
   TopN, maliyet ve likidite eşiği kombinasyonlarını manuel olarak dener; günlük
   rapor state'ini değiştirmez, `reports/strategy_validation.md` ve `.json`
@@ -161,6 +165,32 @@ eşitlik eğrisi. Çekirdek **ağsızdır ve deterministik test edilir**:
 `Test-BacktestEngine.ps1` elle hesaplanmış "golden" değerlerle defter korunumu,
 maliyet, ADV sınırı, alım/satım geçişi ve metrikleri doğrular; backtest
 workflow'unda **kapı** görevi görür.
+
+#### Örnek canlı koşu (Eylül 2024 → Haziran 2026)
+
+100.000 TL başlangıç, 300 hisselik evren, Top 5 eşit ağırlık, ay sonu rebalance;
+komisyon 15 + kayma 10 bps + karekök piyasa-etkisi + ADV likidite sınırı (`%25`):
+
+| Metrik | Değer |
+|---|---|
+| Toplam getiri | ~%341,8 (≈ 100k → ~442k TL) |
+| CAGR | %141,82 |
+| Sharpe | 2,46 |
+| Sortino | 3,58 |
+| Calmar | 4,80 |
+| Yıllık volatilite | %39,26 |
+| Maksimum düşüş | %-29,52 |
+| Aylık isabet | %77,3 |
+| Yıllık turnover | 12,19x |
+| Toplam işlem maliyeti | 9.808 TL |
+| BIST100 getiri | %44,20 |
+| **Alfa** | **%297,60** |
+
+> ⚠️ Bu rakamlar **iyimser bir üst sınırdır**: ücretsiz veride survivorship bias
+> (yalnız bugün listede olan hisselerle çalışılır) hâlâ baskın faktördür ve geçmiş
+> as-reported temel veri yoktur. Sayılar uydurulmaz; gerçek/yanlılıksız ölçüm için
+> bot **ileriye dönük canlı alfa**yı izler. Parametreler `Run workflow` ile
+> değiştirilebildiği için sonuç değişir.
 
 ## Gerekli GitHub Secrets
 
