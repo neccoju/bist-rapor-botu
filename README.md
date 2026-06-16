@@ -86,10 +86,11 @@ ve sonucu e-posta + artifact olarak veren bulut botu. Bilgisayar kapalıyken de
   kompakt evren kesiti `data/latest_point_in_time_snapshot.json` ve
   `data/point_in_time_snapshots/YYYYMMDD_HHMM.json` altında saklanır. Amaç,
   gelecekte lookahead/survivorship riskini azaltan canlı veri arşivi oluşturmaktır.
-  **Otomatiktir:** günlük rapor her BIST işlem günü (Pzt-Cum) 18:15 Europe/Istanbul
-  cron'unda çalışırken (ayrıca `main`'e her push'ta ve manuel `Run workflow`'da)
-  snapshot üretilip git'e commit edilir; ek bir kurulum gerekmez. Böylece arşiv
-  gün gün ileriye dönük olarak kendiliğinden birikir.
+  **Otomatiktir:** günlük rapor her BIST işlem günü (Pzt-Cum) 18:15 Europe/Istanbul'da
+  harici bir zamanlayıcı (örn. cron-job.org) tarafından `workflow_dispatch` ile
+  tetiklenirken (ya da elle `Run workflow`'da) snapshot üretilip git'e commit edilir;
+  ek bir kurulum gerekmez. Böylece arşiv gün gün ileriye dönük olarak kendiliğinden
+  birikir.
 - **Validation sweep:** `Validate-StrategySweep.ps1` ve `strategy-validation.yml`
   TopN, maliyet ve likidite eşiği kombinasyonlarını manuel olarak dener; günlük
   rapor state'ini değiştirmez, `reports/strategy_validation.md` ve `.json`
@@ -119,7 +120,8 @@ ve sonucu e-posta + artifact olarak veren bulut botu. Bilgisayar kapalıyken de
 
 ## Dosyalar
 
-- `.github/workflows/bist-cloud-report.yml` — günlük rapor (cron + manuel).
+- `.github/workflows/bist-cloud-report.yml` — günlük rapor (harici zamanlayıcı
+  `workflow_dispatch` ile 18:15'te tetikler + elle çalıştırma).
 - `GunlukRapor.ps1` — rapor motoru (orkestrasyon, HTML/CSV, e-posta/Telegram).
 - `BistScanner.Core.psm1` — tarama, skorlama, AFS, model portföy, makro, EVDS,
   PEAD/kalibrasyon, Yahoo/TradingView yardımcıları.

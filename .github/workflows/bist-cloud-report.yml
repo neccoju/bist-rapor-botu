@@ -1,20 +1,12 @@
 name: BIST Cloud Report
 
 on:
+  # Zamanlama harici bir tetikleyici (orn. cron-job.org) ile yapilir: tam 18:15
+  # Europe/Istanbul'da bu workflow'u GitHub API workflow_dispatch ile cagirir.
+  # GitHub'in kendi 'schedule' cron'u saatlerce gecikebildigi icin kaldirildi.
+  # 'push' tetikleyicisi de fazladan mail urettigi icin kaldirildi; gerekince
+  # asagidaki workflow_dispatch ile elle veya API'den tetiklenir.
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - .github/workflows/bist-cloud-report.yml
-      - "*.ps1"
-      - "*.psm1"
-      - patches/**
-      - config/**
-  schedule:
-    # 18:15 Europe/Istanbul, sadece BIST islem gunleri (Pzt-Cum).
-    # GitHub Actions cron UTC kullanir; Turkiye yil boyu UTC+3 oldugundan 15:15 UTC = 18:15 Istanbul.
-    - cron: "15 15 * * 1-5"
 
 # Bot state'i (model portfoyler, anlik firsat portfoyu, sinyal performansi)
 # repoya geri yazilir; bu yuzden contents: write gerekir.
