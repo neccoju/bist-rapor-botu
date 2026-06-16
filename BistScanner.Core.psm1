@@ -5839,15 +5839,16 @@ function Get-BenchmarkPerformanceSeries {
 
 function New-PerformanceComparisonChart {
     <#
-        Strateji + benchmark serilerini tek bir cizgi grafik PNG'sine cizer
-        (QuickChart.io; X=tarih, Y=% getiri). Basari: PNG yolu; aksi halde $null.
+        Strateji + benchmark serilerini tek bir cizgi grafige (QuickChart.io;
+        X=tarih, Y=% getiri) cevirir ve QuickChart'in KALICI gorsel URL'sini dondurur
+        (/chart/create). Bu URL e-postada <img src> olarak kullanilir; Gmail dis
+        gorseli CID'den daha tutarli gosterir. Basari: URL; aksi halde $null.
         Best-effort: QuickChart erisilemezse cagiran grafigi atlar.
     #>
     [CmdletBinding()]
     param(
         [object[]]$StrategySeries = @(),
         [object[]]$BenchmarkSeries = @(),
-        [Parameter(Mandatory)][string]$OutPath,
         [int]$TimeoutSec = 25
     )
 
@@ -5896,15 +5897,16 @@ function New-PerformanceComparisonChart {
         }
     }
 
-    $payload = [ordered]@{ width = 860; height = 480; backgroundColor = 'white'; format = 'png'; chart = $config }
+    $payload = [ordered]@{ width = 860; height = 480; backgroundColor = 'white'; chart = $config }
     $json = $payload | ConvertTo-Json -Depth 20 -Compress
     try {
-        Invoke-WithRetry -OperationName 'QuickChart' -MaxAttempts 2 -BaseDelaySec 1 -ScriptBlock {
-            Invoke-WebRequest -Uri 'https://quickchart.io/chart' -Method Post -Body $json -ContentType 'application/json' -TimeoutSec $TimeoutSec -OutFile $OutPath -ErrorAction Stop | Out-Null
+        $resp = Invoke-WithRetry -OperationName 'QuickChart' -MaxAttempts 2 -BaseDelaySec 1 -ScriptBlock {
+            Invoke-RestMethod -Uri 'https://quickchart.io/chart/create' -Method Post -Body $json -ContentType 'application/json' -TimeoutSec $TimeoutSec -ErrorAction Stop
         }
     }
     catch { return $null }
-    if (Test-Path -LiteralPath $OutPath) { return $OutPath } else { return $null }
+    $url = Get-ObjectPropertyValue -Object $resp -Name 'url'
+    if (-not [string]::IsNullOrWhiteSpace($url)) { return [string]$url } else { return $null }
 }
 
 Export-ModuleMember -Function `

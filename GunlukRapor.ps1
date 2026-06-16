@@ -1793,7 +1793,7 @@ try {
     # Nasdaq/S&P500 (TRY %). Kurulustan bugune islem gecmisi + Yahoo ile yeniden kurulur;
     # her gun otomatik uzar. Best-effort: hata olursa grafik atlanir, rapor bozulmaz.
     $stageStartedAt = Get-Date
-    $perfChartPath = $null
+    $perfChartUrl = $null
     $perfSummaryRows = @()
     try {
         $priceCache = @{}
@@ -1806,9 +1806,8 @@ try {
         if ($null -eq $earliestStart) { $earliestStart = $runAt.AddMonths(-1) }
         $benchmarkSeries = @(Get-BenchmarkPerformanceSeries -StartDate $earliestStart -TimeoutSec 8)
 
-        $candidatePath = Join-Path $PSScriptRoot 'data\performance_chart.png'
-        $perfChartPath = New-PerformanceComparisonChart -StrategySeries $strategySeries -BenchmarkSeries $benchmarkSeries -OutPath $candidatePath -TimeoutSec 25
-        if ($perfChartPath) { Write-Host "Performans grafigi uretildi: $perfChartPath" } else { Write-Host 'Performans grafigi uretilemedi (QuickChart erisilemedi); ozet tablo gosterilecek.' }
+        $perfChartUrl = New-PerformanceComparisonChart -StrategySeries $strategySeries -BenchmarkSeries $benchmarkSeries -TimeoutSec 25
+        if ($perfChartUrl) { Write-Host "Performans grafigi URL'si uretildi: $perfChartUrl" } else { Write-Host 'Performans grafigi uretilemedi (QuickChart erisilemedi); ozet tablo gosterilecek.' }
 
         # Ozet tablo (grafik gelmese de son % getiriler gorunur)
         $perfSummaryRows = @(@($strategySeries) + @($benchmarkSeries) | Where-Object { $_ -and @($_.Points).Count -gt 0 } | ForEach-Object {
@@ -2223,9 +2222,9 @@ table { display:block; overflow-x:auto; white-space:nowrap; }
 '@
     # Getiri karsilastirma grafigi bolumu (grafik + ozet tablo). Grafik CID ile gomulur.
     $perfChartSectionHtml = ''
-    if ($perfChartPath -or @($perfSummaryRows).Count -gt 0) {
-        $perfImgTag = if ($perfChartPath) {
-            '<img src="cid:perfchart" alt="Getiri karsilastirma grafigi" style="display:block;width:100%;max-width:860px;margin:8px auto;border:1px solid #e6ebf2;border-radius:10px;">'
+    if ($perfChartUrl -or @($perfSummaryRows).Count -gt 0) {
+        $perfImgTag = if ($perfChartUrl) {
+            "<img src=`"$perfChartUrl`" alt=`"Getiri karsilastirma grafigi`" width=`"860`" style=`"display:block;width:100%;max-width:860px;height:auto;margin:8px auto;border:1px solid #e6ebf2;border-radius:10px;`">"
         }
         else {
             '<p class="muted">Grafik gorseli bu sefer uretilemedi; asagidaki ozet tabloyu kullanin.</p>'
@@ -2355,7 +2354,7 @@ CDS, DXY, VIX izleme metrikleri ücretsiz/gecikmeli kaynaklardandır. İşlem ka
     if (-not $NoSend) {
         if ([bool](Get-ConfigValue -Object $settings.Send -Name 'EmailEnabled' -Default $false)) {
             $stageStartedAt = Get-Date
-            Send-EmailReport -Settings $settings -Subject $subject -HtmlBody $htmlBody -HtmlPath $htmlPath -CsvPath $csvPath -InlineImagePath $perfChartPath
+            Send-EmailReport -Settings $settings -Subject $subject -HtmlBody $htmlBody -HtmlPath $htmlPath -CsvPath $csvPath
             Write-TimingLog -Step 'E-posta gonderimi' -StartedAt $stageStartedAt
             [void]$sendMessages.Add('E-posta gonderildi.')
         }
