@@ -5648,6 +5648,265 @@ function Update-SignalPerformance {
     }
 }
 
+# ===========================================================================
+#  Performans karsilastirma grafigi: model portfoyler + benchmark'lar (TRY %)
+# ===========================================================================
+
+function Get-PerfPointOnOrBefore {
+    # Artan tarihli {Date, ...} dizisinde, verilen tarihe esit/onceki son noktayi dondurur.
+    param([object[]]$Points, [datetime]$Date)
+    $found = $null
+    foreach ($pt in $Points) {
+        if ([datetime]$pt.Date -le $Date) { $found = $pt } else { break }
+    }
+    return $found
+}
+
+function Get-StrategyPerformanceSeries {
+    <#
+        Her model portfoyun kurulustan bugune gun gun TRY % getiri serisini, islem
+        gecmisi (Transactions) + Yahoo gunluk kapanis ile YENIDEN KURAR (point-in-time).
+        deger(t) = Σ holding_qty(t) × kapanis(symbol, t)  (tam yatirim, nakit ~0).
+        Rebalance'lar Transactions'tan turetildigi icin ileride de dogru kalir.
+        Donus: [{ Name, Points: [{Date, ReturnPct}] }]
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]$PortfolioSet,
+        [int]$TimeoutSec = 10,
+        [hashtable]$PriceCache = $null
+    )
+
+    $portfolios = @(Get-ObjectPropertyValue -Object $PortfolioSet -Name 'Portfolios')
+    if ($portfolios.Count -eq 0) { return @() }
+    if ($null -eq $PriceCache) { $PriceCache = @{} }
+
+    # Benzersiz semboller -> Yahoo gunluk kapanis (bir kez cek, cache'le)
+    $symbols = [System.Collections.Generic.HashSet[string]]::new()
+    foreach ($p in $portfolios) {
+        foreach ($tx in @(Get-ObjectPropertyValue -Object $p -Name 'Transactions')) {
+            $s = [string](Get-ObjectPropertyValue -Object $tx -Name 'Symbol')
+            if (-not [string]::IsNullOrWhiteSpace($s)) { [void]$symbols.Add($s) }
+        }
+    }
+    foreach ($sym in $symbols) {
+        if (-not $PriceCache.ContainsKey($sym)) {
+            $PriceCache[$sym] = @(Get-YahooDailyCloseSeries -Symbol $sym -Range '1y' -TimeoutSec $TimeoutSec)
+        }
+    }
+
+    $result = [System.Collections.Generic.List[object]]::new()
+    foreach ($p in $portfolios) {
+        $name = [string](Get-ObjectPropertyValue -Object $p -Name 'Name')
+        $initial = [double](Get-ObjectPropertyValue -Object $p -Name 'InitialCapitalTL')
+        if ($initial -le 0) { $initial = 100000.0 }
+        $startRaw = Get-ObjectPropertyValue -Object $p -Name 'StartDate'
+        $start = if ($startRaw) { [datetime]$startRaw } else { (Get-Date).AddMonths(-1) }
+
+        $txList = @(Get-ObjectPropertyValue -Object $p -Name 'Transactions' |
+                Sort-Object @{ Expression = { [datetime](Get-ObjectPropertyValue -Object $_ -Name 'ExecutionDate') } })
+        if ($txList.Count -eq 0) { continue }
+
+        # Bu portfoyun sembollerinin tarih birlesimi (StartDate sonrasi) -> ortak eksen
+        $dateSet = @{}
+        foreach ($tx in $txList) {
+            $s = [string](Get-ObjectPropertyValue -Object $tx -Name 'Symbol')
+            foreach ($pt in @($PriceCache[$s])) {
+                $d = ([datetime]$pt.Date).Date
+                if ($d -ge $start.Date) { $dateSet[$d] = $true }
+            }
+        }
+        $axis = @($dateSet.Keys | Sort-Object)
+        if ($axis.Count -eq 0) { continue }
+
+        $points = [System.Collections.Generic.List[object]]::new()
+        foreach ($day in $axis) {
+            # O gune kadar gerceklesen islemlerden holding seti
+            $holdings = @{}
+            foreach ($tx in $txList) {
+                $txDate = [datetime](Get-ObjectPropertyValue -Object $tx -Name 'ExecutionDate')
+                if ($txDate.Date -gt $day) { break }
+                $s = [string](Get-ObjectPropertyValue -Object $tx -Name 'Symbol')
+                $qty = [double](Get-ObjectPropertyValue -Object $tx -Name 'Quantity')
+                $act = [string](Get-ObjectPropertyValue -Object $tx -Name 'Action')
+                $delta = if ($act -match 'SAT') { - $qty } else { $qty }
+                if ($holdings.ContainsKey($s)) { $holdings[$s] += $delta } else { $holdings[$s] = $delta }
+            }
+            $value = 0.0; $priced = $true
+            foreach ($s in @($holdings.Keys)) {
+                $q = [double]$holdings[$s]
+                if ([Math]::Abs($q) -lt 1e-9) { continue }
+                $pt = Get-PerfPointOnOrBefore -Points @($PriceCache[$s]) -Date $day
+                if ($null -eq $pt) { $priced = $false; break }
+                $value += $q * [double]$pt.Close
+            }
+            if ($priced -and $value -gt 0) {
+                [void]$points.Add([pscustomobject]@{ Date = $day; ReturnPct = [Math]::Round((($value / $initial) - 1.0) * 100.0, 2) })
+            }
+        }
+        if ($points.Count -gt 0) {
+            [void]$result.Add([pscustomobject]@{ Name = $name; Points = $points.ToArray() })
+        }
+    }
+    return @($result.ToArray())
+}
+
+function Get-BenchmarkPerformanceSeries {
+    <#
+        BIST100, Altin, Mevduat, Nasdaq, S&P500'un StartDate'ten bugune TRY bazinda
+        gun gun % getiri serisi. Yabanci varliklar (altin/Nasdaq/S&P500) USD/TRY ile
+        TRY'ye cevrilir. Mevduat EVDS APIFON serisinden bilesik birikimle yaklasiktir.
+        Tum seriler StartDate'te %0'dan baslar. Erisilemeyen kaynak atlanir.
+        Donus: [{ Name, Points: [{Date, ReturnPct}] }]
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][datetime]$StartDate,
+        [int]$TimeoutSec = 10
+    )
+
+    $start = $StartDate.Date
+    $usdtry = @(Get-YahooDailyCloseSeries -Symbol 'USDTRY=X' -Range '1y' -TimeoutSec $TimeoutSec -AsRawTicker)
+    $bist = @(Get-YahooDailyCloseSeries -Symbol 'XU100' -Range '1y' -TimeoutSec $TimeoutSec)
+    $gold = @(Get-YahooDailyCloseSeries -Symbol 'GC=F' -Range '1y' -TimeoutSec $TimeoutSec -AsRawTicker)
+    $nasdaq = @(Get-YahooDailyCloseSeries -Symbol '^IXIC' -Range '1y' -TimeoutSec $TimeoutSec -AsRawTicker)
+    $sp500 = @(Get-YahooDailyCloseSeries -Symbol '^GSPC' -Range '1y' -TimeoutSec $TimeoutSec -AsRawTicker)
+
+    # Ortak tarih ekseni: BIST islem gunleri (StartDate sonrasi)
+    $axis = @($bist | Where-Object { ([datetime]$_.Date).Date -ge $start } | ForEach-Object { ([datetime]$_.Date).Date } | Sort-Object -Unique)
+    if ($axis.Count -lt 2) { return @() }
+
+    # TRY seviyesi ureten yardimci (yabanci varlik × USD/TRY)
+    $tryLevel = {
+        param($Series, $Day, $Fx)
+        $p = Get-PerfPointOnOrBefore -Points @($Series) -Date $Day
+        if ($null -eq $p) { return $null }
+        if ($Fx) {
+            $f = Get-PerfPointOnOrBefore -Points @($Fx) -Date $Day
+            if ($null -eq $f) { return $null }
+            return [double]$p.Close * [double]$f.Close
+        }
+        return [double]$p.Close
+    }
+
+    $defs = @(
+        @{ Name = 'BIST100'; Series = $bist; Fx = $null }
+        @{ Name = 'Altın (TRY)'; Series = $gold; Fx = $usdtry }
+        @{ Name = 'Nasdaq (TRY)'; Series = $nasdaq; Fx = $usdtry }
+        @{ Name = 'S&P 500 (TRY)'; Series = $sp500; Fx = $usdtry }
+    )
+
+    $result = [System.Collections.Generic.List[object]]::new()
+    foreach ($d in $defs) {
+        if (@($d.Series).Count -lt 2) { continue }
+        $base = & $tryLevel $d.Series $axis[0] $d.Fx
+        if ($null -eq $base -or $base -le 0) { continue }
+        $pts = [System.Collections.Generic.List[object]]::new()
+        foreach ($day in $axis) {
+            $lvl = & $tryLevel $d.Series $day $d.Fx
+            if ($null -ne $lvl -and $lvl -gt 0) {
+                [void]$pts.Add([pscustomobject]@{ Date = $day; ReturnPct = [Math]::Round((($lvl / $base) - 1.0) * 100.0, 2) })
+            }
+        }
+        if ($pts.Count -gt 0) { [void]$result.Add([pscustomobject]@{ Name = $d.Name; Points = $pts.ToArray() }) }
+    }
+
+    # Mevduat (EVDS APIFON gunluk oran -> bilesik birikim). Anahtar yoksa atlanir.
+    $rateSeries = Get-EvdsSeries -Series 'TP.APIFON4' -Frequency 1 -StartDate $start.AddDays(-10) -EndDate (Get-Date) -TimeoutSec $TimeoutSec
+    if ($null -ne $rateSeries) {
+        $ratePts = @(Get-ObjectPropertyValue -Object $rateSeries -Name 'Points' | ForEach-Object {
+                $dt = $null
+                $ok = [datetime]::TryParseExact([string]$_.Date, 'dd-MM-yyyy', [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::None, [ref]$dt)
+                if ($ok) { [pscustomobject]@{ Date = $dt.Date; Value = [double]$_.Value } }
+            } | Where-Object { $_ } | Sort-Object Date)
+        if ($ratePts.Count -gt 0) {
+            $pts = [System.Collections.Generic.List[object]]::new()
+            $acc = 1.0; $prevDay = $axis[0]
+            foreach ($day in $axis) {
+                $rp = Get-PerfPointOnOrBefore -Points $ratePts -Date $day
+                $annual = if ($null -ne $rp) { [double]$rp.Value } else { 0.0 }
+                $days = ($day - $prevDay).TotalDays
+                if ($days -gt 0) { $acc *= [Math]::Pow(1.0 + ($annual / 100.0), $days / 365.0) }
+                $prevDay = $day
+                [void]$pts.Add([pscustomobject]@{ Date = $day; ReturnPct = [Math]::Round(($acc - 1.0) * 100.0, 2) })
+            }
+            [void]$result.Add([pscustomobject]@{ Name = 'Mevduat (yaklaşık)'; Points = $pts.ToArray() })
+        }
+    }
+
+    return @($result.ToArray())
+}
+
+function New-PerformanceComparisonChart {
+    <#
+        Strateji + benchmark serilerini tek bir cizgi grafik PNG'sine cizer
+        (QuickChart.io; X=tarih, Y=% getiri). Basari: PNG yolu; aksi halde $null.
+        Best-effort: QuickChart erisilemezse cagiran grafigi atlar.
+    #>
+    [CmdletBinding()]
+    param(
+        [object[]]$StrategySeries = @(),
+        [object[]]$BenchmarkSeries = @(),
+        [Parameter(Mandatory)][string]$OutPath,
+        [int]$TimeoutSec = 25
+    )
+
+    $all = @(@($StrategySeries) + @($BenchmarkSeries) | Where-Object { $_ -and @($_.Points).Count -gt 0 })
+    if ($all.Count -eq 0) { return $null }
+
+    # Ortak etiketler: tum tarihlerin birlesimi (sirali)
+    $labelSet = @{}
+    foreach ($s in $all) { foreach ($pt in @($s.Points)) { $labelSet[([datetime]$pt.Date).Date] = $true } }
+    $labels = @($labelSet.Keys | Sort-Object)
+    if ($labels.Count -lt 2) { return $null }
+    $labelText = @($labels | ForEach-Object { $_.ToString('dd.MM') })
+
+    # Renk paleti (strateji=canli, benchmark=daha notr/kesik)
+    $stratColors = @('#2563eb', '#16a34a', '#9333ea', '#0891b2', '#ea580c', '#db2777')
+    $benchColors = @('#dc2626', '#ca8a04', '#6b7280', '#0d9488', '#1e3a8a')
+
+    $datasets = [System.Collections.Generic.List[object]]::new()
+    $ci = 0
+    foreach ($s in @($StrategySeries | Where-Object { $_ -and @($_.Points).Count -gt 0 })) {
+        $map = @{}; foreach ($pt in @($s.Points)) { $map[([datetime]$pt.Date).Date] = [double]$pt.ReturnPct }
+        $data = @($labels | ForEach-Object { if ($map.ContainsKey($_)) { $map[$_] } else { $null } })
+        [void]$datasets.Add([ordered]@{ label = [string]$s.Name; data = $data; borderColor = $stratColors[$ci % $stratColors.Count]; backgroundColor = $stratColors[$ci % $stratColors.Count]; fill = $false; borderWidth = 2; pointRadius = 0; spanGaps = $true; tension = 0.2 })
+        $ci++
+    }
+    $ci = 0
+    foreach ($s in @($BenchmarkSeries | Where-Object { $_ -and @($_.Points).Count -gt 0 })) {
+        $map = @{}; foreach ($pt in @($s.Points)) { $map[([datetime]$pt.Date).Date] = [double]$pt.ReturnPct }
+        $data = @($labels | ForEach-Object { if ($map.ContainsKey($_)) { $map[$_] } else { $null } })
+        [void]$datasets.Add([ordered]@{ label = [string]$s.Name; data = $data; borderColor = $benchColors[$ci % $benchColors.Count]; backgroundColor = $benchColors[$ci % $benchColors.Count]; fill = $false; borderWidth = 2; borderDash = @(6, 4); pointRadius = 0; spanGaps = $true; tension = 0.2 })
+        $ci++
+    }
+
+    $config = [ordered]@{
+        type = 'line'
+        data = [ordered]@{ labels = $labelText; datasets = $datasets.ToArray() }
+        options = [ordered]@{
+            plugins = [ordered]@{
+                title  = [ordered]@{ display = $true; text = '100.000 TL ile getiri karşılaştırması (%)' }
+                legend = [ordered]@{ position = 'bottom'; labels = [ordered]@{ boxWidth = 12; font = [ordered]@{ size = 10 } } }
+            }
+            scales = [ordered]@{
+                x = [ordered]@{ title = [ordered]@{ display = $true; text = 'Tarih' } }
+                y = [ordered]@{ title = [ordered]@{ display = $true; text = '% getiri' } }
+            }
+        }
+    }
+
+    $payload = [ordered]@{ width = 860; height = 480; backgroundColor = 'white'; format = 'png'; chart = $config }
+    $json = $payload | ConvertTo-Json -Depth 20 -Compress
+    try {
+        Invoke-WithRetry -OperationName 'QuickChart' -MaxAttempts 2 -BaseDelaySec 1 -ScriptBlock {
+            Invoke-WebRequest -Uri 'https://quickchart.io/chart' -Method Post -Body $json -ContentType 'application/json' -TimeoutSec $TimeoutSec -OutFile $OutPath -ErrorAction Stop | Out-Null
+        }
+    }
+    catch { return $null }
+    if (Test-Path -LiteralPath $OutPath) { return $OutPath } else { return $null }
+}
+
 Export-ModuleMember -Function `
     Invoke-WithRetry, `
     Update-SignalPerformance, `
@@ -5680,4 +5939,7 @@ Export-ModuleMember -Function `
     Get-BistIndexBenchmarks, `
     Get-InstantEntryOpportunities, `
     New-ModelPortfolioSet, `
-    Update-ModelPortfolioSet
+    Update-ModelPortfolioSet, `
+    Get-StrategyPerformanceSeries, `
+    Get-BenchmarkPerformanceSeries, `
+    New-PerformanceComparisonChart

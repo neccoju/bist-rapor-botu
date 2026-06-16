@@ -1571,7 +1571,9 @@ function Send-EmailReport {
         [string]$Subject,
         [string]$HtmlBody,
         [string]$HtmlPath,
-        [string]$CsvPath
+        [string]$CsvPath,
+        [string]$InlineImagePath,
+        [string]$InlineImageCid = 'perfchart'
     )
 
     $server = Get-EnvironmentValue -Names @('BIST_SMTP_SERVER', 'SMTP_SERVER') -Default ([string](Get-ConfigValue -Object $Settings.Email -Name 'SmtpServer' -Default ''))
@@ -1609,9 +1611,21 @@ function Send-EmailReport {
         $message.Subject = $Subject
         $message.SubjectEncoding = [Text.Encoding]::UTF8
         $message.HeadersEncoding = [Text.Encoding]::UTF8
-        $message.Body = $HtmlBody
-        $message.BodyEncoding = [Text.Encoding]::UTF8
-        $message.IsBodyHtml = $true
+        # Grafik gomulu (CID) gonderilecekse AlternateView + LinkedResource kullan;
+        # Gmail data-URI/dis gorseli engelleyebildigi icin CID en guvenilir yontemdir.
+        if (-not [string]::IsNullOrWhiteSpace($InlineImagePath) -and (Test-Path -LiteralPath $InlineImagePath)) {
+            $altView = [Net.Mail.AlternateView]::CreateAlternateViewFromString($HtmlBody, [Text.Encoding]::UTF8, 'text/html')
+            $linked = [Net.Mail.LinkedResource]::new($InlineImagePath, 'image/png')
+            $linked.ContentId = $InlineImageCid
+            $linked.TransferEncoding = [System.Net.Mime.TransferEncoding]::Base64
+            $altView.LinkedResources.Add($linked)
+            $message.AlternateViews.Add($altView)
+        }
+        else {
+            $message.Body = $HtmlBody
+            $message.BodyEncoding = [Text.Encoding]::UTF8
+            $message.IsBodyHtml = $true
+        }
         foreach ($attachmentPath in $attachments) {
             [void]$message.Attachments.Add([Net.Mail.Attachment]::new($attachmentPath))
         }
@@ -1774,6 +1788,36 @@ try {
     }
     Save-JsonFile -Path $portfolioPath -Value $updatedPortfolioSet -Depth 8
     Write-TimingLog -Step 'Model portfoy degerleme' -StartedAt $stageStartedAt
+
+    # Performans karsilastirma grafigi: tum model portfoyler + BIST100/Altin/Mevduat/
+    # Nasdaq/S&P500 (TRY %). Kurulustan bugune islem gecmisi + Yahoo ile yeniden kurulur;
+    # her gun otomatik uzar. Best-effort: hata olursa grafik atlanir, rapor bozulmaz.
+    $stageStartedAt = Get-Date
+    $perfChartPath = $null
+    $perfSummaryRows = @()
+    try {
+        $priceCache = @{}
+        $strategySeries = @(Get-StrategyPerformanceSeries -PortfolioSet $updatedPortfolioSet -TimeoutSec 8 -PriceCache $priceCache)
+        $earliestStart = $null
+        foreach ($p in @(Get-ObjectPropertyValue -Object $updatedPortfolioSet -Name 'Portfolios')) {
+            $sd = Get-ObjectPropertyValue -Object $p -Name 'StartDate'
+            if ($sd) { $d = [datetime]$sd; if ($null -eq $earliestStart -or $d -lt $earliestStart) { $earliestStart = $d } }
+        }
+        if ($null -eq $earliestStart) { $earliestStart = $runAt.AddMonths(-1) }
+        $benchmarkSeries = @(Get-BenchmarkPerformanceSeries -StartDate $earliestStart -TimeoutSec 8)
+
+        $candidatePath = Join-Path $PSScriptRoot 'data\performance_chart.png'
+        $perfChartPath = New-PerformanceComparisonChart -StrategySeries $strategySeries -BenchmarkSeries $benchmarkSeries -OutPath $candidatePath -TimeoutSec 25
+        if ($perfChartPath) { Write-Host "Performans grafigi uretildi: $perfChartPath" } else { Write-Host 'Performans grafigi uretilemedi (QuickChart erisilemedi); ozet tablo gosterilecek.' }
+
+        # Ozet tablo (grafik gelmese de son % getiriler gorunur)
+        $perfSummaryRows = @(@($strategySeries) + @($benchmarkSeries) | Where-Object { $_ -and @($_.Points).Count -gt 0 } | ForEach-Object {
+                $last = $_.Points[$_.Points.Count - 1]
+                [pscustomobject]@{ Name = [string]$_.Name; ReturnPct = [double]$last.ReturnPct }
+            } | Sort-Object ReturnPct -Descending)
+    }
+    catch { Write-Warning "Performans grafigi/serisi uretilemedi: $($_.Exception.Message)" }
+    Write-TimingLog -Step 'Performans karsilastirma grafigi' -StartedAt $stageStartedAt
 
     $stageStartedAt = Get-Date
     $macroSnapshot = Get-MacroSnapshot -IndexSnapshot $indexSnapshot -AsOf $runAt -TimeoutSec $macroTimeoutSec
@@ -2177,6 +2221,31 @@ table { display:block; overflow-x:auto; white-space:nowrap; }
 }
 </style>
 '@
+    # Getiri karsilastirma grafigi bolumu (grafik + ozet tablo). Grafik CID ile gomulur.
+    $perfChartSectionHtml = ''
+    if ($perfChartPath -or @($perfSummaryRows).Count -gt 0) {
+        $perfImgTag = if ($perfChartPath) {
+            '<img src="cid:perfchart" alt="Getiri karsilastirma grafigi" style="display:block;width:100%;max-width:860px;margin:8px auto;border:1px solid #e6ebf2;border-radius:10px;">'
+        }
+        else {
+            '<p class="muted">Grafik gorseli bu sefer uretilemedi; asagidaki ozet tabloyu kullanin.</p>'
+        }
+        $perfRowsHtml = (@($perfSummaryRows) | ForEach-Object {
+                $col = if ($_.ReturnPct -ge 0) { '#16a34a' } else { '#dc2626' }
+                $nm = [System.Net.WebUtility]::HtmlEncode([string]$_.Name)
+                "<tr><td>$nm</td><td style=`"text-align:right;color:$col;font-weight:700`">%$([Math]::Round($_.ReturnPct, 2))</td></tr>"
+            }) -join "`n"
+        $perfChartSectionHtml = @"
+<div class="card" style="margin:24px 30px;">
+<h2>📈 Getiri Karşılaştırması (100.000 TL)</h2>
+<p class="muted">Tüm model portföyler + BIST100, Altın, Mevduat, Nasdaq, S&amp;P 500 — TRY bazında % getiri. Model portföylerin kuruluşundan bugüne; grafik her çalışmada otomatik uzar. Yabancı varlıklar ve altın USD/TRY ile TRY'ye çevrilmiştir; mevduat yaklaşıktır.</p>
+$perfImgTag
+<table><thead><tr><th>Strateji / Varlık</th><th style="text-align:right">Dönem getirisi</th></tr></thead><tbody>
+$perfRowsHtml
+</tbody></table>
+</div>
+"@
+    }
     $htmlBody = @"
 <!doctype html>
 <html>
@@ -2267,6 +2336,7 @@ $(if ($orderIntentRows.Count -gt 0) { New-HtmlTable -Rows $orderIntentRows } els
 <p class="muted">PaperBroker, intent kayıtlarını kağıt üzerinde doldurulmuş varsayan denetim defteridir; gerçek portföy veya emir sistemi değildir.</p>
 $(if ($paperBrokerPositionRows.Count -gt 0) { New-HtmlTable -Rows $paperBrokerPositionRows } else { '<p class="muted">PaperBroker defterinde açık pozisyon yok.</p>' })
 </div>
+$perfChartSectionHtml
 <div class="warn">
 <b>Karar mekanizması:</b> makro zemin (TCMB EVDS faiz/TÜFE + CDS/DXY/VIX) → sektör rotasyonu → bilanço gücü (USD bazlı) → çok-zamanlı teknik teyit → kademeli giriş. Buna ek olarak <b>RawFactorScore100</b> (kesitsel ham-faktör; backtestte botun ~2 katı IC) bağımsız bir sıralama sinyali olarak raporlanır.<br>
 CDS, DXY, VIX izleme metrikleri ücretsiz/gecikmeli kaynaklardandır. İşlem kararı öncesi TCMB, Borsa İstanbul/MKK/KAP ve lisanslı veri kaynaklarıyla doğrulayın.
@@ -2285,7 +2355,7 @@ CDS, DXY, VIX izleme metrikleri ücretsiz/gecikmeli kaynaklardandır. İşlem ka
     if (-not $NoSend) {
         if ([bool](Get-ConfigValue -Object $settings.Send -Name 'EmailEnabled' -Default $false)) {
             $stageStartedAt = Get-Date
-            Send-EmailReport -Settings $settings -Subject $subject -HtmlBody $htmlBody -HtmlPath $htmlPath -CsvPath $csvPath
+            Send-EmailReport -Settings $settings -Subject $subject -HtmlBody $htmlBody -HtmlPath $htmlPath -CsvPath $csvPath -InlineImagePath $perfChartPath
             Write-TimingLog -Step 'E-posta gonderimi' -StartedAt $stageStartedAt
             [void]$sendMessages.Add('E-posta gonderildi.')
         }
