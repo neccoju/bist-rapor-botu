@@ -1,10 +1,58 @@
 ﻿{
     "Version":  1,
     "CreatedAt":  "2026-06-15T21:15:50.7046948+00:00",
-    "UpdatedAt":  "2026-06-16T14:56:59.5673996+00:00",
+    "UpdatedAt":  "2026-06-16T15:15:57.4814957+00:00",
     "Mode":  "PaperOnly",
     "Notes":  "Gerçek emir göndermez; raporun ürettiği teorik order intent kayıtlarını doldurulmuş varsayan denetim defteridir.",
     "Orders":  [
+                   {
+                       "Id":  "InstantEntry:InstantEntry:7:GLYHO:2026-06-16T15:15:57.4814957+00:00",
+                       "CreatedAt":  "2026-06-16T15:15:57.4814957+00:00",
+                       "FilledAt":  "2026-06-16T15:15:57.4814957+00:00",
+                       "Status":  "PaperFilled",
+                       "Source":  "InstantEntry",
+                       "PortfolioId":  "InstantEntry",
+                       "PortfolioName":  "Anlık Fırsat Portföyü",
+                       "Side":  "Buy",
+                       "Symbol":  "GLYHO",
+                       "Company":  "GLOBAL YATIRIM HOLDİNG A.Ş.",
+                       "Price":  17.12,
+                       "Quantity":  146.028037,
+                       "AmountTL":  2500,
+                       "Note":  "Günlük anlık fırsat bütçesiyle alındı. Sıkı anlık alış filtresi geçti: skor 85+, MACD yeni sıfır kesişimi veya pozitif ivme + 52H %20-50 bandı. Haftalık MACD histogramı son 8 haftada 4/7 kez, son 4 hafta üst üste iyileşti; son 0.00, önceki -0.06. Histogram negatiften pozitife bu hafta geçti; erken dönüş sinyali en güçlü teknik gerekçe. Backtestte sıfır üstüne yeni dönüş yüksek kazanma oranı verdi; skorda teyit olarak öne alındı. Temel filtre geçti: bilanço 92.7, kalite 72.5, değer 75.5; son 5 çeyrek kârlı. RSI 65.7; momentum var ama kısa vadeli yorulma riski izlenmeli. 52 haftalık bandın üst yarısında: konum 100.0%; güç var ama dip fırsatı değil. Sektör rotasyonu Nötr; BIST100e göre ortalama fark -1.9 puan. FD/FAVÖK 9.43; ucuz/makul değerleme filtresinde. Göreli hacim 2.08x; fiyat hareketi tamamen hacimsiz değil."
+                   },
+                   {
+                       "Id":  "InstantEntry:InstantEntry:8:INFO:2026-06-16T15:15:57.4814957+00:00",
+                       "CreatedAt":  "2026-06-16T15:15:57.4814957+00:00",
+                       "FilledAt":  "2026-06-16T15:15:57.4814957+00:00",
+                       "Status":  "PaperFilled",
+                       "Source":  "InstantEntry",
+                       "PortfolioId":  "InstantEntry",
+                       "PortfolioName":  "Anlık Fırsat Portföyü",
+                       "Side":  "Buy",
+                       "Symbol":  "INFO",
+                       "Company":  "İNFO YATIRIM MENKUL DEĞERLER A.Ş.",
+                       "Price":  4.04,
+                       "Quantity":  618.811881,
+                       "AmountTL":  2500,
+                       "Note":  "Günlük anlık fırsat bütçesiyle alındı. Sıkı anlık alış filtresi geçti: skor 85+, MACD yeni sıfır kesişimi veya pozitif ivme + 52H %20-50 bandı. Haftalık MACD histogramı son 8 haftada 7/7 kez, son 7 hafta üst üste iyileşti; son 0.05, önceki 0.04. Backtestte pozitif ivme etiketi en güçlü 1 aylık segmentti; skorda ek ağırlık aldı. Temel filtre geçti: bilanço 92.2, kalite 46.2, değer 88.5; son 3 çeyrek kârlı. RSI 61.0; aşırı alıma girmeden momentum toparlanması var. 52 haftalık bandın orta-alt bölgesinde: konum 45.3%, 52H ortalamaya mesafe 5.6%. Sektör rotasyonu Nötr; BIST100e göre ortalama fark -1.9 puan. FD/FAVÖK -3.21; ucuz/makul değerleme filtresinde. Göreli hacim 0.81x; fiyat hareketi tamamen hacimsiz değil."
+                   },
+                   {
+                       "Id":  "InstantEntry:InstantEntry:6:ENERY:2026-06-15T13:44:19.7221536+00:00",
+                       "CreatedAt":  "2026-06-15T13:44:19.7221536+00:00",
+                       "FilledAt":  "2026-06-15T21:15:50.7046948+00:00",
+                       "Status":  "PaperFilled",
+                       "Source":  "InstantEntry",
+                       "PortfolioId":  "InstantEntry",
+                       "PortfolioName":  "Anlık Fırsat Portföyü",
+                       "Side":  "Buy",
+                       "Symbol":  "ENERY",
+                       "Company":  "Enerya Enerji A.S.",
+                       "Price":  9.75,
+                       "Quantity":  512.820513,
+                       "AmountTL":  5000,
+                       "Note":  "Günlük anlık fırsat bütçesiyle alındı. Sıkı anlık alış filtresi geçti: skor 85+, MACD yeni sıfır kesişimi veya pozitif ivme + 52H %20-50 bandı. Haftalık MACD histogramı son 8 haftada 5/7 kez, son 4 hafta üst üste iyileşti; son 0.04, önceki -0.02. Histogram negatiften pozitife bu hafta geçti; erken dönüş sinyali en güçlü teknik gerekçe. Backtestte sıfır üstüne yeni dönüş yüksek kazanma oranı verdi; skorda teyit olarak öne alındı. Temel filtre geçti: bilanço 96.6, kalite 77.5, değer 66.2; son 5 çeyrek kârlı. RSI 66.5; momentum var ama kısa vadeli yorulma riski izlenmeli. 52 haftalık bandın üst yarısında: konum 58.2%; güç var ama dip fırsatı değil. Sektör rotasyonu BIST Üstü; BIST100e göre ortalama fark 4.5 puan. FD/FAVÖK 11.03; ucuz/makul değerleme filtresinde. Göreli hacim 3.95x; fiyat hareketi tamamen hacimsiz değil."
+                   },
                    {
                        "Id":  "ModelPortfolio:RiskDengeli:2:CCOLA:2026-06-15T21:15:50.7046948+00:00",
                        "CreatedAt":  "2026-06-15T21:15:50.7046948+00:00",
@@ -20,6 +68,22 @@
                        "Quantity":  287.291273,
                        "AmountTL":  23701.53,
                        "Note":  "İlk kurulum: hedef ağırlık %23.75. Strateji skoru 78.2; makro/sektör 78.2; trend 82.8; değer 79.2; kalite 88.8; bilanço 100.0; teknik RSI 56.1; risk Orta."
+                   },
+                   {
+                       "Id":  "ModelPortfolio:RiskDengeli:6:NTGAZ:2026-06-15T21:15:50.7046948+00:00",
+                       "CreatedAt":  "2026-06-15T21:15:50.7046948+00:00",
+                       "FilledAt":  "2026-06-15T21:15:50.7046948+00:00",
+                       "Status":  "PaperFilled",
+                       "Source":  "ModelPortfolio",
+                       "PortfolioId":  "RiskDengeli",
+                       "PortfolioName":  "Risk Dengeli Model Portföyü",
+                       "Side":  "Buy",
+                       "Symbol":  "NTGAZ",
+                       "Company":  "NATURELGAZ SANAYİ VE TİCARET A.Ş.",
+                       "Price":  12.6,
+                       "Quantity":  1741.286508,
+                       "AmountTL":  21940.21,
+                       "Note":  "İlk kurulum: hedef ağırlık %21.98. Strateji skoru 74.6; makro/sektör 63.2; trend 66.3; değer 91.0; kalite 88.8; bilanço 92.7; teknik RSI 49.4; risk Orta."
                    },
                    {
                        "Id":  "ModelPortfolio:RiskDengeli:3:GLYHO:2026-06-15T21:15:50.7046948+00:00",
@@ -68,38 +132,6 @@
                        "Quantity":  35.460482,
                        "AmountTL":  13971.43,
                        "Note":  "İlk kurulum: hedef ağırlık %14. Strateji skoru 74.6; makro/sektör 76.9; trend 86.6; değer 61.2; kalite 77.5; bilanço 100.0; teknik RSI 58.1; risk Orta."
-                   },
-                   {
-                       "Id":  "ModelPortfolio:RiskDengeli:6:NTGAZ:2026-06-15T21:15:50.7046948+00:00",
-                       "CreatedAt":  "2026-06-15T21:15:50.7046948+00:00",
-                       "FilledAt":  "2026-06-15T21:15:50.7046948+00:00",
-                       "Status":  "PaperFilled",
-                       "Source":  "ModelPortfolio",
-                       "PortfolioId":  "RiskDengeli",
-                       "PortfolioName":  "Risk Dengeli Model Portföyü",
-                       "Side":  "Buy",
-                       "Symbol":  "NTGAZ",
-                       "Company":  "NATURELGAZ SANAYİ VE TİCARET A.Ş.",
-                       "Price":  12.6,
-                       "Quantity":  1741.286508,
-                       "AmountTL":  21940.21,
-                       "Note":  "İlk kurulum: hedef ağırlık %21.98. Strateji skoru 74.6; makro/sektör 63.2; trend 66.3; değer 91.0; kalite 88.8; bilanço 92.7; teknik RSI 49.4; risk Orta."
-                   },
-                   {
-                       "Id":  "InstantEntry:InstantEntry:6:ENERY:2026-06-15T13:44:19.7221536+00:00",
-                       "CreatedAt":  "2026-06-15T13:44:19.7221536+00:00",
-                       "FilledAt":  "2026-06-15T21:15:50.7046948+00:00",
-                       "Status":  "PaperFilled",
-                       "Source":  "InstantEntry",
-                       "PortfolioId":  "InstantEntry",
-                       "PortfolioName":  "Anlık Fırsat Portföyü",
-                       "Side":  "Buy",
-                       "Symbol":  "ENERY",
-                       "Company":  "Enerya Enerji A.S.",
-                       "Price":  9.75,
-                       "Quantity":  512.820513,
-                       "AmountTL":  5000,
-                       "Note":  "Günlük anlık fırsat bütçesiyle alındı. Sıkı anlık alış filtresi geçti: skor 85+, MACD yeni sıfır kesişimi veya pozitif ivme + 52H %20-50 bandı. Haftalık MACD histogramı son 8 haftada 5/7 kez, son 4 hafta üst üste iyileşti; son 0.04, önceki -0.02. Histogram negatiften pozitife bu hafta geçti; erken dönüş sinyali en güçlü teknik gerekçe. Backtestte sıfır üstüne yeni dönüş yüksek kazanma oranı verdi; skorda teyit olarak öne alındı. Temel filtre geçti: bilanço 96.6, kalite 77.5, değer 66.2; son 5 çeyrek kârlı. RSI 66.5; momentum var ama kısa vadeli yorulma riski izlenmeli. 52 haftalık bandın üst yarısında: konum 58.2%; güç var ama dip fırsatı değil. Sektör rotasyonu BIST Üstü; BIST100e göre ortalama fark 4.5 puan. FD/FAVÖK 11.03; ucuz/makul değerleme filtresinde. Göreli hacim 3.95x; fiyat hareketi tamamen hacimsiz değil."
                    }
                ],
     "Positions":  [
@@ -114,6 +146,30 @@
                           "CostBasisTL":  5000,
                           "LastPrice":  9.75,
                           "LastOrderAt":  "2026-06-15T21:15:50.7046948+00:00"
+                      },
+                      {
+                          "Key":  "InstantEntry|InstantEntry|GLYHO",
+                          "Source":  "InstantEntry",
+                          "PortfolioId":  "InstantEntry",
+                          "PortfolioName":  "Anlık Fırsat Portföyü",
+                          "Symbol":  "GLYHO",
+                          "Company":  "GLOBAL YATIRIM HOLDİNG A.Ş.",
+                          "Quantity":  146.028037,
+                          "CostBasisTL":  2500,
+                          "LastPrice":  17.12,
+                          "LastOrderAt":  "2026-06-16T15:15:57.4814957+00:00"
+                      },
+                      {
+                          "Key":  "InstantEntry|InstantEntry|INFO",
+                          "Source":  "InstantEntry",
+                          "PortfolioId":  "InstantEntry",
+                          "PortfolioName":  "Anlık Fırsat Portföyü",
+                          "Symbol":  "INFO",
+                          "Company":  "İNFO YATIRIM MENKUL DEĞERLER A.Ş.",
+                          "Quantity":  618.811881,
+                          "CostBasisTL":  2500,
+                          "LastPrice":  4.04,
+                          "LastOrderAt":  "2026-06-16T15:15:57.4814957+00:00"
                       },
                       {
                           "Key":  "ModelPortfolio|RiskDengeli|BIMAS",
