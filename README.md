@@ -136,12 +136,31 @@ ve sonucu e-posta + artifact olarak veren bulut botu. Bilgisayar kapalıyken de
   o anki likidite kapısı + karekök piyasa-etkisi maliyetiyle gerçekçi backtest.
 - `Validate-StrategySweep.ps1` + `strategy-validation.yml` — TopN/maliyet/likidite
   kombinasyonlarını manuel deneyen validation sweep; günlük raporu/state'i etkilemez.
+- `Backtest-EventDriven.ps1` + `backtest-event-driven.yml` — **gerçek event-driven
+  backtest** (aşağıya bakın); CI'da önce motorun ağsız birim testi çalışır.
+- `BacktestEngine.psm1` — event-driven backtest çekirdeği (`Invoke-EventDrivenBacktest`).
+- `Test-BacktestEngine.ps1` — motorun **ağsız, deterministik** birim testleri (CI kapısı).
 - `Find-EvdsBondSeries.ps1` + `evds-discovery.yml` — EVDS seri kodu keşfi (tanılama).
 
 > Backtest uyarısı: ücretsiz veride **survivorship** (bugün listede olmayan/delist
 > hisseler yok) ve geçmiş bilanço anlık görüntüsü eksikliği vardır; backtest
 > rakamları **iyimser üst sınırdır**. Yanlılıksız ölçüm için bot **ileriye dönük
 > canlı alfa**yı izler.
+
+### Gerçek Event-Driven Backtest Motoru (`BacktestEngine.psm1`)
+
+Eski "aylık döngü" yaklaşımının aksine motor **günlük olay ekseninde** ilerler:
+her gün **mark-to-market**; ay sonu rebalance günlerinde sinyal **yalnız o güne
+kadarki** fiyat/hacimle hesaplanır (point-in-time, ileri-bakış yok). Dolum
+gerçekçidir: komisyon + kayma + **karekök piyasa-etkisi** (işlem TL / günlük TL
+hacim) + **ADV katılım sınırı** (`MaxAdvMultiple`: tek isimde günlük hacmin en
+fazla bu katı kadar pozisyon → likidite gerçekçiliği). Tam nakit/pozisyon defteri
+tutulur. Kurumsal metrikler üretir: CAGR, yıllık vol, **Sharpe, Sortino, Calmar**,
+maks düşüş, yıllık **turnover**, BIST100'e karşı **alpha**, aylık **isabet** ve
+eşitlik eğrisi. Çekirdek **ağsızdır ve deterministik test edilir**:
+`Test-BacktestEngine.ps1` elle hesaplanmış "golden" değerlerle defter korunumu,
+maliyet, ADV sınırı, alım/satım geçişi ve metrikleri doğrular; backtest
+workflow'unda **kapı** görevi görür.
 
 ## Gerekli GitHub Secrets
 
@@ -164,6 +183,8 @@ Opsiyonel **Variables** (`Actions > Variables`):
 - **BIST Cloud Report** — günlük raporu hemen üretir ve e-posta gönderir.
 - **Model Portfolio Backtest (Realistic)** / **... Backtest** — geriye dönük analiz
   (sonuçlar çalışma log'una yazılır).
+- **Model Portfolio Backtest (Event-Driven)** — günlük olay eksenli gerçek
+  event-driven backtest (kurumsal metrikler; önce motorun birim testi çalışır).
 - **Strategy Validation Sweep** — parametre kombinasyonlarını dener ve markdown/JSON
   validation artifact üretir.
 - **Earnings Event Study** — bilanço olay çalışması.
