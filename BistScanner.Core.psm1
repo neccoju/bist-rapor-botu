@@ -5466,6 +5466,101 @@ function Update-SignalPerformance {
     }
 }
 
+function Save-PitSnapshot {
+    <#
+        Point-in-time (PIT) anlik goruntu deposu — KURUMSAL altyapi.
+
+        Gecmis "as-reported" temel veri ve delist-dahil bilesen listesi ucretsiz
+        kaynaklarda YOKTUR; bu yuzden gecmise donuk PIT uretilemez. Bunun yerine bu
+        fonksiyon, her kosuda O GUN GOZLENEN evreni + temel/teknik alanlari tarihli
+        JSON olarak biriktirir. Zamanla, ileri-bakis (look-ahead) iceremeyen GERCEK
+        bir PIT arsivi olusur; backtest'ler bu arsivden as-observed temel veriyle
+        beslenebilir hale gelir.
+
+        Cikti: data/pit/YYYY-MM-DD.json  (gunde tek dosya; idempotent).
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][object[]]$Stocks,
+        [string]$Directory = 'data/pit',
+        [Nullable[datetime]]$AsOf = $null,
+        [object]$Macro = $null
+    )
+
+    $stamp = if ($AsOf) { ([datetime]$AsOf) } else { Get-Date }
+    $dateKey = $stamp.ToString('yyyy-MM-dd')
+    if (-not (Test-Path -LiteralPath $Directory)) {
+        New-Item -ItemType Directory -Path $Directory -Force | Out-Null
+    }
+    $path = Join-Path $Directory ("$dateKey.json")
+
+    $rows = [System.Collections.Generic.List[object]]::new()
+    foreach ($s in $Stocks) {
+        if ($null -eq $s) { continue }
+        $sym = Get-ObjectPropertyValue -Object $s -Name 'Symbol'
+        if ([string]::IsNullOrWhiteSpace($sym)) { continue }
+        # Yalniz o gun gozlenen alanlar — ileri-bakis yok.
+        [void]$rows.Add([pscustomobject][ordered]@{
+                Symbol           = [string]$sym
+                Price            = Get-ObjectPropertyValue -Object $s -Name 'Price'
+                MarketCap        = Get-ObjectPropertyValue -Object $s -Name 'MarketCap'
+                PE               = Get-ObjectPropertyValue -Object $s -Name 'PE'
+                PB               = Get-ObjectPropertyValue -Object $s -Name 'PB'
+                ROE              = Get-ObjectPropertyValue -Object $s -Name 'ROE'
+                DebtToEquity     = Get-ObjectPropertyValue -Object $s -Name 'DebtToEquity'
+                DividendYield    = Get-ObjectPropertyValue -Object $s -Name 'DividendYield'
+                Sector           = Get-ObjectPropertyValue -Object $s -Name 'Sector'
+                VolatilityD      = Get-ObjectPropertyValue -Object $s -Name 'VolatilityD'
+                AverageVolume10D = Get-ObjectPropertyValue -Object $s -Name 'AverageVolume10D'
+                LatestReportDate = (Get-ObjectPropertyValue -Object $s -Name 'LatestReportDate')
+                NextEarningsDate = (Get-ObjectPropertyValue -Object $s -Name 'NextEarningsDate')
+                FiscalPeriodEnd  = (Get-ObjectPropertyValue -Object $s -Name 'FiscalPeriodEnd')
+            })
+    }
+
+    $macroNote = $null
+    if ($null -ne $Macro) {
+        $macroNote = [pscustomobject][ordered]@{
+            UsdTry = Get-ObjectPropertyValue -Object $Macro -Name 'UsdTry'
+            Tr10Y  = Get-ObjectPropertyValue -Object $Macro -Name 'Tr10Y'
+            Dxy    = Get-ObjectPropertyValue -Object $Macro -Name 'Dxy'
+            Vix    = Get-ObjectPropertyValue -Object $Macro -Name 'Vix'
+        }
+    }
+
+    $snapshot = [pscustomobject][ordered]@{
+        AsOf          = $stamp.ToString('o')
+        CapturedUtc   = (Get-Date).ToUniversalTime().ToString('o')
+        UniverseCount = $rows.Count
+        Macro         = $macroNote
+        Constituents  = $rows.ToArray()
+    }
+    $snapshot | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $path -Encoding UTF8
+    return $path
+}
+
+function Get-PitSnapshot {
+    <#
+        PIT arsivinden bir gunun (veya en yakin oncesinin) anlik goruntusunu okur.
+        Yoksa $null. Backtest'lerin as-observed temel veriyle beslenmesi icindir.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][datetime]$Date,
+        [string]$Directory = 'data/pit',
+        [switch]$OnOrBefore
+    )
+    if (-not (Test-Path -LiteralPath $Directory)) { return $null }
+    $target = $Date.ToString('yyyy-MM-dd')
+    $exact = Join-Path $Directory ("$target.json")
+    if (Test-Path -LiteralPath $exact) { return (Get-Content -LiteralPath $exact -Raw | ConvertFrom-Json) }
+    if (-not $OnOrBefore) { return $null }
+    $candidate = @(Get-ChildItem -LiteralPath $Directory -Filter '*.json' -ErrorAction SilentlyContinue |
+            Where-Object { $_.BaseName -le $target } | Sort-Object Name)
+    if ($candidate.Count -eq 0) { return $null }
+    return (Get-Content -LiteralPath $candidate[-1].FullName -Raw | ConvertFrom-Json)
+}
+
 Export-ModuleMember -Function `
     Invoke-WithRetry, `
     Update-SignalPerformance, `
@@ -5498,4 +5593,6 @@ Export-ModuleMember -Function `
     Get-BistIndexBenchmarks, `
     Get-InstantEntryOpportunities, `
     New-ModelPortfolioSet, `
-    Update-ModelPortfolioSet
+    Update-ModelPortfolioSet, `
+    Save-PitSnapshot, `
+    Get-PitSnapshot

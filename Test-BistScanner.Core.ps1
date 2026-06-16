@@ -418,6 +418,28 @@ $cp1 = $costSet1.Portfolios[0]
 if (-not ([double]$cp1.CumulativeModelCostsTL -ge [double]$cp0.CumulativeModelCostsTL)) { throw "Rebalance maliyeti birikmedi: $($cp1.CumulativeModelCostsTL)" }
 Write-Host "İşlem maliyeti testi başarılı (giriş maliyeti $($cp0.CumulativeModelCostsTL) TL, rebalance sonrası $($cp1.CumulativeModelCostsTL) TL)."
 
+# --- Point-in-time (PIT) anlik goruntu deposu: kaydet/oku, exact + on-or-before ---
+$pitDir = Join-Path ([System.IO.Path]::GetTempPath()) ("pit_test_" + [guid]::NewGuid())
+try {
+    $pitStocks = @(
+        ($sample | Select-Object *),
+        ([pscustomobject]@{ Symbol = 'TEST2'; Price = 50.0; MarketCap = 5e9; PE = 7.0; PB = 1.0; ROE = 18.0; DebtToEquity = 30.0; DividendYield = 1.0; Sector = 'Finance'; VolatilityD = 3.0; AverageVolume10D = 1e6; LatestReportDate = $null; NextEarningsDate = $null; FiscalPeriodEnd = $null })
+    )
+    $savedPath = Save-PitSnapshot -Stocks $pitStocks -Directory $pitDir -AsOf ([datetime]'2026-06-16')
+    if (-not (Test-Path -LiteralPath $savedPath)) { throw 'PIT anlik goruntu dosyasi yazilmadi.' }
+    $pitRead = Get-PitSnapshot -Date ([datetime]'2026-06-16') -Directory $pitDir
+    if ($pitRead.UniverseCount -ne 2) { throw "PIT evren sayisi yanlis: $($pitRead.UniverseCount)" }
+    if (@($pitRead.Constituents | Where-Object { $_.Symbol -eq 'TEST' }).Count -ne 1) { throw 'PIT bilesen kaybi.' }
+    $pitMissing = Get-PitSnapshot -Date ([datetime]'2026-06-10') -Directory $pitDir
+    if ($null -ne $pitMissing) { throw 'PIT exact-eslesme yoksa null donmeliydi.' }
+    $pitBefore = Get-PitSnapshot -Date ([datetime]'2026-06-20') -Directory $pitDir -OnOrBefore
+    if ($null -eq $pitBefore) { throw 'PIT on-or-before en yakin onceki kaydi dondurmedi.' }
+    Write-Host "PIT anlik goruntu deposu testi başarılı (evren $($pitRead.UniverseCount), on-or-before OK)."
+}
+finally {
+    if (Test-Path -LiteralPath $pitDir) { Remove-Item -LiteralPath $pitDir -Recurse -Force -ErrorAction SilentlyContinue }
+}
+
 if ($Live) {
     $stocks = @(Invoke-BistStockScan)
     if ($stocks.Count -lt 400) {

@@ -1307,6 +1307,17 @@ try {
         }) -Depth 8
     Write-TimingLog -Step 'Son tarama state kaydi' -StartedAt $stageStartedAt
 
+    # Point-in-time (PIT) anlik goruntu arsivi: o gun gozlenen evren + temel veriyi
+    # tarihli olarak biriktirir (ileri-bakis yok). Zamanla gercek bir as-observed PIT
+    # arsivi olusur ve backtest'ler temel veriyle beslenebilir hale gelir. Best-effort.
+    $stageStartedAt = Get-Date
+    try {
+        $pitPath = Save-PitSnapshot -Stocks $stocks -Directory (Join-Path $PSScriptRoot 'data\pit') -AsOf $runAt
+        Write-Host "PIT anlik goruntu kaydedildi: $pitPath"
+    }
+    catch { Write-Warning "PIT anlik goruntu kaydedilemedi: $($_.Exception.Message)" }
+    Write-TimingLog -Step 'PIT anlik goruntu kaydi' -StartedAt $stageStartedAt
+
     # Kendi kendini degerlendiren geri-besleme: onceki kosunun yuksek-skorlu
     # secilerinin gerceklesen getirisi, skorun isabet oranini (hit-rate) olcer.
     $stageStartedAt = Get-Date

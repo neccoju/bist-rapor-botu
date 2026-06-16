@@ -139,6 +139,10 @@ jobs:
             'data/earnings_reactions.json',
             'data/signal_calibration.json'
           ) | Where-Object { Test-Path -LiteralPath $_ }
+          # PIT anlik goruntu arsivi (tarihli dosyalar): gunluk birikir, hepsini ekle.
+          if (Test-Path -LiteralPath 'data/pit') {
+            $files += @(Get-ChildItem -LiteralPath 'data/pit' -Filter '*.json' -ErrorAction SilentlyContinue | ForEach-Object { "data/pit/$($_.Name)" })
+          }
           if ($files.Count -eq 0) {
             Write-Host 'Kaydedilecek state dosyasi bulunamadi.'
             exit 0

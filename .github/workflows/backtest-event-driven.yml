@@ -1,0 +1,59 @@
+name: Model Portfolio Backtest (Event-Driven)
+
+# GERCEK event-driven backtest: gunluk olay ekseni + gercekci dolum (komisyon +
+# kayma + karekok piyasa-etkisi + ADV katilim siniri) + kurumsal metrikler
+# (CAGR/Sharpe/Sortino/Calmar/maks dusus/turnover/alpha). Gunluk raporu/state'i
+# ETKILEMEZ.
+on:
+  workflow_dispatch:
+    inputs:
+      start_date:
+        description: "Baslangic (yyyy-MM-dd)"
+        required: false
+        default: "2024-09-01"
+      top_n:
+        description: "Portfoy hisse sayisi"
+        required: false
+        default: "5"
+      max_stocks:
+        description: "Evren buyuklugu (piyasa degerine gore fetch)"
+        required: false
+        default: "300"
+      commission_bps:
+        description: "Komisyon (bps)"
+        required: false
+        default: "15"
+      slippage_bps:
+        description: "Kayma (bps)"
+        required: false
+        default: "10"
+      min_adv_tl:
+        description: "O anki min gunluk TL hacim (likidite kapisi)"
+        required: false
+        default: "3000000"
+      max_adv_multiple:
+        description: "Tek isimde gunluk TL hacmin en fazla bu kati"
+        required: false
+        default: "0.25"
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  backtest:
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Engine unit tests (offline gate)
+        shell: powershell
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\Test-BacktestEngine.ps1
+      - name: Run event-driven backtest
+        shell: powershell
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\Backtest-EventDriven.ps1 -StartDate ([datetime]"${{ github.event.inputs.start_date }}") -TopN ([int]"${{ github.event.inputs.top_n }}") -MaxStocks ([int]"${{ github.event.inputs.max_stocks }}") -CommissionBps ([double]"${{ github.event.inputs.commission_bps }}") -SlippageBps ([double]"${{ github.event.inputs.slippage_bps }}") -MinAdvTl ([double]"${{ github.event.inputs.min_adv_tl }}") -MaxAdvMultiple ([double]"${{ github.event.inputs.max_adv_multiple }}")

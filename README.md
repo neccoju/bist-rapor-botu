@@ -95,6 +95,8 @@ ve sonucu e-posta + artifact olarak veren bulut botu. Bilgisayar kapalıyken de
 - `data/` — kalıcı bot state'i (git'te tutulur): `model_portfolios.json`,
   `instant_entry_portfolio.json`, `signal_performance.json`, `earnings_reactions.json`,
   `signal_calibration.json`.
+- `data/pit/` — point-in-time anlık görüntü arşivi (tarihli `YYYY-MM-DD.json`;
+  her gün gözlenen evren + temel veri, ileri-bakış olmadan biriker).
 
 ### Analiz / araştırma araçları (elle tetiklenir; günlük raporu etkilemez)
 
@@ -104,11 +106,56 @@ ve sonucu e-posta + artifact olarak veren bulut botu. Bilgisayar kapalıyken de
 - `Backtest-Realistic.ps1` + `backtest-realistic.yml` — RFS teknik (point-in-time) +
   o anki likidite kapısı + karekök piyasa-etkisi maliyetiyle gerçekçi backtest.
 - `Find-EvdsBondSeries.ps1` + `evds-discovery.yml` — EVDS seri kodu keşfi (tanılama).
+- `Backtest-EventDriven.ps1` + `backtest-event-driven.yml` — **gerçek event-driven
+  backtest** (aşağıya bakın).
+- `BacktestEngine.psm1` — event-driven backtest çekirdeği (`Invoke-EventDrivenBacktest`).
+- `Test-BacktestEngine.ps1` — motorun **ağsız, deterministik** birim testleri (CI kapısı).
 
 > Backtest uyarısı: ücretsiz veride **survivorship** (bugün listede olmayan/delist
 > hisseler yok) ve geçmiş bilanço anlık görüntüsü eksikliği vardır; backtest
 > rakamları **iyimser üst sınırdır**. Yanlılıksız ölçüm için bot **ileriye dönük
 > canlı alfa**yı izler.
+
+## Kurumsal-Seviye Altyapı
+
+### Gerçek Event-Driven Backtest Motoru (`BacktestEngine.psm1`)
+
+Eski "aylık döngü" yaklaşımının aksine, motor **günlük olay ekseninde** ilerler:
+
+- Her gün **mark-to-market** (nakit + pozisyonlar); ay sonu rebalance günlerinde
+  sinyal **yalnız o güne kadarki** fiyat/hacimle hesaplanır (point-in-time, ileri-
+  bakış yok).
+- **Gerçekçi dolum:** komisyon + kayma + **karekök piyasa-etkisi** (işlem TL /
+  günlük TL hacim) + **ADV katılım sınırı** (`MaxAdvMultiple`: tek isimde günlük
+  hacmin en fazla bu katı kadar pozisyon → likidite gerçekçiliği).
+- **Tam defter (ledger):** nakit/pozisyon akışı; alım/satım korunumu test edilmiştir.
+- **Kurumsal metrikler:** CAGR, yıllık vol, **Sharpe, Sortino, Calmar**, maks düşüş,
+  yıllık **turnover**, BIST100'e karşı **alpha**, aylık **isabet (hit-rate)**, eşitlik
+  eğrisi (equity curve), aylık getiriler.
+- **Çekirdek ağsızdır ve deterministik test edilir:** `Test-BacktestEngine.ps1` elle
+  hesaplanmış "golden" değerlerle defter korunumu, maliyet muhasebesi, ADV sınırı,
+  alım/satım geçişi ve metrikleri doğrular; backtest workflow'unda **kapı** görevi görür.
+
+Çalıştırma: `Actions → Model Portfolio Backtest (Event-Driven) → Run workflow`.
+Komisyon/kayma/likidite parametreleri girişten ayarlanır.
+
+### Point-in-Time (PIT) Anlık Görüntü Arşivi (`data/pit/`)
+
+Geçmiş **as-reported** temel veri ve delist-dahil bileşen listesi ücretsiz
+kaynaklarda yoktur; bu yüzden geçmişe dönük PIT **üretilemez**. Bunun yerine bot,
+her çalışmada **o gün gözlenen** evreni + temel/teknik alanları tarihli JSON olarak
+(`data/pit/YYYY-MM-DD.json`) biriktirir ve git'e commit'ler. Zamanla, ileri-bakış
+içeremeyen **gerçek bir as-observed PIT arşivi** oluşur; ileride backtest'ler bu
+arşivden gerçek temel veriyle beslenebilir hale gelir.
+
+- Yazan: `Save-PitSnapshot` (günde tek dosya, idempotent), günlük raporda best-effort.
+- Okuyan: `Get-PitSnapshot -Date <gün> [-OnOrBefore]` (tam eşleşme ya da en yakın
+  önceki gün).
+
+> Dürüst kısıt: bu motor ve PIT arşivi mimariyi **kurumsal seviyeye** taşır, ancak
+> *gerçek tick verisi, broker emir-defteri dolumu ve geçmiş as-reported PIT temel
+> veri* hâlâ ücretsiz değildir. Survivorship arşiv biriktikçe ileriye dönük olarak
+> azalır; rakamlar uydurulmaz, kısıtlar açıkça belirtilir.
 
 ## Gerekli GitHub Secrets
 
