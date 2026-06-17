@@ -1,0 +1,30 @@
+name: Strategy Separation Simulation
+
+# Strateji ayrismasi GERCEK-VERI dogrulamasi: 30 Haziran tarihli rebalance'i
+# guncel canli BIST taramasiyla simule eder, portfoy holding'lerini + ortusmeyi
+# log'a yazar. Gercek state'e DOKUNMAZ; gunluk raporu/state'i ETKILEMEZ.
+on:
+  workflow_dispatch:
+    inputs:
+      as_of:
+        description: "Rebalance tarihi (yyyy-MM-dd)"
+        required: false
+        default: "2026-06-30"
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  simulate:
+    runs-on: windows-2025
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Run separation simulation
+        shell: powershell
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\Simulate-RebalanceSeparation.ps1 -AsOf ([datetime]"${{ github.event.inputs.as_of }}")
