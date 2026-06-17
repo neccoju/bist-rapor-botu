@@ -3734,6 +3734,38 @@ function Test-ModelPortfolioEligibleStock {
         $technicalOk
 }
 
+function Get-StrategySelectionScore {
+    <#
+        Portfoy SECIMI icin strateji-spesifik siralama anahtari. Rapordaki genel
+        Score'a DOKUNMAZ; yalnizca her stratejiyi KENDI bileseni etrafinda ayristirir.
+
+        Sorun: onceden tum stratejiler dogrudan Score ile siralaniyordu. Score,
+        strateji-bagimsiz ve her stratejide yuksek-agirlikli MacroSector + Earnings
+        bilesenlerince dominate edildigi icin Dengeli=Momentum ve Deger=Kalite
+        portfoyleri ayni hisseleri seciyordu. Bu fonksiyon stratejinin kendi
+        eksenine ~%85 agirlik vererek secimi gercekten ayristirir; %15 genel Score
+        kalite tabani olarak korunur.
+    #>
+    param($Stock, [string]$Strategy)
+    $get = {
+        param($Name)
+        $v = Get-ObjectPropertyValue -Object $Stock -Name $Name
+        if ($null -eq $v) { 0.0 } else { [double]$v }
+    }
+    $score = & $get 'Score'
+    $trend = & $get 'TrendScore'
+    $value = & $get 'ValueScore'
+    $quality = & $get 'QualityScore'
+    $earnings = & $get 'EarningsScore'
+    $momentum = & $get 'MomentumScore'
+    switch ($Strategy) {
+        'Momentum' { return (0.55 * $momentum) + (0.30 * $trend) + (0.15 * $score) }
+        'Değer' { return (0.60 * $value) + (0.25 * $earnings) + (0.15 * $score) }
+        'Kalite' { return (0.55 * $quality) + (0.30 * $earnings) + (0.15 * $score) }
+        default { return $score }   # Dengeli: dengeli genel skor
+    }
+}
+
 function Get-ModelPortfolioSelection {
     [CmdletBinding()]
     param(
@@ -3762,10 +3794,12 @@ function Get-ModelPortfolioSelection {
         )
     }
     else {
+        # Strateji-spesifik siralama: her portfoy kendi ekseninde ayrisir
+        # (Dengeli=genel Score; Momentum/Deger/Kalite kendi bilesenine agirlikli).
         $candidates = @(
             $scoredAll |
                 Where-Object { Test-ModelPortfolioEligibleStock -Stock $_ } |
-                Sort-Object Score -Descending
+                Sort-Object @{ Expression = { Get-StrategySelectionScore -Stock $_ -Strategy $Strategy }; Descending = $true }
         )
     }
 

@@ -432,6 +432,50 @@ $cp1 = $costSet1.Portfolios[0]
 if (-not ([double]$cp1.CumulativeModelCostsTL -ge [double]$cp0.CumulativeModelCostsTL)) { throw "Rebalance maliyeti birikmedi: $($cp1.CumulativeModelCostsTL)" }
 Write-Host "İşlem maliyeti ve RiskDengeli portföy testi başarılı (giriş maliyeti $($cp0.CumulativeModelCostsTL) TL, rebalance sonrası $($cp1.CumulativeModelCostsTL) TL)."
 
+# --- Strateji-spesifik portföy ayrışması: Momentum vs Değer aynı havuzdan farklı seçmeli ---
+# Tam-donanımlı $sample'dan momentum-güçlü ve değer-güçlü sentetik hisseler türet.
+function New-StratTestStock {
+    param([string]$Symbol, [string]$Sector, [double]$EvEbitda, [double]$PE, [double]$PB,
+        [double]$PerfWeek, [double]$PerfMonth, [double]$RSI, [double]$MacdHist)
+    $s = $sample | Select-Object *
+    $s.Symbol = $Symbol
+    $s.Sector = $Sector
+    $s.SectorTR = $Sector
+    $s.EvEbitda = $EvEbitda
+    $s.PE = $PE
+    $s.PB = $PB
+    $s.PerfWeek = $PerfWeek
+    $s.PerfMonth = $PerfMonth
+    $s.RSI = $RSI
+    $s.MacdHistogram = $MacdHist
+    $s.MacdLine = $(if ($MacdHist -ge 0) { 1.2 } else { -0.5 })
+    $s.MacdSignal = 0.8
+    return $s
+}
+$stratStocks = @(
+    # Momentum-güçlü: yüksek perf/RSI/MACD, zayıf (ama uygun) değer (EvEbitda ~11)
+    (New-StratTestStock 'MOM1' 'Sektör A' 11 14 1.4 8 26 63 0.6)
+    (New-StratTestStock 'MOM2' 'Sektör B' 11 14 1.4 7 23 62 0.6)
+    (New-StratTestStock 'MOM3' 'Sektör C' 11 14 1.4 7 21 61 0.5)
+    (New-StratTestStock 'MOM4' 'Sektör D' 11 14 1.4 6 19 60 0.5)
+    (New-StratTestStock 'MOM5' 'Sektör E' 11 14 1.4 6 17 59 0.4)
+    # Değer-güçlü: güçlü değer (düşük EvEbitda/PE/PB), zayıf momentum (düşük perf/RSI/MACD-)
+    (New-StratTestStock 'VAL1' 'Sektör F' 3.0 6 0.8 1 2 45 -0.3)
+    (New-StratTestStock 'VAL2' 'Sektör G' 3.2 6 0.8 1 2 45 -0.3)
+    (New-StratTestStock 'VAL3' 'Sektör H' 3.5 7 0.9 2 3 46 -0.2)
+    (New-StratTestStock 'VAL4' 'Sektör I' 3.8 7 0.9 2 3 47 -0.2)
+    (New-StratTestStock 'VAL5' 'Sektör J' 4.0 8 0.9 2 3 48 -0.2)
+)
+$momTop = @(Get-ModelPortfolioSelection -Stocks $stratStocks -Strategy 'Momentum' -Count 5 | ForEach-Object { [string]$_.Symbol })
+$valTop = @(Get-ModelPortfolioSelection -Stocks $stratStocks -Strategy 'Değer' -Count 5 | ForEach-Object { [string]$_.Symbol })
+$momHits = @($momTop | Where-Object { $_ -like 'MOM*' }).Count
+$valHits = @($valTop | Where-Object { $_ -like 'VAL*' }).Count
+$overlap = @($momTop | Where-Object { $valTop -contains $_ }).Count
+if ($momHits -lt 4) { throw "Momentum portföyü momentum hisselerini öne çıkarmadı: $($momTop -join ', ')" }
+if ($valHits -lt 4) { throw "Değer portföyü değer hisselerini öne çıkarmadı: $($valTop -join ', ')" }
+if ($overlap -ge 3) { throw "Momentum ve Değer portföyleri hâlâ büyük ölçüde örtüşüyor (kesişim=$overlap): $($momTop -join ', ') vs $($valTop -join ', ')" }
+Write-Host "Strateji ayrışma testi başarılı (Momentum=$($momTop -join ','); Değer=$($valTop -join ','); kesişim=$overlap)."
+
 if ($Live) {
     $stocks = @(Invoke-BistStockScan)
     if ($stocks.Count -lt 400) {
