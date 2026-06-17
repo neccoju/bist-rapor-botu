@@ -198,6 +198,48 @@ Nasıl çalışır:
 > Not: Model portföyler ilk kuruldukları tarihten itibaren çizilir; geçmişe
 > uzatılmaz (o tarihten önce portföy yoktu). Grafik gün geçtikçe dolar.
 
+## Gözlem Göstergeleri (deneysel — karar etkisi YOK)
+
+Raporun en altında, **"🔬 Gözlem Göstergeleri"** başlıklı bir bölüm vardır. Buradaki
+üç gösterge **yalnız bilgi amaçlıdır**: skoru, portföy seçimini ve ağırlıkları
+**değiştirmezler**. Amaç, bir özelliği karara bağlamadan önce canlı veride birkaç
+hafta izleyip gerçekten ayrıştırıcı olup olmadığını görmektir ("önce göster, sonra
+karara bağla" — overfitting'e karşı koruma). Veriler birikince, işe yarayanlar
+**senin onayınla** Aşama 2'de (config bayrağıyla) skora/seçime bağlanabilir.
+
+### 1. Piyasa genişliği (market breadth)
+- **Ne ölçer:** Taranan tüm evrende (≈600 hisse) yüzde kaç hissenin 200 ve 50 günlük
+  ortalamasının üzerinde olduğunu ve son ayda pozitif getirdiğini. Bir özet etiket
+  üretir: **Dar / Orta / Geniş**.
+- **Neden önemli:** Endeks birkaç dev hisseyle yükseliyor olabilir; genişlik "yükselişe
+  kaç hisse gerçekten katılıyor?" sorusunu yanıtlar. **Dar** genişlik kırılgan/tepe
+  işareti, **geniş** genişlik sağlıklı katılımdır.
+- **Veri:** Ekstra kaynak yok — mevcut tarama üzerinde sayım (`Get-MarketBreadth`).
+
+### 2. Göreli Güç (RS) sırası
+- **Ne ölçer:** Her hissenin **BIST100'e göre** gücünü 0-100 arası bir sıraya çevirir
+  (mutlak getiri değil — "endeksten daha mı iyi?"). Fazla-getiri ağırlıklı hesaplanır
+  (%50 × 3 aylık + %30 × 1 yıllık + %20 × 1 aylık, hepsi endekse göre). Rapor en
+  güçlü 10 hisseyi listeler.
+- **Neden önemli:** İki hisse de %10 yükselmiş olabilir; ama BIST %20 yükseldiyse
+  ikisi de aslında zayıftır. RS bunu yakalar — momentum yatırımının temel taşıdır.
+- **Veri:** Ekstra kaynak yok — skorlanmış hisselerdeki getiri alanlarından
+  (`Add-RelativeStrengthRank`).
+
+### 3. Risk/Ödül (R:R)
+- **Ne ölçer:** Model portföy pozisyonları için **olası kayıp** (stop mesafesi) ile
+  **olası kazanç** (52 hafta kapanış zirvesine uzaklık) oranını. R:R ≥ 2 tercih edilir
+  (1 birim riske en az 2 birim kazanç beklentisi).
+- **Neden önemli:** Skoru yüksek ama yukarı alanı az / stopu uzak (büyük zarar riski)
+  hisseleri görünür kılar. Uzun vadede kazandıran, kazançların kayıplardan büyük olmasıdır.
+- **Veri:** Stop = `RiskRules` (varsayılan %8); 52h zirve, performans grafiğinin zaten
+  çektiği fiyat önbelleğinden alınır — **ekstra ağ çağrısı yok**.
+
+> Bu üç gösterge `Test-BistScanner.Core.ps1` içinde birim testlidir ve rapor bölümü
+> best-effort'tur (hata olsa bile rapor normal çıkar). Hiçbiri "getiriyi katlar"
+> iddiası taşımaz; kötü alımları azaltıp seçim kalitesi/risk farkındalığını artırmayı
+> hedefler.
+
 ## Kendini Öğrenen / Öz-Değerlendiren Mekanizmalar
 
 - **Sinyal isabet takibi** (`signal_performance.json`): skorun ayrıştırıcılığını ölçer.
