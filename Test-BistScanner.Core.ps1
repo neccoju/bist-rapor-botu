@@ -476,6 +476,34 @@ if ($valHits -lt 4) { throw "Değer portföyü değer hisselerini öne çıkarma
 if ($overlap -ge 3) { throw "Momentum ve Değer portföyleri hâlâ büyük ölçüde örtüşüyor (kesişim=$overlap): $($momTop -join ', ') vs $($valTop -join ', ')" }
 Write-Host "Strateji ayrışma testi başarılı (Momentum=$($momTop -join ','); Değer=$($valTop -join ','); kesişim=$overlap)."
 
+# --- Faz A gözlem modu: Piyasa genişliği (Get-MarketBreadth) ---
+$breadthStocks = @(
+    [pscustomobject]@{ Symbol = 'A'; Price = 110; SMA50 = 100; SMA200 = 90; PerfMonth = 5 }
+    [pscustomobject]@{ Symbol = 'B'; Price = 80; SMA50 = 90; SMA200 = 100; PerfMonth = -3 }
+    [pscustomobject]@{ Symbol = 'C'; Price = 105; SMA50 = 100; SMA200 = 95; PerfMonth = 2 }
+    [pscustomobject]@{ Symbol = 'D'; Price = 70; SMA50 = 85; SMA200 = 95; PerfMonth = -1 }
+)
+$breadth = Get-MarketBreadth -Stocks $breadthStocks
+if ([Math]::Abs([double]$breadth.AboveSMA200Pct - 50) -gt 0.01) { throw "Piyasa genişliği SMA200 üstü oranı yanlış: $($breadth.AboveSMA200Pct)" }
+if ([Math]::Abs([double]$breadth.PositiveMonthPct - 50) -gt 0.01) { throw "Piyasa genişliği pozitif ay oranı yanlış: $($breadth.PositiveMonthPct)" }
+Write-Host "Piyasa genişliği testi başarılı (SMA200 üstü %$($breadth.AboveSMA200Pct), etiket=$($breadth.Label))."
+
+# --- Faz A gözlem modu: Hisse-bazlı RS rank (Add-RelativeStrengthRank) ---
+$rsStocks = @(
+    [pscustomobject]@{ Symbol = 'STRONG'; PerfMonth = 20; Perf3Month = 40; PerfYear = 60; Bist100PerfMonth = 5; Bist100Perf3Month = 10; Bist100PerfYear = 25 }
+    [pscustomobject]@{ Symbol = 'MID1'; PerfMonth = 8; Perf3Month = 12; PerfYear = 28; Bist100PerfMonth = 5; Bist100Perf3Month = 10; Bist100PerfYear = 25 }
+    [pscustomobject]@{ Symbol = 'MID2'; PerfMonth = 5; Perf3Month = 9; PerfYear = 22; Bist100PerfMonth = 5; Bist100Perf3Month = 10; Bist100PerfYear = 25 }
+    [pscustomobject]@{ Symbol = 'WEAK'; PerfMonth = -10; Perf3Month = -20; PerfYear = -5; Bist100PerfMonth = 5; Bist100Perf3Month = 10; Bist100PerfYear = 25 }
+)
+$rsRanked = @(Add-RelativeStrengthRank -Stocks $rsStocks)
+$rsMap = @{}; foreach ($r in $rsRanked) { $rsMap[[string]$r.Symbol] = $r.RelativeStrengthRank }
+if ([double]$rsMap['STRONG'] -ne 100) { throw "RS rank: en güçlü hisse 100 olmalı, $($rsMap['STRONG'])" }
+if ([double]$rsMap['WEAK'] -ne 0) { throw "RS rank: en zayıf hisse 0 olmalı, $($rsMap['WEAK'])" }
+if (-not ([double]$rsMap['STRONG'] -gt [double]$rsMap['MID1'] -and [double]$rsMap['MID1'] -gt [double]$rsMap['MID2'] -and [double]$rsMap['MID2'] -gt [double]$rsMap['WEAK'])) {
+    throw "RS rank sıralaması monoton değil: $($rsMap['STRONG']),$($rsMap['MID1']),$($rsMap['MID2']),$($rsMap['WEAK'])"
+}
+Write-Host "RS rank testi başarılı (STRONG=$($rsMap['STRONG']), WEAK=$($rsMap['WEAK']))."
+
 if ($Live) {
     $stocks = @(Invoke-BistStockScan)
     if ($stocks.Count -lt 400) {

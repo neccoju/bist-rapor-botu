@@ -1722,7 +1722,15 @@ try {
     # kalite + momentum(12-1) + dusuk-vol + boyut. Mevcut Score'u degistirmez;
     # AcademicFactorScore100 (0-100) ve risk/getiri metrikleri ekler.
     $scored = @(Add-AcademicFactorScore -Stocks $scored)
+    # FAZ A (gozlem modu): hisse-bazli goreli guc (RS) sirasi. Skoru/secimi
+    # DEGISTIRMEZ; her hisseye RelativeStrengthRank (0-100) ekler, yalniz raporda.
+    $scored = @(Add-RelativeStrengthRank -Stocks $scored)
     Write-TimingLog -Step 'Skorlama' -StartedAt $stageStartedAt
+
+    # FAZ A (gozlem modu): piyasa genisligi. Skoru/secimi DEGISTIRMEZ; bağlamdır.
+    $marketBreadth = $null
+    try { $marketBreadth = Get-MarketBreadth -Stocks $scored }
+    catch { Write-Warning "Piyasa genisligi hesaplanamadi: $($_.Exception.Message)" }
 
     $stageStartedAt = Get-Date
     Save-JsonFile -Path (Join-Path $PSScriptRoot 'data\last_scan.json') -Value ([pscustomobject]@{
@@ -1795,8 +1803,8 @@ try {
     $stageStartedAt = Get-Date
     $perfChartUrl = $null
     $perfSummaryRows = @()
+    $priceCache = @{}   # portfoy hisselerinin 1y kapanis serisi; R:R 52h zirvesi icin paylasilir
     try {
-        $priceCache = @{}
         $strategySeries = @(Get-StrategyPerformanceSeries -PortfolioSet $updatedPortfolioSet -TimeoutSec 8 -PriceCache $priceCache)
         $earliestStart = $null
         foreach ($p in @(Get-ObjectPropertyValue -Object $updatedPortfolioSet -Name 'Portfolios')) {
@@ -2245,6 +2253,69 @@ $perfRowsHtml
 </div>
 "@
     }
+
+    # FAZ A — Gözlem Göstergeleri bölümü (piyasa genişliği + RS liderleri + R:R).
+    # Yalnız gözlem; skoru/portföyü/seçimi ETKİLEMEZ. Best-effort.
+    $observationSectionHtml = ''
+    try {
+        $breadthHtml = ''
+        if ($null -ne $marketBreadth -and $null -ne $marketBreadth.AboveSMA200Pct) {
+            $breadthHtml = "<p>Piyasa genişliği: <b>$($marketBreadth.Label)</b> — evrenin <b>%$($marketBreadth.AboveSMA200Pct)</b>'i 200 günlük, <b>%$($marketBreadth.AboveSMA50Pct)</b>'i 50 günlük ortalamasının üzerinde; <b>%$($marketBreadth.PositiveMonthPct)</b>'i son ayda pozitif ($($marketBreadth.SampleCount) hisse). Dar genişlik kırılgan yükselişe, geniş genişlik sağlıklı katılıma işaret eder.</p>"
+        }
+
+        $rsLeaders = @($scored | Where-Object { $null -ne $_.RelativeStrengthRank } |
+                Sort-Object @{ Expression = { [double]$_.RelativeStrengthRank }; Descending = $true } | Select-Object -First 10)
+        $rsRowsHtml = (@($rsLeaders) | ForEach-Object {
+                $nm = [System.Net.WebUtility]::HtmlEncode([string]$_.Symbol)
+                $p3 = if ($null -ne $_.Perf3Month) { '%' + [Math]::Round([double]$_.Perf3Month, 1) } else { '—' }
+                "<tr><td>$nm</td><td style=`"text-align:right;font-weight:700`">$([Math]::Round([double]$_.RelativeStrengthRank))</td><td style=`"text-align:right`">$p3</td></tr>"
+            }) -join "`n"
+        $rsBlock = if ($rsRowsHtml) {
+            "<h3 style=`"margin:14px 0 4px;font-size:13px`">Göreli Güç (RS) Liderleri — BIST100'e göre en güçlü 10 hisse</h3><table><thead><tr><th>Hisse</th><th style=`"text-align:right`">RS (0-100)</th><th style=`"text-align:right`">3A getiri</th></tr></thead><tbody>$rsRowsHtml</tbody></table>"
+        }
+        else { '' }
+
+        $rrRowsHtml = ''
+        $stopPct = if ($null -ne $riskRules) { [double]$riskRules.StopLossPct } else { -8.0 }
+        $seenRr = @{}
+        foreach ($p in @(Get-ObjectPropertyValue -Object $updatedPortfolioSet -Name 'Portfolios')) {
+            foreach ($h in @(Get-ObjectPropertyValue -Object $p -Name 'Holdings')) {
+                $sym = [string]$h.Symbol
+                if ([string]::IsNullOrWhiteSpace($sym) -or $seenRr.ContainsKey($sym)) { continue }
+                $price = Get-ObjectPropertyValue -Object $h -Name 'CurrentPrice'
+                if ($null -eq $price -or [double]$price -le 0) { continue }
+                $price = [double]$price
+                $series = @($priceCache[$sym])
+                if ($series.Count -lt 20) { continue }
+                $high52 = (@($series | ForEach-Object { [double]$_.Close }) | Measure-Object -Maximum).Maximum
+                $stopPrice = $price * (1.0 + $stopPct / 100.0)
+                $risk = $price - $stopPrice
+                if ($risk -le 0) { continue }
+                $reward = [Math]::Max(0.0, $high52 - $price)
+                $rr = [Math]::Round($reward / $risk, 2)
+                $seenRr[$sym] = $true
+                $upPct = [Math]::Round((($high52 / $price) - 1.0) * 100.0, 1)
+                $rrRowsHtml += "<tr><td>$([System.Net.WebUtility]::HtmlEncode($sym))</td><td style=`"text-align:right`">$([Math]::Round($price, 2))</td><td style=`"text-align:right`">$([Math]::Round($high52, 2))</td><td style=`"text-align:right`">%$upPct</td><td style=`"text-align:right;font-weight:700`">$rr</td></tr>`n"
+            }
+        }
+        $rrBlock = if ($rrRowsHtml) {
+            "<h3 style=`"margin:14px 0 4px;font-size:13px`">Risk/Ödül (R:R) — portföy pozisyonları</h3><p class=`"muted`">Risk = stop mesafesi (%$([Math]::Abs($stopPct))); Ödül = 52 hafta kapanış zirvesine uzaklık. R:R ≥ 2 tercih edilir.</p><table><thead><tr><th>Hisse</th><th style=`"text-align:right`">Fiyat</th><th style=`"text-align:right`">52h zirve</th><th style=`"text-align:right`">Yukarı</th><th style=`"text-align:right`">R:R</th></tr></thead><tbody>$rrRowsHtml</tbody></table>"
+        }
+        else { '' }
+
+        if ($breadthHtml -or $rsBlock -or $rrBlock) {
+            $observationSectionHtml = @"
+<div class="card" style="margin:24px 30px;">
+<h2>🔬 Gözlem Göstergeleri (deneysel — karar etkisi yok)</h2>
+<p class="muted">Aşağıdaki üç gösterge <b>yalnız gözlem amaçlıdır</b>; skoru, portföy seçimini veya ağırlıkları DEĞİŞTİRMEZ. Veriler birikince hangisinin gerçekten ayrıştırıcı olduğu değerlendirilip karara bağlanacaktır.</p>
+$breadthHtml
+$rsBlock
+$rrBlock
+</div>
+"@
+        }
+    }
+    catch { Write-Warning "Gozlem gostergeleri bolumu uretilemedi: $($_.Exception.Message)" }
     $htmlBody = @"
 <!doctype html>
 <html>
@@ -2336,6 +2407,7 @@ $(if ($orderIntentRows.Count -gt 0) { New-HtmlTable -Rows $orderIntentRows } els
 $(if ($paperBrokerPositionRows.Count -gt 0) { New-HtmlTable -Rows $paperBrokerPositionRows } else { '<p class="muted">PaperBroker defterinde açık pozisyon yok.</p>' })
 </div>
 $perfChartSectionHtml
+$observationSectionHtml
 <div class="warn">
 <b>Karar mekanizması:</b> makro zemin (TCMB EVDS faiz/TÜFE + CDS/DXY/VIX) → sektör rotasyonu → bilanço gücü (USD bazlı) → çok-zamanlı teknik teyit → kademeli giriş. Buna ek olarak <b>RawFactorScore100</b> (kesitsel ham-faktör; backtestte botun ~2 katı IC) bağımsız bir sıralama sinyali olarak raporlanır.<br>
 CDS, DXY, VIX izleme metrikleri ücretsiz/gecikmeli kaynaklardandır. İşlem kararı öncesi TCMB, Borsa İstanbul/MKK/KAP ve lisanslı veri kaynaklarıyla doğrulayın.

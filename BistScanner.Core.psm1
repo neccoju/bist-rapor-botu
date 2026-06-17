@@ -5943,6 +5943,117 @@ function New-PerformanceComparisonChart {
     if (-not [string]::IsNullOrWhiteSpace($url)) { return [string]$url } else { return $null }
 }
 
+# ===========================================================================
+#  FAZ A — Gozlem modu gostergeleri (skoru/portfoyu ETKILEMEZ; yalniz raporda)
+# ===========================================================================
+
+function Get-MarketBreadth {
+    <#
+        Piyasa genisligi: taranan tum evrende "kaç hisse trendde?" sorusunu olcer.
+        Endeks birkac dev hisseyle yukseliyor olabilir; genislik bunu yakalar.
+        Ekstra veri GEREKMEZ — mevcut tarama ($Stocks) uzerinde sayim yapar.
+        Donus: oranlar (%) + ozet etiket. Skoru/secimi DEGISTIRMEZ (gozlem modu).
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][object[]]$Stocks)
+
+    $aboveSma200 = 0; $sma200Total = 0
+    $aboveSma50 = 0; $sma50Total = 0
+    $posMonth = 0; $monthTotal = 0
+    $stackedUp = 0; $stackedTotal = 0   # 50 > 200 dizilim (yukseli trend yapisi)
+
+    foreach ($s in $Stocks) {
+        $price = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'Price')
+        $sma50 = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'SMA50')
+        $sma200 = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'SMA200')
+        $perfM = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'PerfMonth')
+
+        if ($null -ne $price -and $null -ne $sma200 -and $sma200 -gt 0) { $sma200Total++; if ($price -ge $sma200) { $aboveSma200++ } }
+        if ($null -ne $price -and $null -ne $sma50 -and $sma50 -gt 0) { $sma50Total++; if ($price -ge $sma50) { $aboveSma50++ } }
+        if ($null -ne $perfM) { $monthTotal++; if ($perfM -gt 0) { $posMonth++ } }
+        if ($null -ne $sma50 -and $null -ne $sma200 -and $sma200 -gt 0) { $stackedTotal++; if ($sma50 -ge $sma200) { $stackedUp++ } }
+    }
+
+    $pct = { param($n, $d) if ($d -gt 0) { [Math]::Round(($n / [double]$d) * 100.0, 1) } else { $null } }
+    $aboveSma200Pct = & $pct $aboveSma200 $sma200Total
+
+    # Ozet etiket: SMA200 ustu orani genel rejim gostergesidir.
+    $label = 'Veri Yok'
+    if ($null -ne $aboveSma200Pct) {
+        $label = if ($aboveSma200Pct -ge 60) { 'Genis (güçlü katılım)' }
+        elseif ($aboveSma200Pct -ge 40) { 'Orta' }
+        else { 'Dar (zayıf katılım)' }
+    }
+
+    return [pscustomobject][ordered]@{
+        AboveSMA200Pct = $aboveSma200Pct
+        AboveSMA50Pct  = & $pct $aboveSma50 $sma50Total
+        PositiveMonthPct = & $pct $posMonth $monthTotal
+        StackedUpPct   = & $pct $stackedUp $stackedTotal   # 50 >= 200 dizilimi
+        SampleCount    = $sma200Total
+        Label          = $label
+        Note           = 'Gözlem modu: piyasa genişliği yalnız bağlam içindir; skoru/seçimi etkilemez.'
+    }
+}
+
+function Add-RelativeStrengthRank {
+    <#
+        Hisse-bazli goreli guc (RS) sirasi: her hissenin getirisini BIST100'e gore
+        kesitsel persentile (0-100) cevirir. "Mutlak yukseldi mi" degil "endeksten
+        daha mi iyi" olcer. Skorlanmis hisseler Bist100Perf* alanlarini icerir.
+        Her hisseye RelativeStrengthRank (0-100) ekler. Skoru DEGISTIRMEZ (gozlem).
+        Bilesik fazla getiri = 0.5*3A + 0.3*1Y + 0.2*1A (endekse gore).
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][object[]]$Stocks)
+
+    $excessOf = {
+        param($s)
+        $g = { param($n) ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name $n) }
+        $m = & $g 'PerfMonth'; $q = & $g 'Perf3Month'; $y = & $g 'PerfYear'
+        $bm = & $g 'Bist100PerfMonth'; $bq = & $g 'Bist100Perf3Month'; $by = & $g 'Bist100PerfYear'
+        # Eksik endeks getirisi 0 kabul edilir (mutlak getiriye duser).
+        $bmv = if ($null -ne $bm) { [double]$bm } else { 0.0 }
+        $bqv = if ($null -ne $bq) { [double]$bq } else { 0.0 }
+        $byv = if ($null -ne $by) { [double]$by } else { 0.0 }
+        $em = if ($null -ne $m) { [double]$m - $bmv } else { $null }
+        $eq = if ($null -ne $q) { [double]$q - $bqv } else { $null }
+        $ey = if ($null -ne $y) { [double]$y - $byv } else { $null }
+        $parts = @(); $w = 0.0; $acc = 0.0
+        if ($null -ne $eq) { $acc += 0.5 * $eq; $w += 0.5 }
+        if ($null -ne $ey) { $acc += 0.3 * $ey; $w += 0.3 }
+        if ($null -ne $em) { $acc += 0.2 * $em; $w += 0.2 }
+        if ($w -le 0) { return $null }
+        return $acc / $w
+    }
+
+    $stocksArr = @($Stocks)
+    $scoresList = [System.Collections.Generic.List[double]]::new()
+    $excessVals = @{}
+    for ($i = 0; $i -lt $stocksArr.Count; $i++) {
+        $e = & $excessOf $stocksArr[$i]
+        $excessVals[$i] = $e
+        if ($null -ne $e) { [void]$scoresList.Add([double]$e) }
+    }
+    $sorted = @($scoresList.ToArray() | Sort-Object)
+    $n = $sorted.Count
+
+    for ($i = 0; $i -lt $stocksArr.Count; $i++) {
+        $rank = $null
+        $e = $excessVals[$i]
+        if ($null -ne $e -and $n -gt 1) {
+            # persentil: kendisinden kucuk/esit olanlarin orani
+            $below = 0
+            foreach ($v in $sorted) { if ($v -le $e) { $below++ } }
+            $rank = [Math]::Round((($below - 1) / [double]($n - 1)) * 100.0, 0)
+            if ($rank -lt 0) { $rank = 0 }
+        }
+        elseif ($null -ne $e -and $n -eq 1) { $rank = 50 }
+        $stocksArr[$i] | Add-Member -NotePropertyName 'RelativeStrengthRank' -NotePropertyValue $rank -Force
+    }
+    return $stocksArr
+}
+
 Export-ModuleMember -Function `
     Invoke-WithRetry, `
     Update-SignalPerformance, `
@@ -5978,4 +6089,7 @@ Export-ModuleMember -Function `
     Update-ModelPortfolioSet, `
     Get-StrategyPerformanceSeries, `
     Get-BenchmarkPerformanceSeries, `
-    New-PerformanceComparisonChart
+    New-PerformanceComparisonChart, `
+    Get-MarketBreadth, `
+    Add-RelativeStrengthRank, `
+    Get-StrategySelectionScore

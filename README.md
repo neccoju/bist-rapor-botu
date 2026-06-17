@@ -77,6 +77,14 @@ Kurulum (bir kez):
 - **Getiri Karşılaştırma Grafiği (mailin en altında):** tek bir çizgi grafik —
   X ekseni tarih, Y ekseni % getiri. Tüm model portföyler + BIST100 + Altın +
   Mevduat + Nasdaq + S&P 500'ün TRY bazında getirisini gösterir. Aşağıya bakın.
+- **Gözlem Göstergeleri (deneysel — karar etkisi yok):** üç yeni gösterge **yalnız
+  raporda** gösterilir; skoru/portföy seçimini/ağırlıkları **değiştirmez** (gözlem
+  modu). (1) **Piyasa genişliği:** evrenin yüzde kaçı 200/50 günlük ortalama üstünde
+  ve son ayda pozitif — dar genişlik kırılgan yükseliş işareti. (2) **Göreli Güç (RS)
+  liderleri:** her hissenin BIST100'e göre kesitsel güç sırası (0-100); en güçlü 10.
+  (3) **Risk/Ödül (R:R):** portföy pozisyonları için stop mesafesine karşı 52 hafta
+  zirvesine uzaklık. Veri birikince hangisinin ayrıştırıcı olduğu değerlendirilip
+  karara bağlanacaktır.
 
 ## Model Portföyler — ne zaman, nasıl seçer?
 
