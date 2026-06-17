@@ -22,6 +22,29 @@ ve sonucu e-posta + artifact olarak veren bulut botu. Bilgisayar kapalıyken de
   best-effort **hata bildirimi e-postası** gönderilir; aynı anda iki çalışma
   state'i bozmasın diye `concurrency` kilidi vardır.
 
+## Zamanlama ve Otomatik Çalışma (önemli)
+
+Günlük rapor workflow'u (`bist-cloud-report.yml`) artık **yalnızca
+`workflow_dispatch`** ile tetiklenir; GitHub'ın kendi `schedule` (cron) tetikleyicisi
+ve `push` tetikleyicisi **kaldırıldı**. Nedeni: GitHub'ın zamanlanmış işleri yoğun
+saatlerde **1,5–4 saat gecikebiliyordu** (mailler çok geç geliyordu).
+
+Bunun yerine zamanlama **harici, ücretsiz bir servisle** (örn. **cron-job.org**)
+yapılır: servis her hafta içi tam **18:15 Europe/Istanbul**'da GitHub API'sinin
+`workflow_dispatch` ucunu çağırır; `workflow_dispatch` gecikmesiz tetiklendiği için
+rapor saatinde çıkar.
+
+Kurulum (bir kez):
+1. GitHub'da **fine-grained personal access token** üret — sadece bu repo, izin:
+   **Actions: Read and write**. (Token'ı kimseyle paylaşma; süresi dolunca yenile.)
+2. cron-job.org'da bir iş oluştur:
+   - URL: `https://api.github.com/repos/neccoju/bist-rapor-botu/actions/workflows/bist-cloud-report.yml/dispatches`
+   - Method: `POST` · Body: `{"ref":"main"}`
+   - Header'lar: `Authorization: Bearer <TOKEN>`, `Accept: application/vnd.github+json`,
+     `X-GitHub-Api-Version: 2022-11-28`
+   - Zaman: Europe/Istanbul, 18:15, Pazartesi–Cuma.
+3. Dilediğinde `Actions → BIST Cloud Report → Run workflow` ile elle de tetiklenir.
+
 ## Raporda Gelen Bölümler
 
 - **Makro Görünüm:** BIST/BIST30/XBANK trendi, USD/TRY, Türkiye 5Y CDS, TR10Y faiz,
@@ -51,22 +74,67 @@ ve sonucu e-posta + artifact olarak veren bulut botu. Bilgisayar kapalıyken de
   risk kararı (`Tut`, `Azalt`, `Stop Adayı`, `Kar Al / Stop Yükselt`) ve gerekçe.
 - **Paper Order Intents + PaperBroker:** gerçek emir göndermez; botun ürettiği
   teorik AL/SAT niyetlerini ve kağıt üzerinde doldurulmuş pozisyon defterini raporlar.
+- **Getiri Karşılaştırma Grafiği (mailin en altında):** tek bir çizgi grafik —
+  X ekseni tarih, Y ekseni % getiri. Tüm model portföyler + BIST100 + Altın +
+  Mevduat + Nasdaq + S&P 500'ün TRY bazında getirisini gösterir. Aşağıya bakın.
 
-## Model Portföyler — aylık karar mantığı
+## Model Portföyler — ne zaman, nasıl seçer?
 
-- Her **ayın son BIST işlem gününde** 18:15 çalışmasında yeniden dengelenir
-  (sıralama + AL/SAT/EŞİTLEME); diğer günler yalnız değerlenir. Tatil/hafta sonu
-  `Get-BistFullClosureDates` ile dışlanır (2026-2030 dini bayramlar dahil).
-- Dengeli/Değer/Momentum/Kalite/RFS100 portföyleri eşit ağırlıkla çalışır
-  (5 hisse × %20). Bu portföylerin ağırlık davranışı korunur. Uygunluk:
-  ROE/değer/FAVÖK/makro/teknik + **veri kalitesi kapısı** + **aşırı volatilite
-  kapısı** (günlük vol > 8 elenir) + sektör sınırı.
-- **RiskDengeli** portföy ayrı izlenir: seçim yine Dengeli skor ve aynı uygunluk
-  filtresiyle yapılır; ağırlıklar günlük volatilitenin tersine göre dağıtılır ve
-  tek hisse riskini sınırlamak için min/max ağırlık sınırları uygulanır. Normal
-  model portföylerin eşit ağırlığı bu portföy yüzünden değişmez.
+Bot 6 model portföy yönetir: **Dengeli, Değer, Momentum, Kalite** (klasik strateji
+skoruyla), **RFS100** (ham teknik faktör skoruyla) ve **Risk Dengeli** (Dengeli
+seçimi + volatilite-tersi ağırlık). Hepsi 100.000 TL ile başlar ve teoriktir
+(gerçek emir yok).
+
+### Ne zaman alım/satım yapılır?
+- **Yalnız ayın son BIST işlem gününde** yeniden dengelenir (rebalance: sıralama +
+  AL/SAT/EŞİTLEME). Diğer tüm günlerde portföy **sadece değerlenir**, hisseler
+  değişmez. Tatil/hafta sonu `Get-BistFullClosureDates` ile dışlanır (2026-2030
+  dini bayramlar dahil). Yani bir hata gördüğünüzde düzeltme bir sonraki ay-sonu
+  rebalance'ında devreye girer; ara günlerde portföy aynı kalır.
+
+### Bir portföy 5 hissesini nasıl seçer? (adım adım)
+1. **Skorla:** Tüm evren `Get-BistScore` ile o stratejinin ağırlıklarıyla puanlanır
+   (7 bileşen: Trend, Değer, Kalite, Bilanço, Momentum, Likidite, Makro/Sektör).
+2. **Uygunluk filtresi** (`Test-ModelPortfolioEligibleStock`): bir hisse portföye
+   girebilmek için **hepsini birden** geçmeli — geçerli fiyat, piyasa değeri ≥ 5
+   milyar TL, yeterli hacim, son çeyrek pozitif kâr + ≥3 çeyrek pozitif kâr/FAVÖK,
+   ROE ≥ %10 (finans hariç), FD/FAVÖK ≤ 12 (finans hariç), makro/sektör puanı ≥ 35,
+   teknik teyit (200 günlük ortalama üstü / MACD / RSI 40-65 / hacim — en az 2'si),
+   **veri kalitesi kapısı**, **aşırı volatilite kapısı** (günlük oynaklık > 8 elenir)
+   ve "yüksek risk" olmaması.
+3. **Strateji-özgü sıralama** (`Get-StrategySelectionScore` — bkz. aşağıdaki kutu):
+   uygun hisseler stratejinin **kendi karakterine** göre sıralanır.
+4. **Sektör sınırı + Top 5:** sektör başına en fazla 2 hisse kuralıyla en yüksek
+   5 hisse seçilir (5'e ulaşılamazsa sınır gevşetilerek tamamlanır).
+5. **Eşit ağırlık:** Dengeli/Değer/Momentum/Kalite/RFS100 portföylerinde 5 hisse ×
+   %20. (Risk Dengeli farklı; aşağıda.)
+
+### Strateji-özgü seçim — portföyler neden artık birbirinden farklı?
+> **Geçmişteki sorun:** Dört strateji de seçimi doğrudan genel `Score` ile
+> sıralıyordu. `Score`, her stratejide yüksek ağırlıklı ve **stratejiden bağımsız**
+> olan Makro/Sektör + Bilanço bileşenlerince domine edildiği için sıralama
+> stratejiden bağımsız hale geliyordu. Sonuç: **Dengeli = Momentum** ve
+> **Değer = Kalite** aynı hisseleri seçiyordu.
+>
+> **Çözüm:** Artık seçim sıralaması her stratejinin **kendi ekseni**ne ~%85 ağırlık
+> verir (`Get-StrategySelectionScore`); %15 genel `Score` kalite tabanı olarak kalır.
+> Rapordaki görünür `Score` değişmedi, yalnız **seçim sıralaması** ayrıştırıldı:
+> - **Dengeli** → genel `Score` (kasıtlı olarak dengeli/genel)
+> - **Momentum** → `MomentumScore` + `TrendScore` (trend, RSI, MACD, hacim ivmesi)
+> - **Değer** → `ValueScore` (F/K, PD/DD, FD/FAVÖK ucuzluğu)
+> - **Kalite** → `QualityScore` + `EarningsScore` (ROE, bilanço gücü, FAVÖK sürekliliği)
+>
+> Doğrulama: `Simulate-RebalanceSeparation.ps1` ile canlı veride çalıştırıldığında
+> önceden 5/5 çakışan çiftler **2/5'e düştü** (gerçekten ayrıştı). Birim test
+> (`Test-BistScanner.Core.ps1`) sentetik havuzda kesişimi 0 ölçer.
+
+### Diğer kurallar
+- **Risk Dengeli** ayrı izlenir: seçim yine Dengeli skoruyla yapılır (yani Dengeli
+  ile aynı 5 hisseyi tutması normaldir), **fark hisse değil ağırlıktır**: ağırlıklar
+  günlük volatilitenin tersine göre dağıtılır, tek hisse riskini sınırlamak için
+  min/max ağırlık sınırı uygulanır. Normal portföylerin eşit ağırlığı bundan etkilenmez.
 - **İşlem maliyeti + kayma** modellenir (varsayılan 20 bps; `BIST_MODEL_COST_BPS`
-  veya config `ModelPortfolioCostBps`); getiriler nettir.
+  veya config `ModelPortfolioCostBps`); raporlanan getiriler **nettir**.
 - **BIST100 alfa:** her portföyün kuruluştan beri getirisi BIST100 ile kıyaslanır;
   **Alfa = getiri − BIST100**. Hangi stratejinin endeksi yendiğini gösterir.
 - **Maksimum düşüş (drawdown)** her değerlemede izlenir.
@@ -95,6 +163,32 @@ ve sonucu e-posta + artifact olarak veren bulut botu. Bilgisayar kapalıyken de
   TopN, maliyet ve likidite eşiği kombinasyonlarını manuel olarak dener; günlük
   rapor state'ini değiştirmez, `reports/strategy_validation.md` ve `.json`
   artifact üretir.
+
+## Getiri Karşılaştırma Grafiği
+
+Raporun en altına, **100.000 TL'yi farklı yerlere koysaydım ne olurdu?** sorusunu
+yanıtlayan tek bir çizgi grafik eklenir (X = tarih, Y = % getiri). Aynı grafikte:
+
+- Tüm model portföyler (Dengeli/Değer/Momentum/Kalite/RFS100/Risk Dengeli)
+- **BIST100** endeksi
+- **Altın** (TRY) — ons altın × USD/TRY
+- **Nasdaq** ve **S&P 500** (TRY) — endeks × USD/TRY (yani döviz etkisi dahil)
+- **Mevduat** (yaklaşık) — TCMB EVDS faiz serisinden bileşik birikim
+
+Nasıl çalışır:
+- **Model portföy çizgileri** her portföyün işlem geçmişi (`Transactions`) + Yahoo
+  günlük kapanışlarıyla **kuruluştan bugüne yeniden kurulur** (point-in-time;
+  rebalance'ları doğru yansıtır). Grafik her çalışmada otomatik bir gün uzar.
+- **Benchmark çizgileri** Yahoo + EVDS'ten tarihsel çekilir; yabancı varlıklar ve
+  altın USD/TRY ile TRY'ye çevrilir. Hepsi aynı başlangıç gününde %0'dan başlar.
+- Grafik **QuickChart** ile çizilir ve e-postaya **dış görsel URL'i** olarak
+  gömülür (CID gömülü görsel Gmail'de tutarsız göründüğü için bu yönteme geçildi).
+  Grafik üretilemezse rapor bir **özet tablo** ile yine sayısal karşılaştırmayı verir.
+- Gmail ilk seferde "görselleri göster" diyebilir; "her zaman göster" dersen
+  sonraki maillerde otomatik açılır.
+
+> Not: Model portföyler ilk kuruldukları tarihten itibaren çizilir; geçmişe
+> uzatılmaz (o tarihten önce portföy yoktu). Grafik gün geçtikçe dolar.
 
 ## Kendini Öğrenen / Öz-Değerlendiren Mekanizmalar
 
@@ -125,8 +219,12 @@ ve sonucu e-posta + artifact olarak veren bulut botu. Bilgisayar kapalıyken de
 - `GunlukRapor.ps1` — rapor motoru (orkestrasyon, HTML/CSV, e-posta/Telegram).
 - `BistScanner.Core.psm1` — tarama, skorlama, AFS, model portföy, makro, EVDS,
   PEAD/kalibrasyon, Yahoo/TradingView yardımcıları.
-- `Test-BistScanner.Core.ps1` — workflow başında çalışan smoke + birim testler.
+- `Test-BistScanner.Core.ps1` — workflow başında çalışan smoke + birim testler
+  (strateji ayrışma testi dahil).
 - `Validate-StrategySweep.ps1` — manuel parametre taraması ve validation raporu.
+- `Simulate-RebalanceSeparation.ps1` — strateji ayrışması canlı-veri doğrulaması.
+- `BacktestEngine.psm1` / `Backtest-EventDriven.ps1` / `Test-BacktestEngine.ps1` —
+  gerçek event-driven backtest motoru, koşucusu ve ağsız birim testi.
 - `config/report_settings.cloud.json` / `.example.json` — ayarlar.
 - `data/` — kalıcı bot state'i (git'te tutulur): `model_portfolios.json`,
   `instant_entry_portfolio.json`, `signal_performance.json`, `earnings_reactions.json`,
@@ -147,6 +245,10 @@ ve sonucu e-posta + artifact olarak veren bulut botu. Bilgisayar kapalıyken de
 - `BacktestEngine.psm1` — event-driven backtest çekirdeği (`Invoke-EventDrivenBacktest`).
 - `Test-BacktestEngine.ps1` — motorun **ağsız, deterministik** birim testleri (CI kapısı).
 - `Find-EvdsBondSeries.ps1` + `evds-discovery.yml` — EVDS seri kodu keşfi (tanılama).
+- `Simulate-RebalanceSeparation.ps1` + `simulate-separation.yml` — strateji ayrışması
+  **gerçek-veri doğrulaması**: verilen tarihli (vars. 30 Haziran) ay-sonu rebalance'ı
+  güncel canlı taramayla simüle eder, 6 portföyün holding'lerini ve çiftler arası
+  örtüşmeyi log'a yazar. **Gerçek state'e dokunmaz** (bellekte çalışır, kaydetmez).
 
 > Backtest uyarısı: ücretsiz veride **survivorship** (bugün listede olmayan/delist
 > hisseler yok) ve geçmiş bilanço anlık görüntüsü eksikliği vardır; backtest
@@ -219,6 +321,8 @@ Opsiyonel **Variables** (`Actions > Variables`):
   event-driven backtest (kurumsal metrikler; önce motorun birim testi çalışır).
 - **Strategy Validation Sweep** — parametre kombinasyonlarını dener ve markdown/JSON
   validation artifact üretir.
+- **Strategy Separation Simulation** — 30 Haziran (veya seçtiğin tarih) rebalance'ını
+  canlı veriyle simüle edip portföylerin ayrıştığını log'da gösterir (state'e dokunmaz).
 - **Earnings Event Study** — bilanço olay çalışması.
 
 Çalışma bitince e-posta gelir; `Artifacts` altından HTML/CSV rapor + state
