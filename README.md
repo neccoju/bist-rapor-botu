@@ -289,19 +289,26 @@ bağlı bir işle** toplanır ve repoya yazılır; ana PowerShell raporu bu dosy
    döner). `GunlukRapor.ps1` "KAP Son Bildirimleri" bölümünü bundan üretir; gürültü
    (`önem=noise`) elenir, Top radar hisseleri öne alınır.
 
-**Biriktirme + dönüşümlü tarama (neden her gün hepsini taramıyoruz):** Kaynak
-~100+ hızlı istekten sonra bağlantıyı keserek throttle ettiği için tüm evreni her
-gün baştan taramak hem yavaş hem güvenilmezdir (ilk denemede 777 hissenin 656'sı
-"Server disconnected" hatası vermişti). Çözüm:
+**Öncelikli + biriktirme + dönüşümlü tarama (neden her gün hepsini taramıyoruz):**
+Kaynak ~100+ hızlı istekten sonra bağlantıyı keserek throttle ettiği için tüm
+evreni her gün baştan taramak hem yavaş hem güvenilmezdir (ilk denemede 777
+hissenin 656'sı "Server disconnected" hatası vermişti). Çözüm:
 
-- Toplayıcı her koşuda **yalnız bir dilim** tarar (`--rotate-size`, vars. 300).
-- Çektiği yeni bildirimleri ilgili hissenin **arşivine** `disclosureId` ile
-  **tekilleştirerek ekler** (tekrarları atlar, eskileri korur; hisse başına en
-  fazla `--max-archive`=40 kayıt).
-- O gün **sıraya gelmeyen** hisseler önceki verisini **aynen korur** (silinmez).
-- `rotationCursor` JSON'da tutulur; ertesi gün **kaldığı yerden** devam eder.
-- Böylece ~3 günde tüm evren tazelenir, sonra döngüsel olarak hep güncel kalır ve
-  her koşu throttle'a takılmadan ~5-8 dk'da biter.
+- **Öncelikli hisseler her gün taranır:** Toplayıcı, botun zaten yazdığı state
+  dosyalarından (`signal_performance.json`→Top picks, `model_portfolios.json`→
+  portföy holdingleri, `instant_entry_portfolio.json`→anlık giriş holdingleri)
+  öncelikli sembol kümesini (~30-35) okur ve **bunları her koşuda** çeker. Böylece
+  takip edilen hisselerin KAP'ı hiç bayatlamaz. (Gevşek bağlılık: yalnız mevcut
+  JSON'ları okur; `--no-priority` ile kapatılabilir.)
+- **Geri kalanlar dönüşümlü:** Öncelikli olmayanlardan her koşuda **bir dilim**
+  taranır (`--rotate-size`, vars. 300); `rotationCursor` (yalnız bu küme üzerinde
+  ilerler) JSON'da tutulur, ertesi gün **kaldığı yerden** devam eder.
+- **Biriktirme:** Çekilen yeni bildirimler ilgili hissenin **arşivine**
+  `disclosureId` ile **tekilleştirerek eklenir** (tekrarları atlar, eskileri korur;
+  hisse başına en fazla `--max-archive`=40 kayıt). O gün sıraya gelmeyen hisseler
+  önceki verisini **aynen korur** (silinmez).
+- Böylece ~2-3 günde tüm evren tazelenir, öncelikliler hep günceldir ve her koşu
+  throttle'a takılmadan ~8-12 dk'da biter.
 
 İlk dolum (backfill) için `--rotate-size 0` (tüm evren tek seferde) ile birkaç
 kez de çalıştırılabilir; merge sayesinde sonuçlar birikir.

@@ -197,6 +197,54 @@ def _merge_stock(existing, new_rows, max_archive):
     return rows, added
 
 
+def _load_json_bom(path):
+    """PowerShell state dosyalari UTF-8 BOM ile yazilir; utf-8-sig ile okur."""
+    with open(path, "r", encoding="utf-8-sig") as f:
+        return json.load(f)
+
+
+def load_priority_symbols(data_dir):
+    """Botun gunluk yazdigi state dosyalarindan ONCELIKLI hisseleri toplar:
+    Top picks (signal_performance.PendingPicks), model portfoy holdingleri ve
+    anlik giris portfoyu holdingleri. Bu hisseler her kosuda taranir. Best-effort;
+    dosya yoksa/bozuksa sessizce atlanir. Doner: buyuk harf sembol kumesi."""
+    import os
+    syms = set()
+
+    def add(s):
+        if s:
+            c = re.sub(r"[^A-Z0-9]", "", str(s).strip().upper())
+            if 2 <= len(c) <= 6:
+                syms.add(c)
+
+    # Top picks (Top N) — signal_performance.json
+    try:
+        d = _load_json_bom(os.path.join(data_dir, "signal_performance.json"))
+        for p in ((d.get("PendingPicks") or {}).get("Picks") or []):
+            if isinstance(p, dict):
+                add(p.get("Symbol"))
+    except Exception:
+        pass
+    # Model portfoy holdingleri — model_portfolios.json
+    try:
+        d = _load_json_bom(os.path.join(data_dir, "model_portfolios.json"))
+        for p in (d.get("Portfolios") or []):
+            for h in (p.get("Holdings") or []):
+                if isinstance(h, dict):
+                    add(h.get("Symbol"))
+    except Exception:
+        pass
+    # Anlik giris portfoyu holdingleri — instant_entry_portfolio.json
+    try:
+        d = _load_json_bom(os.path.join(data_dir, "instant_entry_portfolio.json"))
+        for h in (d.get("Holdings") or []):
+            if isinstance(h, dict):
+                add(h.get("Symbol"))
+    except Exception:
+        pass
+    return syms
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--max-stocks", type=int, default=0, help="0 = tum evren (rotasyon icin taban liste)")
@@ -214,6 +262,8 @@ def main():
                          "kalan hisseler onceki verisini korur, sonraki gun siradan devam eder.")
     ap.add_argument("--max-archive", type=int, default=40, help="hisse basina arsivde tutulacak en fazla bildirim")
     ap.add_argument("--no-merge", action="store_true", help="birlestirme kapali; dosyayi sifirdan yaz")
+    ap.add_argument("--no-priority", action="store_true",
+                    help="oncelikli (Top/portfoy/anlik giris) hisseleri her kosu tarama; sadece rotasyon")
     ap.add_argument("--out", default="data/kap_disclosures.json")
     args = ap.parse_args()
 
@@ -249,15 +299,31 @@ def main():
     if args.max_stocks > 0:
         tickers = tickers[: args.max_stocks]
     n = len(tickers)
+    universe = set(tickers)
 
-    # Bu kosunun dilimini rotasyonla sec.
-    rot = args.rotate_size if args.rotate_size > 0 else n
-    rot = min(rot, n)
-    start = prev_cursor % n if n else 0
-    slice_syms = [tickers[(start + k) % n] for k in range(rot)]
-    next_cursor = (start + rot) % n
-    print(f"Evren: {n} | bu kosu dilimi: {rot} (idx {start}..{(start + rot - 1) % n}) | "
+    # ONCELIKLI hisseler: her kosuda taranir (Top picks + portfoy + anlik giris).
+    data_dir = os.path.dirname(args.out) or "."
+    priority = set()
+    if not args.no_priority:
+        priority = load_priority_symbols(data_dir) & universe
+    priority_list = [t for t in tickers if t in priority]   # evren sirasinda, sabit
+    rest = [t for t in tickers if t not in priority]         # dönüşümlü taranacaklar
+    nrest = len(rest)
+
+    # rest icinde dönüşümlü dilim (cursor rest'e gore).
+    rot = args.rotate_size if args.rotate_size > 0 else nrest
+    rot = min(rot, nrest)
+    start = prev_cursor % nrest if nrest else 0
+    rest_slice = [rest[(start + k) % nrest] for k in range(rot)] if nrest else []
+
+    # Bu kosu listesi: once oncelikliler (taze), sonra rest dilimi.
+    slice_syms = priority_list + rest_slice
+    n_priority = len(priority_list)
+    print(f"Evren: {n} | oncelikli (her gun): {n_priority} | rest dilimi: {rot}/{nrest} "
+          f"(idx {start}) | toplam bu kosu: {len(slice_syms)} | "
           f"merge={'kapali' if args.no_merge else 'acik'} | sleep={args.sleep}s | max-seconds={args.max_seconds}")
+    if n_priority:
+        print(f"Oncelikli hisseler: {','.join(priority_list)}")
 
     fetched_ok = 0
     new_added = 0
@@ -265,14 +331,14 @@ def main():
     consecutive_fail = 0
     cooldowns_used = 0
     processed = 0
+    rest_done = 0   # cursor yalniz rest ilerlemesini sayar (oncelikliler kaydirmaz)
 
     for i, sym in enumerate(slice_syms, 1):
         if time.time() - started > args.max_seconds:
-            print(f"!! Sure limiti ({args.max_seconds}s) asildi; {i-1}/{rot} dilimde durduruldu.")
-            # Kismi dilim: cursor'u gercekten ulasilan yere kaydir.
-            next_cursor = (start + (i - 1)) % n
+            print(f"!! Sure limiti ({args.max_seconds}s) asildi; {i-1}/{len(slice_syms)} hissede durduruldu.")
             break
         processed = i
+        is_rest = i > n_priority
 
         rows = None
         last_err = None
@@ -308,11 +374,17 @@ def main():
                 time.sleep(args.cooldown)
                 consecutive_fail = 0
 
+        if is_rest:
+            rest_done += 1
+
         if i % 50 == 0:
-            print(f"  ... {i}/{rot} dilim | yeni cekilen={fetched_ok} | yeni bildirim={new_added} | "
+            print(f"  ... {i}/{len(slice_syms)} | yeni cekilen={fetched_ok} | yeni bildirim={new_added} | "
                   f"hata={errors} | {int(time.time()-started)}s")
         if args.sleep > 0:
             time.sleep(args.sleep)
+
+    # Cursor yalniz islenen rest kadar ilerler (kismi kosuda dogru devam icin).
+    next_cursor = (start + rest_done) % nrest if nrest else 0
 
     # Tum arsiv uzerinden ozet (yalniz bu kosu degil).
     cat_summary = {}
@@ -332,8 +404,11 @@ def main():
         "universeSize": n,
         "rotationCursor": next_cursor,
         "lastRun": {
-            "sliceSize": rot,
-            "sliceStart": start,
+            "priorityCount": n_priority,
+            "prioritySymbols": priority_list,
+            "restSliceSize": rot,
+            "restSliceStart": start,
+            "restProcessed": rest_done,
             "processed": processed,
             "fetchedOk": fetched_ok,
             "newDisclosures": new_added,
@@ -352,8 +427,9 @@ def main():
         json.dump(payload, f, ensure_ascii=False, indent=2)
 
     print("-" * 70)
-    print(f"Bu kosu: {fetched_ok} hisse cekildi | {new_added} yeni bildirim | hata={errors} | "
-          f"cooldown={cooldowns_used} | sonraki cursor={next_cursor}/{n}")
+    print(f"Bu kosu: oncelikli={n_priority} + rest={rest_done} | {fetched_ok} hisse cekildi | "
+          f"{new_added} yeni bildirim | hata={errors} | cooldown={cooldowns_used} | "
+          f"sonraki rest-cursor={next_cursor}/{nrest}")
     print(f"Arsiv toplam: bildirimli hisse {with_news}/{n} | toplam bildirim {total_disc}")
     print("Kategori dagilimi (arsiv):", json.dumps(payload["categorySummary"], ensure_ascii=False))
     print(f"Yazildi: {args.out} | sure: {int(time.time()-started)}s")

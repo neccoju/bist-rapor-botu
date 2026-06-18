@@ -4,12 +4,15 @@ name: KAP Collector (borsapy)
 # ve data/kap_disclosures.json'a BIRIKTIREREK yazar (merge). Ana gunluk rapor
 # (PowerShell) bu dosyayi best-effort okur. Ana botu ETKILEMEZ; ayri ubuntu job.
 #
-# BIRIKTIRME + DÖNÜŞÜMLÜ TARAMA: kaynak ~100+ hizli istekten sonra baglantiyi
-# kesip throttle ettigi icin tum evren her gun bastan taranmaz. Her kosu sadece
-# bir dilim (vars. 300 hisse) tarar, yeni bildirimleri ilgili hissenin arsivine
-# disclosureId ile tekillestirerek EKLER; o gun sıraya gelmeyen hisseler onceki
-# verisini KORUR. rotationCursor JSON'da tutulur; ertesi gun siradan devam eder.
-# Boylece ~3 gunde tum evren tazelenir ve dosya hep dolu kalir.
+# ONCELIKLI + BIRIKTIRME + DÖNÜŞÜMLÜ TARAMA: kaynak ~100+ hizli istekten sonra
+# baglantiyi kesip throttle ettigi icin tum evren her gun bastan taranmaz.
+# - Oncelikli hisseler (Top picks + model portfoy + anlik giris holdingleri; botun
+#   state JSON'larindan okunur) HER kosu taranir.
+# - Geri kalanlardan her kosu bir dilim (vars. 300) dönüşümlü taranir; rotationCursor
+#   JSON'da tutulur, ertesi gun siradan devam eder.
+# - Yeni bildirimler ilgili hissenin arsivine disclosureId ile tekillestirerek
+#   EKLENIR; o gun siraya gelmeyen hisseler onceki verisini KORUR.
+# Boylece oncelikliler hep guncel, ~2-3 gunde tum evren tazelenir, dosya hep dolu.
 #
 # Zamanlama: harici tetikleyici (cron-job.org) ile ana rapordan ONCE (or. 17:55)
 # her gun tetiklenmeli; ya da elle Run workflow. GitHub'in kendi cron'u
