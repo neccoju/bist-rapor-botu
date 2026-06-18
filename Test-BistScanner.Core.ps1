@@ -504,6 +504,46 @@ if (-not ([double]$rsMap['STRONG'] -gt [double]$rsMap['MID1'] -and [double]$rsMa
 }
 Write-Host "RS rank testi başarılı (STRONG=$($rsMap['STRONG']), WEAK=$($rsMap['WEAK']))."
 
+# --- Depolanmış KAP okuyucu (Get-StoredKapDisclosures) ---
+$kapTmp = Join-Path ([System.IO.Path]::GetTempPath()) ("kap_test_" + [guid]::NewGuid().ToString('N') + ".json")
+$kapSample = [ordered]@{
+    generatedAt = '2026-06-18T12:00:00Z'
+    source      = 'test'
+    stocks      = [ordered]@{
+        AAA = @(
+            [ordered]@{ date = '2026-06-18'; title = 'İhale Süreci'; category = 'Ihale/Sozlesme'; importance = 'high'; direction = '+'; disclosureId = '111'; url = 'https://x/Bildirim/111' }
+            [ordered]@{ date = '2026-06-10'; title = 'Devre Kesici'; category = 'Piyasa/Teknik'; importance = 'noise'; direction = '0'; disclosureId = '112'; url = 'https://x/Bildirim/112' }
+        )
+        BBB = @(
+            [ordered]@{ date = '2026-06-17'; title = 'Kar Payı Dağıtımı'; category = 'Temettu'; importance = 'high'; direction = '+'; disclosureId = '113'; url = 'https://x/Bildirim/113' }
+        )
+    }
+}
+($kapSample | ConvertTo-Json -Depth 6) | Set-Content -LiteralPath $kapTmp -Encoding UTF8
+try {
+    $kapAll = @(Get-StoredKapDisclosures -Path $kapTmp)
+    if ($kapAll.Count -ne 3) { throw "KAP okuyucu: 3 kayıt beklenirken $($kapAll.Count) döndü." }
+    if ([string]$kapAll[0].Symbol -ne 'AAA' -or [string]$kapAll[0].Date -ne '2026-06-18') {
+        throw "KAP okuyucu: tarihe göre azalan sıralama hatalı (ilk=$($kapAll[0].Symbol)/$($kapAll[0].Date))."
+    }
+    $kapImp = @(Get-StoredKapDisclosures -Path $kapTmp -OnlyImportant)
+    if ($kapImp.Count -ne 2) { throw "KAP okuyucu: gürültü hariç 2 önemli kayıt beklenirken $($kapImp.Count) döndü." }
+    if (@($kapImp | Where-Object { $_.Importance -eq 'noise' }).Count -ne 0) {
+        throw 'KAP okuyucu: OnlyImportant gürültüyü (noise) elememiş.'
+    }
+    $kapSym = @(Get-StoredKapDisclosures -Path $kapTmp -Symbols 'BBB')
+    if ($kapSym.Count -ne 1 -or [string]$kapSym[0].Symbol -ne 'BBB') {
+        throw "KAP okuyucu: sembol filtresi hatalı ($($kapSym.Count) kayıt)."
+    }
+    if (@(Get-StoredKapDisclosures -Path (Join-Path ([System.IO.Path]::GetTempPath()) 'yok_olmayan.json')).Count -ne 0) {
+        throw 'KAP okuyucu: olmayan dosyada boş dizi dönmedi.'
+    }
+    Write-Host "Depolanmış KAP okuyucu testi başarılı (toplam=$($kapAll.Count), önemli=$($kapImp.Count), sembol filtreli=$($kapSym.Count))."
+}
+finally {
+    Remove-Item -LiteralPath $kapTmp -ErrorAction SilentlyContinue
+}
+
 if ($Live) {
     $stocks = @(Invoke-BistStockScan)
     if ($stocks.Count -lt 400) {

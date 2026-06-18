@@ -1830,9 +1830,15 @@ try {
     $macroSnapshot = Get-MacroSnapshot -IndexSnapshot $indexSnapshot -AsOf $runAt -TimeoutSec $macroTimeoutSec
     Write-TimingLog -Step 'Makro gorunum' -StartedAt $stageStartedAt
 
-    # KAP son bildirimleri (best-effort; erisilemezse bos doner, rapor bozulmaz).
+    # KAP son bildirimleri. Birincil kaynak: ayri is (kap-collector.yml, borsapy)
+    # ile uretilip repoya commit edilen data/kap_disclosures.json. O dosya yoksa
+    # canli best-effort Get-KapDisclosures'a duser. Her ikisi de bos donerse rapor
+    # bozulmaz (gozlem modu; karar etkisi YOK).
     $stageStartedAt = Get-Date
-    $kapDisclosures = @(Get-KapDisclosures -TimeoutSec 5 -Limit 40)
+    $storedKap = @()
+    try { $storedKap = @(Get-StoredKapDisclosures) } catch { $storedKap = @() }
+    $kapDisclosures = if ($storedKap.Count -gt 0) { $storedKap } else { @(Get-KapDisclosures -TimeoutSec 5 -Limit 40) }
+    $kapMeta = if ($storedKap.Count -gt 0) { 'depolanmis (borsapy/KAP)' } else { 'canli best-effort' }
     Write-TimingLog -Step 'KAP bildirimleri' -StartedAt $stageStartedAt
 
     $stageStartedAt = Get-Date
@@ -1996,17 +2002,33 @@ try {
                 }
             })
 
-    # KAP son bildirimleri: oncelikle Top radar sembollerine ait olanlar.
-    $topSymbolsForKap = @($scored | Select-Object -First $topCount | ForEach-Object { [string]$_.Symbol })
-    $kapMatched = @($kapDisclosures | Where-Object {
-            $sym = [string](Get-ObjectPropertyValue -Object $_ -Name 'Symbol')
-            -not [string]::IsNullOrWhiteSpace($sym) -and @($topSymbolsForKap | Where-Object { $sym -match [Regex]::Escape($_) }).Count -gt 0
+    # KAP son bildirimleri: oncelikle Top radar sembollerine ait olanlar, ardindan
+    # diger ONEMLI bildirimler (gurultu = devre kesici/likidite/endeks haric).
+    $topSymbolsForKap = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($s in @($scored | Select-Object -First $topCount)) {
+        $cs = ([string]$s.Symbol).Trim().ToUpperInvariant() -replace '\.IS$', ''
+        if ($cs) { [void]$topSymbolsForKap.Add($cs) }
+    }
+    # gurultu kategorilerini (onem='noise') rapordan dustur
+    $kapSignal = @($kapDisclosures | Where-Object {
+            $imp = [string](Get-ObjectPropertyValue -Object $_ -Name 'Importance')
+            [string]::IsNullOrWhiteSpace($imp) -or $imp -ne 'noise'
         })
-    $kapForReport = if ($kapMatched.Count -gt 0) { $kapMatched } else { $kapDisclosures }
-    $kapRows = @($kapForReport | Select-Object -First 15 | ForEach-Object {
+    $kapTop = @($kapSignal | Where-Object {
+            $sym = ([string](Get-ObjectPropertyValue -Object $_ -Name 'Symbol')).Trim().ToUpperInvariant() -replace '\.IS$', ''
+            $topSymbolsForKap.Contains($sym)
+        })
+    $kapForReport = @($kapTop) + @($kapSignal | Where-Object { $kapTop -notcontains $_ })
+    if (@($kapForReport).Count -eq 0) { $kapForReport = $kapSignal }
+    $dirIcon = @{ '+' = '🟢'; '-' = '🔴'; '~' = '🟡'; '0' = '⚪'; '?' = '❔' }
+    $kapRows = @($kapForReport | Select-Object -First 20 | ForEach-Object {
+            $dir = [string](Get-ObjectPropertyValue -Object $_ -Name 'Direction')
+            $cat = [string](Get-ObjectPropertyValue -Object $_ -Name 'Category')
+            $icon = if ($dir -and $dirIcon.ContainsKey($dir)) { $dirIcon[$dir] } else { '' }
+            $catLabel = if ([string]::IsNullOrWhiteSpace($cat)) { ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Kind') } else { (ConvertTo-PlainText $cat) }
             [pscustomobject][ordered]@{
                 Sembol = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Symbol')
-                Tür = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Kind')
+                Kategori = (("$icon $catLabel").Trim())
                 Baslik = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Title')
                 Tarih = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Date')
             }
@@ -2381,9 +2403,9 @@ $(if ($preEarningsRows.Count -gt 0) { New-HtmlTable -Rows $preEarningsRows } els
 <h2>Bilanço Sonrası Sürüklenme (PEAD) Takibi</h2>
 <p class="muted">Akademik PEAD bulgusu (Bernard-Thomas 1989): hisseler bilanço sürprizinin yönünde haftalarca sürüklenir. Bot, yeni bilanço açıklayan hisseleri tespit anındaki fiyat ve sürpriz proxy'siyle (USD net kâr/FAVÖK Y/Y + FAVÖK trendi; 0-100, 50 nötr) kaydeder; ~28 gün sonra tespit fiyatına göre getiriyi ölçer ve "pozitif sürpriz → pozitif sürüklenme" isabet oranını biriktirir. $(if ($null -ne $earningsReactionSummary.PeadHitRatePct) { "Şu ana kadar $($earningsReactionSummary.DirectionalCount) yönlü örnekte isabet %$($earningsReactionSummary.PeadHitRatePct); pozitif sürpriz ortalama sürüklenmesi %$($earningsReactionSummary.AvgPositiveSurpriseDriftPct). Halen izlenen $($earningsReactionSummary.TrackedCount) hisse." } else { "Henüz tamamlanmış sürüklenme örneği yok; halen izlenen $($earningsReactionSummary.TrackedCount) hisse. İlk isabet ölçümü açıklamalardan ~28 gün sonra üretilecek." })</p>
 $(New-HtmlTable -Rows $peadTrackedRows)
-<h2>KAP Son Bildirimleri (Deneysel)</h2>
-<p class="muted">KAP'ın resmi ücretsiz API'si yoktur; bu bölüm KAP'tan en iyi çaba (best-effort) ile çekilir, erişilemezse boş kalır ve rapor akışını etkilemez. Öncelikle Top radar hisselerine ait bildirimler gösterilir. Özel durum açıklamaları işlem öncesi mutlaka KAP'tan birinci elden doğrulanmalıdır.</p>
-$(if ($kapRows.Count -gt 0) { New-HtmlTable -Rows $kapRows } else { '<p class="muted">KAP bildirimleri bu çalışmada alınamadı (kaynak erişilemedi veya boş döndü).</p>' })
+<h2>KAP Son Bildirimleri (Deneysel — gözlem)</h2>
+<p class="muted">Kaynak: <b>$kapMeta</b>. Bildirimler ayrı bir işle (borsapy üzerinden tüm BIST için) toplanıp depolanır; bu rapor onları okur. Her satır kategoriye ayrılır ve yön ipucu taşır: 🟢 genelde olumlu · 🔴 olumsuz · 🟡 karışık/bağlamsal · ⚪ nötr · ❔ detay gerekir. Piyasa mekaniği gürültüsü (devre kesici, likidite sağlayıcılık, endeks) listeden çıkarılır. Öncelikle Top radar hisselerine ait bildirimler gösterilir. <b>Yön ipuçları otomatik ve kabadır; karar etkisi yoktur.</b> Özel durum açıklamaları işlem öncesi mutlaka KAP'tan birinci elden doğrulanmalıdır.</p>
+$(if ($kapRows.Count -gt 0) { New-HtmlTable -Rows $kapRows } else { '<p class="muted">KAP bildirimleri bu çalışmada alınamadı (depolanmış dosya yok ve canlı kaynak erişilemedi).</p>' })
 <h2>Sektor Rotasyonu</h2>
 <p class="muted">Fark sütunları sektör endeksi/proxy getirisi eksi BIST100 getirisi olarak okunur. Pozitif değer sektörün BIST100'e göre daha güçlü aktığını gösterir.</p>
 $(New-HtmlTable -Rows $sectorRows)

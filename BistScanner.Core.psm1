@@ -5336,6 +5336,86 @@ function Get-KapDisclosures {
     return $out.ToArray()
 }
 
+function Get-StoredKapDisclosures {
+    <#
+        data/kap_disclosures.json dosyasini BEST-EFFORT okur. Bu dosyayi ayri bir
+        is (kap-collector.yml, borsapy/Python) uretip repoya commit eder; ana
+        PowerShell rapor sadece OKUR. Dosya yoksa/bozuksa BOS dizi doner ve rapor
+        akisi bozulmaz (gozlem modu — karar etkisi YOK).
+
+        Doner: her kayit { Symbol, Date, Title, Category, Importance, Direction,
+        DisclosureId, Url }. -Symbols verilirse yalniz o hisseler; -OnlyImportant
+        ile yalniz onem='high'/'insider'/'earnings' (gurultu haric) dondurulur.
+        Sonuc tarihe gore (yeni -> eski) siralanir.
+    #>
+    [CmdletBinding()]
+    param(
+        [string]$Path,
+        [string[]]$Symbols,
+        [switch]$OnlyImportant,
+        [int]$MaxAgeDays = 0,        # 0 = yas filtresi yok
+        [int]$Limit = 0             # 0 = sinirsiz
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        $Path = Join-Path $PSScriptRoot 'data/kap_disclosures.json'
+    }
+    if (-not (Test-Path -LiteralPath $Path)) { return @() }
+
+    try {
+        $json = Get-Content -LiteralPath $Path -Raw -Encoding UTF8 -ErrorAction Stop
+        $data = $json | ConvertFrom-Json -ErrorAction Stop
+    }
+    catch { return @() }
+
+    $stocksObj = Get-ObjectPropertyValue -Object $data -Name 'stocks'
+    if ($null -eq $stocksObj) { return @() }
+
+    $wanted = $null
+    if ($Symbols -and $Symbols.Count -gt 0) {
+        $wanted = [System.Collections.Generic.HashSet[string]]::new(
+            [string[]]@($Symbols | ForEach-Object { ([string]$_).Trim().ToUpperInvariant() }),
+            [System.StringComparer]::OrdinalIgnoreCase)
+    }
+    $importantSet = @('high', 'insider', 'earnings')
+    $cutoff = $null
+    if ($MaxAgeDays -gt 0) { $cutoff = (Get-Date).AddDays(-$MaxAgeDays) }
+
+    $out = [System.Collections.Generic.List[object]]::new()
+    foreach ($prop in $stocksObj.PSObject.Properties) {
+        $sym = [string]$prop.Name
+        if ($wanted -and -not $wanted.Contains($sym)) { continue }
+        foreach ($rec in @($prop.Value)) {
+            if ($null -eq $rec) { continue }
+            $imp = [string](Get-ObjectPropertyValue -Object $rec -Name 'importance')
+            if ($OnlyImportant -and ($importantSet -notcontains $imp)) { continue }
+            $dateStr = [string](Get-ObjectPropertyValue -Object $rec -Name 'date')
+            $dt = $null
+            if (-not [string]::IsNullOrWhiteSpace($dateStr)) {
+                $parsed = [datetime]::MinValue
+                if ([datetime]::TryParse($dateStr, [ref]$parsed)) { $dt = $parsed }
+            }
+            if ($cutoff -and $dt -and $dt -lt $cutoff) { continue }
+            [void]$out.Add([pscustomobject][ordered]@{
+                Symbol       = $sym
+                Date         = $dateStr
+                DateParsed   = $dt
+                Title        = [string](Get-ObjectPropertyValue -Object $rec -Name 'title')
+                Category     = [string](Get-ObjectPropertyValue -Object $rec -Name 'category')
+                Importance   = $imp
+                Direction    = [string](Get-ObjectPropertyValue -Object $rec -Name 'direction')
+                DisclosureId = [string](Get-ObjectPropertyValue -Object $rec -Name 'disclosureId')
+                Url          = [string](Get-ObjectPropertyValue -Object $rec -Name 'url')
+            })
+        }
+    }
+
+    $sorted = $out | Sort-Object -Property @{ Expression = { if ($_.DateParsed) { $_.DateParsed } else { [datetime]::MinValue } }; Descending = $true }
+    $arr = @($sorted)
+    if ($Limit -gt 0 -and $arr.Count -gt $Limit) { $arr = $arr[0..($Limit - 1)] }
+    return $arr
+}
+
 # ============================================================================
 # TCMB EVDS (Elektronik Veri Dagitim Sistemi) entegrasyonu.
 # API anahtari ASLA kodda saklanmaz; $env:BIST_EVDS_API_KEY'den okunur
@@ -6070,6 +6150,7 @@ Export-ModuleMember -Function `
     Add-DataQualityAssessment, `
     Update-EarningsReactions, `
     Get-KapDisclosures, `
+    Get-StoredKapDisclosures, `
     Get-YahooDailyCloseSeries, `
     Get-YahooDailyOhlcSeries, `
     Invoke-BistStockScan, `
