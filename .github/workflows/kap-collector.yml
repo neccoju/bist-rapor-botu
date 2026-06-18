@@ -36,6 +36,10 @@ on:
         description: "Hisse basina cekilen en yeni bildirim"
         required: false
         default: "8"
+      no_priority:
+        description: "true: oncelikli (Top/portfoy/anlik giris) hisseleri bu partide TARAMA, sadece saf rotasyon"
+        required: false
+        default: "false"
 
 permissions:
   contents: write
@@ -62,11 +66,13 @@ jobs:
           pip install borsapy
       - name: Collect KAP disclosures
         run: |
+          EXTRA=""
+          if [ "${{ github.event.inputs.no_priority }}" = "true" ]; then EXTRA="--no-priority"; fi
           python collect_kap.py \
             --rotate-size "${{ github.event.inputs.rotate_size || '50' }}" \
             --max-stocks "${{ github.event.inputs.max_stocks || '0' }}" \
             --news-limit "${{ github.event.inputs.news_limit || '8' }}" \
-            --max-seconds 600
+            --max-seconds 600 $EXTRA
       - name: Commit JSON to repo
         shell: bash
         run: |
