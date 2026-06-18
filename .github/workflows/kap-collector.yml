@@ -4,26 +4,30 @@ name: KAP Collector (borsapy)
 # ve data/kap_disclosures.json'a BIRIKTIREREK yazar (merge). Ana gunluk rapor
 # (PowerShell) bu dosyayi best-effort okur. Ana botu ETKILEMEZ; ayri ubuntu job.
 #
-# ONCELIKLI + BIRIKTIRME + DÖNÜŞÜMLÜ TARAMA: kaynak ~100+ hizli istekten sonra
-# baglantiyi kesip throttle ettigi icin tum evren her gun bastan taranmaz.
+# ONCELIKLI + BIRIKTIRME + DÖNÜŞÜMLÜ TARAMA: kaynak ~100 hizli istekten sonra
+# baglantiyi kesip throttle ettigi icin (canli olcum: ilk 100 hisse 0 hata, sonra
+# hata patlamasi) tum evren tek seferde taranmaz. KUCUK PARTILER halinde gun
+# icinde tekrar tekrar calistirilir:
 # - Oncelikli hisseler (Top picks + model portfoy + anlik giris holdingleri; botun
-#   state JSON'larindan okunur) HER kosu taranir.
-# - Geri kalanlardan her kosu bir dilim (vars. 300) dönüşümlü taranir; rotationCursor
-#   JSON'da tutulur, ertesi gun siradan devam eder.
+#   state JSON'larindan okunur) HER partide taranir (~32 hisse).
+# - Geri kalanlardan her parti bir dilim (vars. 50) dönüşümlü taranir; rotationCursor
+#   JSON'da tutulur, sonraki parti siradan devam eder. 32+50 ~= 82 istek -> guvenli
+#   bolge (<100), ~1-2 dk, neredeyse sifir hata.
 # - Yeni bildirimler ilgili hissenin arsivine disclosureId ile tekillestirerek
-#   EKLENIR; o gun siraya gelmeyen hisseler onceki verisini KORUR.
-# Boylece oncelikliler hep guncel, ~2-3 gunde tum evren tazelenir, dosya hep dolu.
+#   EKLENIR; o partide siraya gelmeyen hisseler onceki verisini KORUR.
+# Boylece oncelikliler her partide taze; rest 745 hisse 50'serden ~15 partide tam
+# tur atar. Dosya hep dolu kalir, throttle yenmez.
 #
-# Zamanlama: harici tetikleyici (cron-job.org) ile ana rapordan ONCE (or. 17:55)
-# her gun tetiklenmeli; ya da elle Run workflow. GitHub'in kendi cron'u
-# gecikebildigi icin kullanilmadi.
+# Zamanlama (cron-job.org): gun icinde sik tetikle (or. 09:30-18:00 arasi her ~30
+# dk) -> her parti 50 yeni rest + 32 oncelikli. Ana rapor 18:15'te birikmis veriyi
+# okur. GitHub'in kendi cron'u gecikebildigi icin harici tetikleyici kullanilir.
 on:
   workflow_dispatch:
     inputs:
       rotate_size:
-        description: "Bu kosuda taranacak hisse (dönüşümlü; 0 = tum evren tek seferde)"
+        description: "Bu partide taranacak rest hisse sayisi (oncelikliler haric; 0 = tum rest)"
         required: false
-        default: "300"
+        default: "50"
       max_stocks:
         description: "Evren ust siniri (0 = tum BIST; rotasyon icin taban liste)"
         required: false
@@ -36,10 +40,15 @@ on:
 permissions:
   contents: write
 
+# Partiler ust uste binmesin (git push catismasi olmasin) diye seri calistir.
+concurrency:
+  group: kap-collector
+  cancel-in-progress: false
+
 jobs:
   collect:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -54,10 +63,10 @@ jobs:
       - name: Collect KAP disclosures
         run: |
           python collect_kap.py \
-            --rotate-size "${{ github.event.inputs.rotate_size || '300' }}" \
+            --rotate-size "${{ github.event.inputs.rotate_size || '50' }}" \
             --max-stocks "${{ github.event.inputs.max_stocks || '0' }}" \
             --news-limit "${{ github.event.inputs.news_limit || '8' }}" \
-            --max-seconds 1500
+            --max-seconds 600
       - name: Commit JSON to repo
         shell: bash
         run: |

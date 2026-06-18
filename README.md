@@ -289,35 +289,39 @@ bağlı bir işle** toplanır ve repoya yazılır; ana PowerShell raporu bu dosy
    döner). `GunlukRapor.ps1` "KAP Son Bildirimleri" bölümünü bundan üretir; gürültü
    (`önem=noise`) elenir, Top radar hisseleri öne alınır.
 
-**Öncelikli + biriktirme + dönüşümlü tarama (neden her gün hepsini taramıyoruz):**
-Kaynak ~100+ hızlı istekten sonra bağlantıyı keserek throttle ettiği için tüm
-evreni her gün baştan taramak hem yavaş hem güvenilmezdir (ilk denemede 777
-hissenin 656'sı "Server disconnected" hatası vermişti). Çözüm:
+**Öncelikli + biriktirme + dönüşümlü tarama, küçük partiler (neden böyle):**
+borsapy/KAP kaynağı **~100 hızlı istekten sonra** bağlantıyı keserek throttle eder
+(canlı ölçüm: ilk 100 hisse 0 hata; 100'den sonra hata patlaması, ilk denemede 777
+hissenin 656'sı "Server disconnected"). Bu yüzden tüm evren tek seferde değil,
+**gün içinde küçük partiler** halinde toplanır:
 
-- **Öncelikli hisseler her gün taranır:** Toplayıcı, botun zaten yazdığı state
+- **Öncelikli hisseler her partide taranır:** Toplayıcı, botun zaten yazdığı state
   dosyalarından (`signal_performance.json`→Top picks, `model_portfolios.json`→
   portföy holdingleri, `instant_entry_portfolio.json`→anlık giriş holdingleri)
-  öncelikli sembol kümesini (~30-35) okur ve **bunları her koşuda** çeker. Böylece
-  takip edilen hisselerin KAP'ı hiç bayatlamaz. (Gevşek bağlılık: yalnız mevcut
-  JSON'ları okur; `--no-priority` ile kapatılabilir.)
-- **Geri kalanlar dönüşümlü:** Öncelikli olmayanlardan her koşuda **bir dilim**
-  taranır (`--rotate-size`, vars. 300); `rotationCursor` (yalnız bu küme üzerinde
-  ilerler) JSON'da tutulur, ertesi gün **kaldığı yerden** devam eder.
+  öncelikli sembol kümesini (~32) okur ve **her partide** çeker. Takip edilen
+  hisselerin KAP'ı hiç bayatlamaz. (Gevşek bağlılık: yalnız mevcut JSON'ları okur;
+  `--no-priority` ile kapatılabilir.)
+- **Geri kalanlar dönüşümlü, 50'şer:** Öncelikli olmayanlardan her partide bir
+  dilim taranır (`--rotate-size`, vars. **50**); `rotationCursor` (yalnız bu küme
+  üzerinde ilerler) JSON'da tutulur, sonraki parti **kaldığı yerden** devam eder.
+  32 öncelikli + 50 rest ≈ **82 istek** → güvenli bölge (<100), parti ~1-2 dk,
+  neredeyse sıfır hata.
 - **Biriktirme:** Çekilen yeni bildirimler ilgili hissenin **arşivine**
   `disclosureId` ile **tekilleştirerek eklenir** (tekrarları atlar, eskileri korur;
-  hisse başına en fazla `--max-archive`=40 kayıt). O gün sıraya gelmeyen hisseler
-  önceki verisini **aynen korur** (silinmez).
-- Böylece ~2-3 günde tüm evren tazelenir, öncelikliler hep günceldir ve her koşu
-  throttle'a takılmadan ~8-12 dk'da biter.
+  hisse başına en fazla `--max-archive`=40 kayıt). O partide sıraya gelmeyen
+  hisseler önceki verisini **aynen korur** (silinmez).
+- rest 745 hisse, 50'şerden **~15 partide** tam tur atar; öncelikliler her partide
+  taze. Partiler `concurrency` ile seri çalışır (push çakışması olmaz).
 
-İlk dolum (backfill) için `--rotate-size 0` (tüm evren tek seferde) ile birkaç
-kez de çalıştırılabilir; merge sayesinde sonuçlar birikir.
+İlk dolum (backfill) için `--rotate-size 0` (tüm rest tek seferde) ile de
+çalıştırılabilir; ama throttle nedeniyle hatalı olur — küçük partiler tercih edilir.
 
-**Zamanlama:** toplayıcı ana rapordan **önce**, her gün tetiklenmelidir; cron-job.org'a
-ikinci bir iş eklenip `kap-collector.yml` ~17:55'te `workflow_dispatch` ile
-çağrılabilir (GitHub'ın kendi cron'u geciktiği için kullanılmaz). Elle de
-`Run workflow` ile çalıştırılır (girdiler: `rotate_size` günlük dilim, `max_stocks`
-evren üst sınırı, `news_limit` hisse başına çekilen bildirim).
+**Zamanlama (cron-job.org):** Toplayıcı gün içinde **sık** tetiklenir; örn.
+09:30–18:00 arası **her ~30 dk** bir `kap-collector.yml` `workflow_dispatch`
+çağrısı (≈17 parti → tüm rest bir kez + öncelikliler defalarca tazelenir). Ana
+rapor (`bist-cloud-report.yml`) **18:15**'te birikmiş `kap_disclosures.json`'u
+okur (son 7 gün filtresiyle). Toptan partileri 18:00'a kadar bitir; rapor 18:15'te.
+GitHub'ın kendi cron'u geciktiği için harici tetikleyici kullanılır.
 
 **Kategoriler ve yön ipuçları** (başlık anahtar kelimesinden otomatik; kabadır,
 **karar etkisi yoktur**, ilk eşleşen kazanır):
