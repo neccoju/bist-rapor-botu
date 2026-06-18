@@ -63,7 +63,11 @@ Kurulum (bir kez):
   fiyat/hacim; skora küçük bonus.
 - **Bilanço Sonrası Sürüklenme (PEAD) Takibi:** yeni bilanço açıklayanları tespit
   fiyatı + sürpriz proxy'siyle izler, ~28 gün sonra sürüklenmeyi ölçer.
-- **KAP Son Bildirimleri (deneysel):** best-effort; erişilemezse boş kalır.
+- **KAP Son Bildirimleri (deneysel — gözlem):** ayrı bir işle (borsapy) tüm BIST
+  için toplanıp `data/kap_disclosures.json`'a yazılan bildirimleri okur; kategori +
+  yön ipucu (🟢/🔴/🟡/⚪/❔) gösterir, gürültüyü eler, Top radar hisselerini öne alır.
+  Dosya yoksa canlı best-effort'a düşer, o da boşsa bölüm boş kalır. (Bkz. "KAP
+  Bildirim Toplayıcısı".)
 - **Skor İsabet Takibi (öz-değerlendirme):** Top seçimlerin sonraki getirisini tüm
   evren ortalamasıyla kıyaslayıp yuvarlanan isabet oranı (hit-rate) + getiri
   avantajı (edge) üretir.
@@ -262,6 +266,51 @@ karara bağla" — overfitting'e karşı koruma). Veriler birikince, işe yaraya
   Yahoo→Investing; TR10Y → EVDS→TradingView→Investing. (CDS'nin güvenilir ücretsiz
   kaynağı yoktur; erişilemezse "Veri Yok".)
 
+## KAP Bildirim Toplayıcısı (katar mimarisi — gözlem modu)
+
+KAP'ın (Kamuyu Aydınlatma Platformu) resmî/ücretsiz bir JSON API'si yoktur ve
+runner'dan doğrudan HTTP çağrıları 403 döner. Bu yüzden bildirimler **ayrı, gevşek
+bağlı bir işle** toplanır ve repoya yazılır; ana PowerShell raporu bu dosyayı
+**yalnız okur**. İki taraf birbirinden bağımsızdır: toplayıcı çökse bile rapor
+çalışır, rapor değişse bile toplayıcı etkilenmez.
+
+**Akış (katar):**
+
+1. **Toplayıcı** — `collect_kap.py` (Python, `borsapy` kütüphanesi) ayrı bir
+   **ubuntu** job'ında (`.github/workflows/kap-collector.yml`) çalışır. `borsapy.companies()`
+   ile tüm BIST kodlarını (~777) bulur, her biri için `Ticker(sym).news` ile son
+   KAP bildirimlerini çeker (Chromium gerekmez), başlığa göre **kategori + önem +
+   yön** etiketler ve `data/kap_disclosures.json` olarak **commit eder** (`[skip ci]`).
+2. **Depo** — JSON git'te tutulur; böylece Windows runner'daki rapor onu checkout'la
+   hazır bulur. Tek yön: Python yazar, PowerShell okur.
+3. **Okuyucu** — `Get-StoredKapDisclosures` (çekirdek modül) JSON'u **best-effort**
+   okur (sembol/önem filtresi, tarihe göre sıralama; dosya yoksa boş döner).
+   `GunlukRapor.ps1` "KAP Son Bildirimleri" bölümünü bundan üretir; gürültü
+   (`önem=noise`) elenir, Top radar hisseleri öne alınır.
+
+**Zamanlama:** toplayıcı ana rapordan **önce** tetiklenmelidir; cron-job.org'a
+ikinci bir iş eklenip `kap-collector.yml` ~17:55'te `workflow_dispatch` ile
+çağrılabilir (GitHub'ın kendi cron'u geciktiği için kullanılmaz). Elle de
+`Run workflow` (girdi: `max_stocks=0` tüm BIST, `news_limit=8`) ile çalıştırılır.
+
+**Kategoriler ve yön ipuçları** (başlık anahtar kelimesinden otomatik; kabadır,
+**karar etkisi yoktur**, ilk eşleşen kazanır):
+
+| Önem | Kategoriler | Yön |
+|---|---|---|
+| `high` (fiyat etkili olabilir) | Birleşme/Devralma, İhale/Sözleşme, Geri Alım, Temettü, Yatırım/Tesis, Varlık Alım/Satım, Sermaye Artırımı, Kredi Notu, Hukuki/Dava, Halka Arz, Özel Durum (Genel) | 🟢 olumlu · 🔴 olumsuz · 🟡 karışık · ❔ detay gerekir |
+| `earnings` | Bilanço/Finansal | ⚪ nötr |
+| `insider` | Insider/Pay Bildirimi | 🟡 bağlamsal |
+| `governance` | Genel Kurul, Kurumsal Yönetim, Bağımsız Denetim, Hak Kullanımı, Şirket Bilgi | ⚪ nötr |
+| `debt` | Borçlanma Aracı (tahvil/sukuk/ihraç/kupon/itfa) | ⚪ nötr |
+| `noise` (raporda elenir) | Piyasa/Teknik (devre kesici, likidite sağlayıcılık, endeks/fiili dolaşım) | ⚪ |
+| `other` | Diğer (eşleşmeyen) | ❔ |
+
+> Türkçe `İ`/`I` tuzağı: Python `"İhale".lower()` → `"i̇hale"` (birleşik nokta)
+> ürettiğinden ham `.lower()` ile `"ihale"` eşleşmez. `collect_kap.py._norm()`
+> İ→i, I→ı dönüşümüyle Türkçe-güvenli küçük harf yapar; bu düzeltme 30 hisselik
+> örnekte "Diğer" oranını **%58'den ~%0'a** indirdi.
+
 ## Dosyalar
 
 - `.github/workflows/bist-cloud-report.yml` — günlük rapor (harici zamanlayıcı
@@ -273,6 +322,9 @@ karara bağla" — overfitting'e karşı koruma). Veriler birikince, işe yaraya
   (strateji ayrışma testi dahil).
 - `Validate-StrategySweep.ps1` — manuel parametre taraması ve validation raporu.
 - `Simulate-RebalanceSeparation.ps1` — strateji ayrışması canlı-veri doğrulaması.
+- `collect_kap.py` + `.github/workflows/kap-collector.yml` — tüm BIST için KAP
+  bildirim toplayıcısı (borsapy; `data/kap_disclosures.json` üretir/commit eder).
+  Ayrı ubuntu job; ana botu etkilemez. (Bkz. "KAP Bildirim Toplayıcısı".)
 - `BacktestEngine.psm1` / `Backtest-EventDriven.ps1` / `Test-BacktestEngine.ps1` —
   gerçek event-driven backtest motoru, koşucusu ve ağsız birim testi.
 - `config/report_settings.cloud.json` / `.example.json` — ayarlar.
