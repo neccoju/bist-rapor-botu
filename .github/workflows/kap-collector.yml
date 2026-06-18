@@ -25,7 +25,7 @@ permissions:
 jobs:
   collect:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -39,7 +39,7 @@ jobs:
           pip install borsapy
       - name: Collect KAP disclosures
         run: |
-          python collect_kap.py --max-stocks "${{ github.event.inputs.max_stocks }}" --news-limit "${{ github.event.inputs.news_limit }}" --max-seconds 900
+          python collect_kap.py --max-stocks "${{ github.event.inputs.max_stocks }}" --news-limit "${{ github.event.inputs.news_limit }}" --max-seconds 1800
       - name: Commit JSON to repo
         shell: bash
         run: |

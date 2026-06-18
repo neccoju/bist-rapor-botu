@@ -131,12 +131,39 @@ def extract_tickers(borsapy):
     return out
 
 
+def _fetch_news_rows(borsapy, sym, news_limit):
+    """Tek hisse icin KAP bildirim satirlarini ceker (siniflandirilmis). Her
+    cagrida yeni Ticker olusturur (olu keep-alive baglantisini tazelemek icin)."""
+    news = borsapy.Ticker(sym).news
+    rows = []
+    if news is not None and hasattr(news, "iterrows"):
+        for _, r in news.head(news_limit).iterrows():
+            title = str(r.get("Title", "") if hasattr(r, "get") else r["Title"])
+            url = str(r.get("URL", "") if hasattr(r, "get") else r["URL"])
+            date = str(r.get("Date", "") if hasattr(r, "get") else r["Date"])
+            cat, imp, direction = classify(title)
+            rows.append({
+                "date": date, "title": title, "category": cat,
+                "importance": imp, "direction": direction,
+                "disclosureId": disclosure_id_from_url(url), "url": url,
+            })
+    return rows
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--max-stocks", type=int, default=0, help="0 = tum hisseler")
     ap.add_argument("--news-limit", type=int, default=8, help="hisse basina en fazla bildirim")
-    ap.add_argument("--max-seconds", type=int, default=900, help="genel sure limiti")
-    ap.add_argument("--sleep", type=float, default=0.0, help="hisse arasi bekleme (rate-limit)")
+    ap.add_argument("--max-seconds", type=int, default=1500, help="genel sure limiti")
+    ap.add_argument("--sleep", type=float, default=0.6, help="hisse arasi bekleme (rate-limit; ~0.6s ile <1 istek/sn)")
+    # Throttle dayanikliligi: kaynak ~100 hizli istekten sonra baglantiyi kesiyor
+    # ("Server disconnected"). Per-hisse backoff retry + ardisik hata kumelenince
+    # bir defalik cooldown ile pencerenin sifirlanmasi saglanir.
+    ap.add_argument("--retries", type=int, default=3, help="hisse basina yeniden deneme")
+    ap.add_argument("--retry-wait", type=float, default=6.0, help="retry taban bekleme (artan: wait*deneme)")
+    ap.add_argument("--cooldown", type=float, default=45.0, help="ardisik hata kumesinde bir defalik soguma (sn)")
+    ap.add_argument("--cooldown-after", type=int, default=6, help="cooldown tetikleyen ardisik hata sayisi")
+    ap.add_argument("--max-cooldowns", type=int, default=8, help="en fazla cooldown sayisi")
     ap.add_argument("--out", default="data/kap_disclosures.json")
     args = ap.parse_args()
 
@@ -158,43 +185,62 @@ def main():
         sys.exit(1)
     if args.max_stocks > 0:
         tickers = tickers[: args.max_stocks]
-    print(f"Islenecek hisse: {len(tickers)}")
+    print(f"Islenecek hisse: {len(tickers)} | sleep={args.sleep}s retries={args.retries} "
+          f"cooldown={args.cooldown}s/{args.cooldown_after} max-seconds={args.max_seconds}")
 
     stocks = {}
     cat_summary = {}
     total_disc = 0
     with_news = 0
     errors = 0
+    consecutive_fail = 0
+    cooldowns_used = 0
 
     for i, sym in enumerate(tickers, 1):
         if time.time() - started > args.max_seconds:
             print(f"!! Sure limiti ({args.max_seconds}s) asildi; {i-1} hissede durduruldu.")
             break
-        try:
-            news = borsapy.Ticker(sym).news
-            rows = []
-            if news is not None and hasattr(news, "iterrows"):
-                for _, r in news.head(args.news_limit).iterrows():
-                    title = str(r.get("Title", "") if hasattr(r, "get") else r["Title"])
-                    url = str(r.get("URL", "") if hasattr(r, "get") else r["URL"])
-                    date = str(r.get("Date", "") if hasattr(r, "get") else r["Date"])
-                    cat, imp, direction = classify(title)
-                    rows.append({
-                        "date": date, "title": title, "category": cat,
-                        "importance": imp, "direction": direction,
-                        "disclosureId": disclosure_id_from_url(url), "url": url,
-                    })
-                    cat_summary[cat] = cat_summary.get(cat, 0) + 1
+
+        rows = None
+        last_err = None
+        for attempt in range(1, args.retries + 1):
+            if time.time() - started > args.max_seconds:
+                break
+            try:
+                rows = _fetch_news_rows(borsapy, sym, args.news_limit)
+                last_err = None
+                break
+            except Exception as e:
+                last_err = e
+                if attempt < args.retries:
+                    time.sleep(args.retry_wait * attempt)
+
+        if last_err is None:
+            consecutive_fail = 0
             if rows:
                 stocks[sym] = rows
                 total_disc += len(rows)
                 with_news += 1
-        except Exception as e:
+                for r in rows:
+                    cat_summary[r["category"]] = cat_summary.get(r["category"], 0) + 1
+        else:
             errors += 1
+            consecutive_fail += 1
             if errors <= 10:
-                print(f"  {sym}: HATA {type(e).__name__}: {e}")
+                print(f"  {sym}: HATA {type(last_err).__name__}: {last_err}")
+            # Ardisik hata kumesi -> kaynak bizi throttle ediyor olabilir; bir
+            # defalik daha uzun soguma ile pencereyi sifirlamayi dene.
+            if (consecutive_fail >= args.cooldown_after and cooldowns_used < args.max_cooldowns
+                    and (time.time() - started) < (args.max_seconds - args.cooldown)):
+                cooldowns_used += 1
+                print(f"  !! {consecutive_fail} ardisik hata; cooldown {int(args.cooldown)}s "
+                      f"({cooldowns_used}/{args.max_cooldowns})")
+                time.sleep(args.cooldown)
+                consecutive_fail = 0
+
         if i % 50 == 0:
-            print(f"  ... {i}/{len(tickers)} islendi | bildirimli hisse={with_news} | {int(time.time()-started)}s")
+            print(f"  ... {i}/{len(tickers)} islendi | bildirimli hisse={with_news} | "
+                  f"hata={errors} | {int(time.time()-started)}s")
         if args.sleep > 0:
             time.sleep(args.sleep)
 
