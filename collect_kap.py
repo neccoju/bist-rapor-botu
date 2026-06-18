@@ -18,28 +18,60 @@ from datetime import datetime, timezone
 
 # ---------------------------------------------------------------------------
 # KAP kategori semasi: baslik anahtar kelimesi -> (kategori, onem, yon ipucu)
-# onem: high | earnings | insider | governance | other
+# onem: high | earnings | insider | governance | debt | noise | other
+#   high      -> fiyat etkisi olabilecek kurumsal olay
+#   earnings  -> finansal raporlama / bilanco
+#   insider   -> pay alim-satim / icsel bilgi (sahiplik degisimi sinyali)
+#   governance-> yonetim/genel kurul/denetim (genelde notr)
+#   debt      -> borclanma araci / sabit getirili ihrac (genelde notr)
+#   noise     -> piyasa mekanigi (devre kesici, likidite, endeks) — bilgi degeri dusuk
+#   other     -> eslesmeyen
 # yon : +  (genelde olumlu) | -  (olumsuz) | ~ (karisik/baglamsal) | 0 (notr) | ? (detay gerekir)
 # Sira onemli: ilk eslesen kazanir; spesifikten genele dogru dizildi.
+# NOT: anahtar kelimeler _norm() ile ayni sekilde normalize edilmis (Turkce-guvenli
+# kucuk harf) yazilmalidir: noktali kucuk 'i', 'ş', 'ç', 'ğ', 'ü', 'ö' kullanin.
 # ---------------------------------------------------------------------------
 CATEGORY_RULES = [
-    ("Birlesme/Devralma", "high",       "+", ["birleşme", "devralma", "satın alma", "pay devri", "hisse devri", "iştirak edinim"]),
-    ("Ihale/Sozlesme",    "high",       "+", ["ihale", "sözleşme", "yeni iş ilişkisi", "sipariş", "anlaşma", "yurt dışı satış", "satış sözleşme", "proje"]),
-    ("Geri Alim",         "high",       "+", ["geri alım", "pay geri al", "geri alim"]),
-    ("Temettu",           "high",       "+", ["kar payı", "kâr payı", "temettü", "kar dağıt", "kâr dağıt", "nakit kar"]),
+    # --- Yuksek etkili kurumsal olaylar ---
+    ("Birlesme/Devralma", "high",       "+", ["birleşme", "devralma", "satın alma", "pay devri", "hisse devri", "iştirak edinim", "şirket satın", "bölünme"]),
+    ("Ihale/Sozlesme",    "high",       "+", ["ihale", "sözleşme", "yeni iş ilişkisi", "sipariş", "yeni iş", "satış sözleşme", "proje sözleşme", "bayilik", "distribütör", "yurt dışı satış"]),
+    ("Geri Alim",         "high",       "+", ["geri alım", "pay geri al", "geri alınan pay", "payların geri"]),
+    ("Temettu",           "high",       "+", ["kar payı", "kâr payı", "temettü", "kar dağıt", "kâr dağıt", "nakit kar", "nakit kâr"]),
+    ("Yatirim/Tesis",     "high",       "+", ["yatırım kararı", "kapasite artır", "yeni tesis", "fabrika", "üretim tesisi", "kapasite yatırım"]),
+    ("Varlik Alim/Satim", "high",       "~", ["finansal duran varlık", "maddi duran varlık", "duran varlık satı", "duran varlık edinim", "gayrimenkul satı", "gayrimenkul alı", "varlık satışı", "varlık edinimi"]),
     ("Sermaye Artirimi",  "high",       "~", ["sermaye artırım", "bedelli", "bedelsiz", "tahsisli", "kayıtlı sermaye"]),
-    ("Kredi Notu",        "high",       "~", ["derecelendirme", "kredi not", "rating", "kredi derece"]),
-    ("Yatirim/Tesis",     "high",       "+", ["yatırım kararı", "kapasite artır", "yeni tesis", "fabrika", "üretim tesisi"]),
-    ("Insider/Pay Bildirimi", "insider", "~", ["pay alım satım", "ortaklık pay", "yönetici işlem", "içsel bilgi", "geri alınan pay", "payların geri"]),
-    ("Bilanco/Finansal",  "earnings",   "0", ["finansal rapor", "faaliyet rapor", "sorumluluk beyan", "finansal tablo", "bilanço", "ara dönem"]),
+    ("Kredi Notu",        "high",       "~", ["derecelendirme", "kredi not", "rating", "kredi derece", "not güncelleme"]),
+    ("Hukuki/Dava",       "high",       "-", ["dava açıl", "davaya ilişkin", "hukuki süreç", "icra", "iflas", "konkordato", "el konul", "soruşturma"]),
+    ("Halka Arz",         "high",       "~", ["halka arz", "izahname", "arz fiyat"]),
+    # --- Borclanma / sabit getirili (genelde notr, gurultu degil ama fiyat etkisi dusuk) ---
+    ("Borclanma Araci",   "debt",       "0", ["borçlanma araç", "kira sertifika", "ihraç tavan", "ihraç belge", "tertip ihraç", "kupon", "itfa", "tahvil", "sukuk", "varant", "finansman bonosu", "sermaye piyasası aracı"]),
+    # --- Icsel/Insider/Pay bildirimleri ---
+    ("Insider/Pay Bildirimi", "insider", "~", ["pay alım satım", "ortaklık pay", "yönetici işlem", "içsel bilgi", "pay satış bilgi", "pay  satış", "mali hak kullanım"]),
+    ("Hak Kullanimi",     "governance", "0", ["hak kullan"]),
+    # --- Bilanco / finansal raporlama ---
+    ("Bilanco/Finansal",  "earnings",   "0", ["finansal rapor", "faaliyet rapor", "sorumluluk beyan", "finansal tablo", "bilanço", "ara dönem", "mali tablo", "yatırımcı raporu", "yatırımcı sunum", "faaliyet sonuç"]),
+    # --- Kurumsal yonetim / governance ---
+    ("Bagimsiz Denetim",  "governance", "0", ["bağımsız denetim"]),
     ("Genel Kurul",       "governance", "0", ["genel kurul", "gündem", "olağan genel", "olağanüstü genel"]),
-    ("Sirket Bilgi",      "governance", "0", ["genel bilgi formu", "yatırımcı ilişkileri", "esas sözleşme", "şirket genel bilgi"]),
-    ("Ozel Durum (Genel)", "high",      "?", ["özel durum"]),  # genel ODA — yon icin detay gerekir
+    ("Kurumsal Yonetim",  "governance", "0", ["kurumsal yönetim", "yönetim kurulu komite", "ilişkili taraf", "esas sözleşme", "yönetim kurulu üye", "istifa", "atama"]),
+    ("Sirket Bilgi",      "governance", "0", ["genel bilgi formu", "yatırımcı ilişkileri", "şirket genel bilgi", "geleceğe dönük"]),
+    # --- Piyasa mekanigi / teknik (gurultu — bilgi degeri dusuk) ---
+    ("Piyasa/Teknik",     "noise",      "0", ["devre kesici", "likidite sağlayıc", "bistech", "bıstech", "fiili dolaşım", "tipe dönüşüm", "endeks", "işlem görmeye başla", "işlem sıras", "sıra kapat", "brüt takas", "açığa satış", "tedbir"]),
+    # --- Genel ODA (yon icin detay gerekir; cogu zaman gercek haber burada) ---
+    ("Ozel Durum (Genel)", "high",      "?", ["özel durum"]),
 ]
 
 
+def _norm(s: str) -> str:
+    """Turkce-guvenli kucuk harf. Python str.lower() 'İ' -> 'i' + U+0307 (birlesik
+    nokta) urettigi icin 'ihale' gibi anahtarlar İ ile baslayan basliklarda
+    eslesmez. Once İ->i, I->ı haritalayip sonra lower; birlesik noktayi temizle."""
+    s = (s or "").replace("İ", "i").replace("I", "ı")
+    return s.lower().replace("̇", "")
+
+
 def classify(title: str):
-    t = (title or "").lower()
+    t = _norm(title)
     for category, importance, direction, keys in CATEGORY_RULES:
         if any(k in t for k in keys):
             return category, importance, direction
