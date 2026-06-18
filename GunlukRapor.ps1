@@ -1836,7 +1836,7 @@ try {
     # bozulmaz (gozlem modu; karar etkisi YOK).
     $stageStartedAt = Get-Date
     $storedKap = @()
-    try { $storedKap = @(Get-StoredKapDisclosures) } catch { $storedKap = @() }
+    try { $storedKap = @(Get-StoredKapDisclosures -MaxAgeDays 7) } catch { $storedKap = @() }
     $kapDisclosures = if ($storedKap.Count -gt 0) { $storedKap } else { @(Get-KapDisclosures -TimeoutSec 5 -Limit 40) }
     $kapMeta = if ($storedKap.Count -gt 0) { 'depolanmis (borsapy/KAP)' } else { 'canli best-effort' }
     Write-TimingLog -Step 'KAP bildirimleri' -StartedAt $stageStartedAt
@@ -2404,7 +2404,7 @@ $(if ($preEarningsRows.Count -gt 0) { New-HtmlTable -Rows $preEarningsRows } els
 <p class="muted">Akademik PEAD bulgusu (Bernard-Thomas 1989): hisseler bilanço sürprizinin yönünde haftalarca sürüklenir. Bot, yeni bilanço açıklayan hisseleri tespit anındaki fiyat ve sürpriz proxy'siyle (USD net kâr/FAVÖK Y/Y + FAVÖK trendi; 0-100, 50 nötr) kaydeder; ~28 gün sonra tespit fiyatına göre getiriyi ölçer ve "pozitif sürpriz → pozitif sürüklenme" isabet oranını biriktirir. $(if ($null -ne $earningsReactionSummary.PeadHitRatePct) { "Şu ana kadar $($earningsReactionSummary.DirectionalCount) yönlü örnekte isabet %$($earningsReactionSummary.PeadHitRatePct); pozitif sürpriz ortalama sürüklenmesi %$($earningsReactionSummary.AvgPositiveSurpriseDriftPct). Halen izlenen $($earningsReactionSummary.TrackedCount) hisse." } else { "Henüz tamamlanmış sürüklenme örneği yok; halen izlenen $($earningsReactionSummary.TrackedCount) hisse. İlk isabet ölçümü açıklamalardan ~28 gün sonra üretilecek." })</p>
 $(New-HtmlTable -Rows $peadTrackedRows)
 <h2>KAP Son Bildirimleri (Deneysel — gözlem)</h2>
-<p class="muted">Kaynak: <b>$kapMeta</b>. Bildirimler ayrı bir işle (borsapy üzerinden tüm BIST için) toplanıp depolanır; bu rapor onları okur. Her satır kategoriye ayrılır ve yön ipucu taşır: 🟢 genelde olumlu · 🔴 olumsuz · 🟡 karışık/bağlamsal · ⚪ nötr · ❔ detay gerekir. Piyasa mekaniği gürültüsü (devre kesici, likidite sağlayıcılık, endeks) listeden çıkarılır. Öncelikle Top radar hisselerine ait bildirimler gösterilir. <b>Yön ipuçları otomatik ve kabadır; karar etkisi yoktur.</b> Özel durum açıklamaları işlem öncesi mutlaka KAP'tan birinci elden doğrulanmalıdır.</p>
+<p class="muted">Kaynak: <b>$kapMeta</b>. Bildirimler ayrı bir işle (borsapy üzerinden BIST evreni için, dönüşümlü/biriktirerek) toplanıp depolanır; bu rapor <b>son 7 gün</b> içindekileri okur. Her satır kategoriye ayrılır ve yön ipucu taşır: 🟢 genelde olumlu · 🔴 olumsuz · 🟡 karışık/bağlamsal · ⚪ nötr · ❔ detay gerekir. Piyasa mekaniği gürültüsü (devre kesici, likidite sağlayıcılık, endeks) listeden çıkarılır. Öncelikle Top radar hisselerine ait bildirimler gösterilir. <b>Yön ipuçları otomatik ve kabadır; karar etkisi yoktur.</b> Özel durum açıklamaları işlem öncesi mutlaka KAP'tan birinci elden doğrulanmalıdır.</p>
 $(if ($kapRows.Count -gt 0) { New-HtmlTable -Rows $kapRows } else { '<p class="muted">KAP bildirimleri bu çalışmada alınamadı (depolanmış dosya yok ve canlı kaynak erişilemedi).</p>' })
 <h2>Sektor Rotasyonu</h2>
 <p class="muted">Fark sütunları sektör endeksi/proxy getirisi eksi BIST100 getirisi olarak okunur. Pozitif değer sektörün BIST100'e göre daha güçlü aktığını gösterir.</p>

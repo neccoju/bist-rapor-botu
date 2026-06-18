@@ -1,21 +1,32 @@
 name: KAP Collector (borsapy)
 
-# Tum BIST hisseleri icin KAP son bildirimlerini borsapy ile ceker, kategorilere
-# ayirir ve data/kap_disclosures.json olarak repoya commit eder. Ana gunluk rapor
+# BIST hisseleri icin KAP son bildirimlerini borsapy ile ceker, kategorilere ayirir
+# ve data/kap_disclosures.json'a BIRIKTIREREK yazar (merge). Ana gunluk rapor
 # (PowerShell) bu dosyayi best-effort okur. Ana botu ETKILEMEZ; ayri ubuntu job.
 #
+# BIRIKTIRME + DÖNÜŞÜMLÜ TARAMA: kaynak ~100+ hizli istekten sonra baglantiyi
+# kesip throttle ettigi icin tum evren her gun bastan taranmaz. Her kosu sadece
+# bir dilim (vars. 300 hisse) tarar, yeni bildirimleri ilgili hissenin arsivine
+# disclosureId ile tekillestirerek EKLER; o gun sıraya gelmeyen hisseler onceki
+# verisini KORUR. rotationCursor JSON'da tutulur; ertesi gun siradan devam eder.
+# Boylece ~3 gunde tum evren tazelenir ve dosya hep dolu kalir.
+#
 # Zamanlama: harici tetikleyici (cron-job.org) ile ana rapordan ONCE (or. 17:55)
-# tetiklenmeli; ya da elle Run workflow. GitHub'in kendi cron'u gecikebildigi icin
-# kullanilmadi.
+# her gun tetiklenmeli; ya da elle Run workflow. GitHub'in kendi cron'u
+# gecikebildigi icin kullanilmadi.
 on:
   workflow_dispatch:
     inputs:
+      rotate_size:
+        description: "Bu kosuda taranacak hisse (dönüşümlü; 0 = tum evren tek seferde)"
+        required: false
+        default: "300"
       max_stocks:
-        description: "Islenecek hisse sayisi (0 = tum BIST)"
+        description: "Evren ust siniri (0 = tum BIST; rotasyon icin taban liste)"
         required: false
         default: "0"
       news_limit:
-        description: "Hisse basina en fazla bildirim"
+        description: "Hisse basina cekilen en yeni bildirim"
         required: false
         default: "8"
 
@@ -39,7 +50,11 @@ jobs:
           pip install borsapy
       - name: Collect KAP disclosures
         run: |
-          python collect_kap.py --max-stocks "${{ github.event.inputs.max_stocks }}" --news-limit "${{ github.event.inputs.news_limit }}" --max-seconds 1800
+          python collect_kap.py \
+            --rotate-size "${{ github.event.inputs.rotate_size || '300' }}" \
+            --max-stocks "${{ github.event.inputs.max_stocks || '0' }}" \
+            --news-limit "${{ github.event.inputs.news_limit || '8' }}" \
+            --max-seconds 1500
       - name: Commit JSON to repo
         shell: bash
         run: |

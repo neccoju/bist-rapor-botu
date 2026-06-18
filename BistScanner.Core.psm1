@@ -5392,8 +5392,21 @@ function Get-StoredKapDisclosures {
             $dateStr = [string](Get-ObjectPropertyValue -Object $rec -Name 'date')
             $dt = $null
             if (-not [string]::IsNullOrWhiteSpace($dateStr)) {
+                # borsapy 'dd.MM.yyyy' (ops. saat) verir. Runner kulturune bagli
+                # yanlis ayristirmayi onlemek icin once InvariantCulture ParseExact;
+                # sonra genel TryParse. Cozulemezse $dt=$null (yas filtresinde tutulur).
                 $parsed = [datetime]::MinValue
-                if ([datetime]::TryParse($dateStr, [ref]$parsed)) { $dt = $parsed }
+                [string[]]$kapFormats = @('dd.MM.yyyy HH:mm:ss', 'dd.MM.yyyy HH:mm', 'dd.MM.yyyy',
+                    'yyyy-MM-ddTHH:mm:ss', 'yyyy-MM-dd HH:mm:ss', 'yyyy-MM-dd')
+                if ([datetime]::TryParseExact($dateStr.Trim(), $kapFormats,
+                        [System.Globalization.CultureInfo]::InvariantCulture,
+                        [System.Globalization.DateTimeStyles]::None, [ref]$parsed)) {
+                    $dt = $parsed
+                }
+                elseif ([datetime]::TryParse($dateStr, [System.Globalization.CultureInfo]::InvariantCulture,
+                        [System.Globalization.DateTimeStyles]::None, [ref]$parsed)) {
+                    $dt = $parsed
+                }
             }
             if ($cutoff -and $dt -and $dt -lt $cutoff) { continue }
             [void]$out.Add([pscustomobject][ordered]@{

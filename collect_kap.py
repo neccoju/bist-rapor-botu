@@ -150,26 +150,76 @@ def _fetch_news_rows(borsapy, sym, news_limit):
     return rows
 
 
+def _parse_date(s):
+    """KAP tarih metnini datetime'a cevirir (siralama icin). borsapy 'dd.MM.yyyy'
+    (ops. saat) verir; ISO da denenir. Cozulemezse None."""
+    s = str(s or "").strip()
+    if not s:
+        return None
+    for fmt in ("%d.%m.%Y %H:%M", "%d.%m.%Y %H:%M:%S", "%d.%m.%Y",
+                "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(s[:len(fmt) + 2], fmt)
+        except Exception:
+            continue
+    try:
+        return datetime.fromisoformat(s)
+    except Exception:
+        return None
+
+
+def _rec_key(r):
+    """Bir bildirim icin tekillestirme anahtari: disclosureId varsa o, yoksa
+    tarih+baslik."""
+    did = r.get("disclosureId")
+    if did:
+        return ("id", str(did))
+    return ("dt", str(r.get("date", "")), str(r.get("title", "")))
+
+
+def _merge_stock(existing, new_rows, max_archive):
+    """Bir hissenin mevcut arsiviyle yeni cekilen bildirimleri birlestirir:
+    disclosureId'ye gore tekillestirir, tarihe gore (yeni->eski) siralar, en fazla
+    max_archive kayit tutar. Mevcut kayitlar KORUNUR; yalniz yeniler eklenir."""
+    merged = {}
+    for r in (existing or []):
+        merged[_rec_key(r)] = r
+    added = 0
+    for r in (new_rows or []):
+        k = _rec_key(r)
+        if k not in merged:
+            added += 1
+        merged[k] = r  # yeni siniflandirma/alanlarla guncelle
+    rows = list(merged.values())
+    rows.sort(key=lambda r: (_parse_date(r.get("date")) or datetime.min), reverse=True)
+    if max_archive > 0:
+        rows = rows[:max_archive]
+    return rows, added
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--max-stocks", type=int, default=0, help="0 = tum hisseler")
-    ap.add_argument("--news-limit", type=int, default=8, help="hisse basina en fazla bildirim")
+    ap.add_argument("--max-stocks", type=int, default=0, help="0 = tum evren (rotasyon icin taban liste)")
+    ap.add_argument("--news-limit", type=int, default=8, help="hisse basina cekilen en yeni bildirim")
     ap.add_argument("--max-seconds", type=int, default=1500, help="genel sure limiti")
-    ap.add_argument("--sleep", type=float, default=0.6, help="hisse arasi bekleme (rate-limit; ~0.6s ile <1 istek/sn)")
-    # Throttle dayanikliligi: kaynak ~100 hizli istekten sonra baglantiyi kesiyor
-    # ("Server disconnected"). Per-hisse backoff retry + ardisik hata kumelenince
-    # bir defalik cooldown ile pencerenin sifirlanmasi saglanir.
-    ap.add_argument("--retries", type=int, default=3, help="hisse basina yeniden deneme")
-    ap.add_argument("--retry-wait", type=float, default=6.0, help="retry taban bekleme (artan: wait*deneme)")
+    ap.add_argument("--sleep", type=float, default=0.5, help="hisse arasi bekleme (rate-limit)")
+    ap.add_argument("--retries", type=int, default=2, help="hisse basina yeniden deneme")
+    ap.add_argument("--retry-wait", type=float, default=4.0, help="retry taban bekleme (artan: wait*deneme)")
     ap.add_argument("--cooldown", type=float, default=45.0, help="ardisik hata kumesinde bir defalik soguma (sn)")
-    ap.add_argument("--cooldown-after", type=int, default=6, help="cooldown tetikleyen ardisik hata sayisi")
-    ap.add_argument("--max-cooldowns", type=int, default=8, help="en fazla cooldown sayisi")
+    ap.add_argument("--cooldown-after", type=int, default=8, help="cooldown tetikleyen ardisik hata sayisi")
+    ap.add_argument("--max-cooldowns", type=int, default=4, help="en fazla cooldown sayisi")
+    # Biriktirme + dönüşümlü tarama (gunluk kullanim icin):
+    ap.add_argument("--rotate-size", type=int, default=0,
+                    help="bu kosuda taranacak hisse sayisi (0=tum evren). Gunluk icin ~260; "
+                         "kalan hisseler onceki verisini korur, sonraki gun siradan devam eder.")
+    ap.add_argument("--max-archive", type=int, default=40, help="hisse basina arsivde tutulacak en fazla bildirim")
+    ap.add_argument("--no-merge", action="store_true", help="birlestirme kapali; dosyayi sifirdan yaz")
     ap.add_argument("--out", default="data/kap_disclosures.json")
     args = ap.parse_args()
 
     started = time.time()
     print("=" * 70)
-    print("KAP toplayici (borsapy)")
+    print("KAP toplayici (borsapy) — biriktirme/dönüşümlü mod")
     print("=" * 70)
     try:
         import borsapy
@@ -179,27 +229,50 @@ def main():
     ver = getattr(borsapy, "__version__", "?")
     print(f"borsapy {ver}")
 
+    import os
+    # Mevcut arsivi yukle (biriktirme icin).
+    prev = {}
+    if not args.no_merge and os.path.exists(args.out):
+        try:
+            with open(args.out, "r", encoding="utf-8") as f:
+                prev = json.load(f)
+        except Exception as e:
+            print(f"Mevcut JSON okunamadi ({type(e).__name__}); sifirdan baslanacak.")
+            prev = {}
+    stocks = dict(prev.get("stocks", {})) if isinstance(prev, dict) else {}
+    prev_cursor = int(prev.get("rotationCursor", 0)) if isinstance(prev, dict) else 0
+
     tickers = extract_tickers(borsapy)
     if not tickers:
         print("HATA: hisse listesi alinamadi; cikiliyor.")
         sys.exit(1)
     if args.max_stocks > 0:
         tickers = tickers[: args.max_stocks]
-    print(f"Islenecek hisse: {len(tickers)} | sleep={args.sleep}s retries={args.retries} "
-          f"cooldown={args.cooldown}s/{args.cooldown_after} max-seconds={args.max_seconds}")
+    n = len(tickers)
 
-    stocks = {}
-    cat_summary = {}
-    total_disc = 0
-    with_news = 0
+    # Bu kosunun dilimini rotasyonla sec.
+    rot = args.rotate_size if args.rotate_size > 0 else n
+    rot = min(rot, n)
+    start = prev_cursor % n if n else 0
+    slice_syms = [tickers[(start + k) % n] for k in range(rot)]
+    next_cursor = (start + rot) % n
+    print(f"Evren: {n} | bu kosu dilimi: {rot} (idx {start}..{(start + rot - 1) % n}) | "
+          f"merge={'kapali' if args.no_merge else 'acik'} | sleep={args.sleep}s | max-seconds={args.max_seconds}")
+
+    fetched_ok = 0
+    new_added = 0
     errors = 0
     consecutive_fail = 0
     cooldowns_used = 0
+    processed = 0
 
-    for i, sym in enumerate(tickers, 1):
+    for i, sym in enumerate(slice_syms, 1):
         if time.time() - started > args.max_seconds:
-            print(f"!! Sure limiti ({args.max_seconds}s) asildi; {i-1} hissede durduruldu.")
+            print(f"!! Sure limiti ({args.max_seconds}s) asildi; {i-1}/{rot} dilimde durduruldu.")
+            # Kismi dilim: cursor'u gercekten ulasilan yere kaydir.
+            next_cursor = (start + (i - 1)) % n
             break
+        processed = i
 
         rows = None
         last_err = None
@@ -218,18 +291,15 @@ def main():
         if last_err is None:
             consecutive_fail = 0
             if rows:
-                stocks[sym] = rows
-                total_disc += len(rows)
-                with_news += 1
-                for r in rows:
-                    cat_summary[r["category"]] = cat_summary.get(r["category"], 0) + 1
+                merged, added = _merge_stock(stocks.get(sym), rows, args.max_archive)
+                stocks[sym] = merged
+                fetched_ok += 1
+                new_added += added
         else:
             errors += 1
             consecutive_fail += 1
             if errors <= 10:
                 print(f"  {sym}: HATA {type(last_err).__name__}: {last_err}")
-            # Ardisik hata kumesi -> kaynak bizi throttle ediyor olabilir; bir
-            # defalik daha uzun soguma ile pencereyi sifirlamayi dene.
             if (consecutive_fail >= args.cooldown_after and cooldowns_used < args.max_cooldowns
                     and (time.time() - started) < (args.max_seconds - args.cooldown)):
                 cooldowns_used += 1
@@ -239,29 +309,53 @@ def main():
                 consecutive_fail = 0
 
         if i % 50 == 0:
-            print(f"  ... {i}/{len(tickers)} islendi | bildirimli hisse={with_news} | "
+            print(f"  ... {i}/{rot} dilim | yeni cekilen={fetched_ok} | yeni bildirim={new_added} | "
                   f"hata={errors} | {int(time.time()-started)}s")
         if args.sleep > 0:
             time.sleep(args.sleep)
 
+    # Tum arsiv uzerinden ozet (yalniz bu kosu degil).
+    cat_summary = {}
+    total_disc = 0
+    with_news = 0
+    for sym, rows in stocks.items():
+        if rows:
+            with_news += 1
+            total_disc += len(rows)
+            for r in rows:
+                cat = r.get("category", "Diger")
+                cat_summary[cat] = cat_summary.get(cat, 0) + 1
+
     payload = {
         "generatedAt": datetime.now(timezone.utc).isoformat(),
         "source": f"borsapy {ver}",
-        "processedStocks": len(tickers),
+        "universeSize": n,
+        "rotationCursor": next_cursor,
+        "lastRun": {
+            "sliceSize": rot,
+            "sliceStart": start,
+            "processed": processed,
+            "fetchedOk": fetched_ok,
+            "newDisclosures": new_added,
+            "errors": errors,
+            "cooldowns": cooldowns_used,
+            "elapsedSec": int(time.time() - started),
+        },
         "stocksWithNews": with_news,
         "totalDisclosures": total_disc,
         "errors": errors,
         "categorySummary": dict(sorted(cat_summary.items(), key=lambda kv: -kv[1])),
         "stocks": stocks,
     }
-    import os
     os.makedirs(os.path.dirname(args.out), exist_ok=True)
     with open(args.out, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
 
     print("-" * 70)
-    print(f"Bildirimli hisse: {with_news}/{len(tickers)} | toplam bildirim: {total_disc} | hata: {errors}")
-    print("Kategori dagilimi:", json.dumps(payload["categorySummary"], ensure_ascii=False))
+    print(f"Bu kosu: {fetched_ok} hisse cekildi | {new_added} yeni bildirim | hata={errors} | "
+          f"cooldown={cooldowns_used} | sonraki cursor={next_cursor}/{n}")
+    print(f"Arsiv toplam: bildirimli hisse {with_news}/{n} | toplam bildirim {total_disc}")
+    print("Kategori dagilimi (arsiv):", json.dumps(payload["categorySummary"], ensure_ascii=False))
     print(f"Yazildi: {args.out} | sure: {int(time.time()-started)}s")
 
 

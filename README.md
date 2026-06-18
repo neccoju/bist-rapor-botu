@@ -278,20 +278,39 @@ bağlı bir işle** toplanır ve repoya yazılır; ana PowerShell raporu bu dosy
 
 1. **Toplayıcı** — `collect_kap.py` (Python, `borsapy` kütüphanesi) ayrı bir
    **ubuntu** job'ında (`.github/workflows/kap-collector.yml`) çalışır. `borsapy.companies()`
-   ile tüm BIST kodlarını (~777) bulur, her biri için `Ticker(sym).news` ile son
-   KAP bildirimlerini çeker (Chromium gerekmez), başlığa göre **kategori + önem +
-   yön** etiketler ve `data/kap_disclosures.json` olarak **commit eder** (`[skip ci]`).
+   ile tüm BIST kodlarını (~777) bulur, **o günün dilimindeki** hisseler için
+   `Ticker(sym).news` ile son bildirimleri çeker (Chromium gerekmez), başlığa göre
+   **kategori + önem + yön** etiketler ve `data/kap_disclosures.json`'a
+   **biriktirerek** yazar.
 2. **Depo** — JSON git'te tutulur; böylece Windows runner'daki rapor onu checkout'la
    hazır bulur. Tek yön: Python yazar, PowerShell okur.
 3. **Okuyucu** — `Get-StoredKapDisclosures` (çekirdek modül) JSON'u **best-effort**
-   okur (sembol/önem filtresi, tarihe göre sıralama; dosya yoksa boş döner).
-   `GunlukRapor.ps1` "KAP Son Bildirimleri" bölümünü bundan üretir; gürültü
+   okur (sembol/önem/`-MaxAgeDays` filtresi, tarihe göre sıralama; dosya yoksa boş
+   döner). `GunlukRapor.ps1` "KAP Son Bildirimleri" bölümünü bundan üretir; gürültü
    (`önem=noise`) elenir, Top radar hisseleri öne alınır.
 
-**Zamanlama:** toplayıcı ana rapordan **önce** tetiklenmelidir; cron-job.org'a
+**Biriktirme + dönüşümlü tarama (neden her gün hepsini taramıyoruz):** Kaynak
+~100+ hızlı istekten sonra bağlantıyı keserek throttle ettiği için tüm evreni her
+gün baştan taramak hem yavaş hem güvenilmezdir (ilk denemede 777 hissenin 656'sı
+"Server disconnected" hatası vermişti). Çözüm:
+
+- Toplayıcı her koşuda **yalnız bir dilim** tarar (`--rotate-size`, vars. 300).
+- Çektiği yeni bildirimleri ilgili hissenin **arşivine** `disclosureId` ile
+  **tekilleştirerek ekler** (tekrarları atlar, eskileri korur; hisse başına en
+  fazla `--max-archive`=40 kayıt).
+- O gün **sıraya gelmeyen** hisseler önceki verisini **aynen korur** (silinmez).
+- `rotationCursor` JSON'da tutulur; ertesi gün **kaldığı yerden** devam eder.
+- Böylece ~3 günde tüm evren tazelenir, sonra döngüsel olarak hep güncel kalır ve
+  her koşu throttle'a takılmadan ~5-8 dk'da biter.
+
+İlk dolum (backfill) için `--rotate-size 0` (tüm evren tek seferde) ile birkaç
+kez de çalıştırılabilir; merge sayesinde sonuçlar birikir.
+
+**Zamanlama:** toplayıcı ana rapordan **önce**, her gün tetiklenmelidir; cron-job.org'a
 ikinci bir iş eklenip `kap-collector.yml` ~17:55'te `workflow_dispatch` ile
 çağrılabilir (GitHub'ın kendi cron'u geciktiği için kullanılmaz). Elle de
-`Run workflow` (girdi: `max_stocks=0` tüm BIST, `news_limit=8`) ile çalıştırılır.
+`Run workflow` ile çalıştırılır (girdiler: `rotate_size` günlük dilim, `max_stocks`
+evren üst sınırı, `news_limit` hisse başına çekilen bildirim).
 
 **Kategoriler ve yön ipuçları** (başlık anahtar kelimesinden otomatik; kabadır,
 **karar etkisi yoktur**, ilk eşleşen kazanır):

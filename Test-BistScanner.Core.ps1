@@ -506,16 +506,22 @@ Write-Host "RS rank testi başarılı (STRONG=$($rsMap['STRONG']), WEAK=$($rsMap
 
 # --- Depolanmış KAP okuyucu (Get-StoredKapDisclosures) ---
 $kapTmp = Join-Path ([System.IO.Path]::GetTempPath()) ("kap_test_" + [guid]::NewGuid().ToString('N') + ".json")
+# borsapy 'dd.MM.yyyy HH:mm:ss' formati verir; tarihleri buna gore kur ki
+# dd.MM ayristirmasi (TryParseExact typed string[]) ve MaxAgeDays filtresi
+# regresyona karsi test edilsin. Tarihler bugune gore goreli uretilir.
+$today = Get-Date
+$dRecent = $today.AddDays(-1).ToString('dd.MM.yyyy HH:mm:ss')   # son 7 gun ICINDE
+$dOld = $today.AddDays(-40).ToString('dd.MM.yyyy HH:mm:ss')     # 40 gun ONCE
 $kapSample = [ordered]@{
     generatedAt = '2026-06-18T12:00:00Z'
     source      = 'test'
     stocks      = [ordered]@{
         AAA = @(
-            [ordered]@{ date = '2026-06-18'; title = 'İhale Süreci'; category = 'Ihale/Sozlesme'; importance = 'high'; direction = '+'; disclosureId = '111'; url = 'https://x/Bildirim/111' }
-            [ordered]@{ date = '2026-06-10'; title = 'Devre Kesici'; category = 'Piyasa/Teknik'; importance = 'noise'; direction = '0'; disclosureId = '112'; url = 'https://x/Bildirim/112' }
+            [ordered]@{ date = $dRecent; title = 'İhale Süreci'; category = 'Ihale/Sozlesme'; importance = 'high'; direction = '+'; disclosureId = '111'; url = 'https://x/Bildirim/111' }
+            [ordered]@{ date = $dOld; title = 'Devre Kesici'; category = 'Piyasa/Teknik'; importance = 'noise'; direction = '0'; disclosureId = '112'; url = 'https://x/Bildirim/112' }
         )
         BBB = @(
-            [ordered]@{ date = '2026-06-17'; title = 'Kar Payı Dağıtımı'; category = 'Temettu'; importance = 'high'; direction = '+'; disclosureId = '113'; url = 'https://x/Bildirim/113' }
+            [ordered]@{ date = $today.ToString('dd.MM.yyyy HH:mm:ss'); title = 'Kar Payı Dağıtımı'; category = 'Temettu'; importance = 'high'; direction = '+'; disclosureId = '113'; url = 'https://x/Bildirim/113' }
         )
     }
 }
@@ -523,8 +529,18 @@ $kapSample = [ordered]@{
 try {
     $kapAll = @(Get-StoredKapDisclosures -Path $kapTmp)
     if ($kapAll.Count -ne 3) { throw "KAP okuyucu: 3 kayıt beklenirken $($kapAll.Count) döndü." }
-    if ([string]$kapAll[0].Symbol -ne 'AAA' -or [string]$kapAll[0].Date -ne '2026-06-18') {
-        throw "KAP okuyucu: tarihe göre azalan sıralama hatalı (ilk=$($kapAll[0].Symbol)/$($kapAll[0].Date))."
+    # En yeni kayit (BBB, bugun) basta olmali; dd.MM.yyyy ayristirmasi calismali.
+    if ([string]$kapAll[0].Symbol -ne 'BBB') {
+        throw "KAP okuyucu: tarihe göre azalan sıralama hatalı (ilk=$($kapAll[0].Symbol))."
+    }
+    if (@($kapAll | Where-Object { -not $_.DateParsed }).Count -ne 0) {
+        throw 'KAP okuyucu: dd.MM.yyyy tarihleri ayrıştırılamadı (DateParsed boş).'
+    }
+    # MaxAgeDays 7: 40 gün önceki AAA/Devre Kesici elenmeli -> 2 kayıt kalmalı.
+    $kapRecent = @(Get-StoredKapDisclosures -Path $kapTmp -MaxAgeDays 7)
+    if ($kapRecent.Count -ne 2) { throw "KAP okuyucu: MaxAgeDays 7 ile 2 kayıt beklenirken $($kapRecent.Count) döndü (tarih filtresi/ayrıştırma bozuk)." }
+    if (@($kapRecent | Where-Object { $_.Title -eq 'Devre Kesici' }).Count -ne 0) {
+        throw 'KAP okuyucu: MaxAgeDays 40 günlük eski kaydı elememiş.'
     }
     $kapImp = @(Get-StoredKapDisclosures -Path $kapTmp -OnlyImportant)
     if ($kapImp.Count -ne 2) { throw "KAP okuyucu: gürültü hariç 2 önemli kayıt beklenirken $($kapImp.Count) döndü." }
@@ -538,7 +554,7 @@ try {
     if (@(Get-StoredKapDisclosures -Path (Join-Path ([System.IO.Path]::GetTempPath()) 'yok_olmayan.json')).Count -ne 0) {
         throw 'KAP okuyucu: olmayan dosyada boş dizi dönmedi.'
     }
-    Write-Host "Depolanmış KAP okuyucu testi başarılı (toplam=$($kapAll.Count), önemli=$($kapImp.Count), sembol filtreli=$($kapSym.Count))."
+    Write-Host "Depolanmış KAP okuyucu testi başarılı (toplam=$($kapAll.Count), son7gün=$($kapRecent.Count), önemli=$($kapImp.Count), sembol=$($kapSym.Count))."
 }
 finally {
     Remove-Item -LiteralPath $kapTmp -ErrorAction SilentlyContinue
