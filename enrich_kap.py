@@ -376,7 +376,7 @@ PROVIDER_PRESETS = {
     # ucretsiz modeller (minimax-m2.5-free, nemotron-3-super-free, big-pickle...).
     "opencode": {
         "base": "https://opencode.ai/zen/v1/chat/completions",
-        "token_env": "OPENCODE_ZEN_API_KEY", "model": "minimax-m2.5-free", "cap": 24000},
+        "token_env": "OPENCODE_ZEN_API_KEY", "model": "qwen3.6-plus-free", "cap": 24000},
 }
 
 
