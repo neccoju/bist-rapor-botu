@@ -194,20 +194,11 @@ LLM_PROMPT = (
 )
 
 
-def interpret_llm(client, model, sym, title, cat, text, max_chars):
-    """Claude API ile içerik yorumu. Doner: dict ya da hata firlatir."""
-    body = text[:max_chars]
-    prompt = LLM_PROMPT.format(sym=sym, title=title, cat=cat, body=body)
-    msg = client.messages.create(
-        model=model,
-        max_tokens=500,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    raw = "".join(getattr(b, "text", "") for b in msg.content).strip()
-    # JSON'u ayikla (model bazen ```json blogu koyabilir)
-    m = re.search(r"\{.*\}", raw, re.DOTALL)
+def _parse_llm_json(raw, usage=None):
+    """Model ciktisindaki JSON'u ayikla + normalize et (ortak)."""
+    m = re.search(r"\{.*\}", raw or "", re.DOTALL)
     if not m:
-        raise ValueError(f"LLM JSON dondurmedi: {raw[:120]}")
+        raise ValueError(f"LLM JSON dondurmedi: {str(raw)[:120]}")
     obj = json.loads(m.group(0))
     direction = str(obj.get("direction", "?")).strip()[:1] or "?"
     if direction not in "+-~0?":
@@ -221,9 +212,43 @@ def interpret_llm(client, model, sym, title, cat, text, max_chars):
         "impact": obj.get("impact"),
         "amounts": [str(a)[:40] for a in amounts][:5],
         "rationale": str(obj.get("rationale", "")).strip()[:140],
-        "usage": {"in": getattr(msg.usage, "input_tokens", None),
-                  "out": getattr(msg.usage, "output_tokens", None)},
+        "usage": usage or {},
     }
+
+
+def interpret_llm(client, model, sym, title, cat, text, max_chars):
+    """Claude (anthropic) ile içerik yorumu."""
+    prompt = LLM_PROMPT.format(sym=sym, title=title, cat=cat, body=text[:max_chars])
+    msg = client.messages.create(
+        model=model, max_tokens=500,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    raw = "".join(getattr(b, "text", "") for b in msg.content).strip()
+    return _parse_llm_json(raw, {"in": getattr(msg.usage, "input_tokens", None),
+                                 "out": getattr(msg.usage, "output_tokens", None)})
+
+
+def interpret_openai_compatible(base_url, token, model, sym, title, cat, text, max_chars):
+    """OpenAI-uyumlu endpoint (GitHub Models) ile içerik yorumu. Ek bagimlilik yok
+    (urllib). GitHub Models: ucretsiz, Actions GITHUB_TOKEN ile (models: read)."""
+    import urllib.request
+    prompt = LLM_PROMPT.format(sym=sym, title=title, cat=cat, body=text[:max_chars])
+    payload = json.dumps({
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.2,
+        "max_tokens": 500,
+    }).encode("utf-8")
+    req = urllib.request.Request(base_url, data=payload, method="POST", headers={
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    })
+    with urllib.request.urlopen(req, timeout=90) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+    raw = (data["choices"][0]["message"]["content"] or "").strip()
+    u = data.get("usage", {}) or {}
+    return _parse_llm_json(raw, {"in": u.get("prompt_tokens"), "out": u.get("completion_tokens")})
 
 
 def fetch_content(borsapy, sym, did, log=False):
@@ -268,9 +293,13 @@ def main():
     ap.add_argument("--sleep", type=float, default=0.5)
     ap.add_argument("--retries", type=int, default=2)
     ap.add_argument("--retry-wait", type=float, default=4.0)
-    ap.add_argument("--engine", default="llm", choices=["llm", "rules"],
-                    help="yorumlama motoru: llm (Claude API) | rules (anahtar kelime)")
-    ap.add_argument("--model", default="claude-haiku-4-5-20251001", help="LLM modeli")
+    ap.add_argument("--engine", default="github", choices=["github", "llm", "rules"],
+                    help="yorumlama motoru: github (GitHub Models, UCRETSIZ, GITHUB_TOKEN) | "
+                         "llm (Claude API, ANTHROPIC_API_KEY) | rules (anahtar kelime)")
+    ap.add_argument("--model", default="",
+                    help="model id. Bos ise: github->openai/gpt-4o-mini, llm->claude-haiku-4-5-20251001")
+    ap.add_argument("--base-url", default="https://models.github.ai/inference/chat/completions",
+                    help="github motoru icin OpenAI-uyumlu inference endpoint")
     ap.add_argument("--max-content-chars", type=int, default=60000,
                     help="LLM'e gonderilecek en fazla icerik karakteri (maliyet siniri)")
     ap.add_argument("--force", action="store_true",
@@ -309,20 +338,31 @@ def main():
             enrich = {"items": {}}
     items = enrich.get("items", {})
 
-    # LLM motoru icin istemci (gerekirse).
+    # Motor kurulumu.
     llm_client = None
-    if args.engine == "llm":
+    gh_token = None
+    model = args.model
+    if args.engine == "github":
+        gh_token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+        if not gh_token:
+            print("!! GITHUB_TOKEN yok; GitHub Models yorumlama atlandi. Cikiliyor (akis bozulmaz).")
+            sys.exit(0)
+        if not model:
+            model = "openai/gpt-4o-mini"
+        print(f"Motor: GitHub Models (ucretsiz) / {model} @ {args.base_url}")
+    elif args.engine == "llm":
         if not os.environ.get("ANTHROPIC_API_KEY"):
-            print("!! ANTHROPIC_API_KEY yok; LLM yorumlama atlandi (secret ekleyin). "
-                  "Cikiliyor (rapor/akis bozulmaz).")
+            print("!! ANTHROPIC_API_KEY yok; LLM yorumlama atlandi. Cikiliyor (akis bozulmaz).")
             sys.exit(0)
         try:
             import anthropic
             llm_client = anthropic.Anthropic()
-            print(f"LLM motoru: anthropic / {args.model}")
         except Exception as e:
             print(f"!! anthropic istemcisi kurulamadi ({type(e).__name__}: {e}); cikiliyor.")
             sys.exit(0)
+        if not model:
+            model = "claude-haiku-4-5-20251001"
+        print(f"Motor: anthropic / {model}")
 
     want_imp = set(x.strip() for x in args.importance.split(",") if x.strip())
     cutoff = datetime.now().replace(tzinfo=None)
@@ -399,14 +439,19 @@ def main():
             "enrichedAt": datetime.now(timezone.utc).isoformat(),
         }
 
-        if args.engine == "llm":
+        if args.engine in ("github", "llm"):
             try:
-                res = interpret_llm(llm_client, args.model, sym, r.get("title", ""),
-                                    r.get("category", ""), text, args.max_content_chars)
+                if args.engine == "github":
+                    res = interpret_openai_compatible(args.base_url, gh_token, model, sym,
+                                                      r.get("title", ""), r.get("category", ""),
+                                                      text, args.max_content_chars)
+                else:
+                    res = interpret_llm(llm_client, model, sym, r.get("title", ""),
+                                        r.get("category", ""), text, args.max_content_chars)
             except Exception as e:
                 errors += 1
                 if errors <= 8:
-                    print(f"  {sym}/{did}: LLM HATA {type(e).__name__}: {e}")
+                    print(f"  {sym}/{did}: {args.engine.upper()} HATA {type(e).__name__}: {e}")
                 time.sleep(args.sleep)
                 continue
             rec.update({

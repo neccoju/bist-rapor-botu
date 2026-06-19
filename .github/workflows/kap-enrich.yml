@@ -1,15 +1,28 @@
 name: KAP Enrich (icerik yorumlama)
 
-# Secili (onemli + son N gun) KAP bildirimlerinin GOVDE metnini borsapy
-# get_news_content ile ceker, kural-tabanli yorumlar (rakam + sentiment + ozet) ve
+# Secili (SON GUN + izlenen hisseler) KAP bildirimlerinin GOVDE metnini borsapy
+# get_news_content ile ceker, LLM ile yorumlar (ozet + yon + etki + tutar) ve
 # data/kap_enrichment.json'a yazar. collect_kap.py'nin dosyasini DEGISTIRMEZ (ayri
 # dosya); rapor ikisini disclosureId ile birlestirir. Ana botu ETKILEMEZ.
 #
-# Zamanlama: collector partileri bittikten SONRA (or. 17:40) gunde bir tetiklenir;
-# ya da elle Run workflow. Throttle icin az sayida (vars. 25) bildirim yorumlanir.
+# MOTOR (varsayilan): GitHub Models — UCRETSIZ, Actions GITHUB_TOKEN ile
+# (permissions: models: read). Ayri odeme/anahtar gerekmez. Acik modeller
+# (Llama/Mistral/DeepSeek) veya openai/gpt-4o-mini secilebilir. Alternatif motor:
+# llm (Claude API, ANTHROPIC_API_KEY secret).
+#
+# Zamanlama: collector partileri bittikten SONRA (or. 17:45) gunde bir tetiklenir;
+# ya da elle Run workflow. Token tasarrufu: yalniz izlenen hisseler + son gun + cap.
 on:
   workflow_dispatch:
     inputs:
+      engine:
+        description: "Motor: github (UCRETSIZ, GITHUB_TOKEN) | llm (Claude API) | rules"
+        required: false
+        default: "github"
+      model:
+        description: "Model id (bos=otomatik). github icin or. openai/gpt-4o-mini veya meta/Llama-3.3-70B-Instruct"
+        required: false
+        default: ""
       max_items:
         description: "Bu kosuda en fazla yorumlanacak bildirim"
         required: false
@@ -22,13 +35,10 @@ on:
         description: "Hangi onem seviyeleri (virgulle; or. high veya high,insider)"
         required: false
         default: "high"
-      engine:
-        description: "Yorumlama motoru: llm (Claude API) | rules (anahtar kelime)"
-        required: false
-        default: "llm"
 
 permissions:
   contents: write
+  models: read
 
 concurrency:
   group: kap-enrich
@@ -45,16 +55,18 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install borsapy + anthropic
+      - name: Install borsapy (+ anthropic, llm motoru icin)
         run: |
           python -m pip install --upgrade pip
           pip install borsapy anthropic
       - name: Enrich KAP disclosures
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           python enrich_kap.py \
-            --engine "${{ github.event.inputs.engine || 'llm' }}" \
+            --engine "${{ github.event.inputs.engine || 'github' }}" \
+            --model "${{ github.event.inputs.model || '' }}" \
             --max-items "${{ github.event.inputs.max_items || '25' }}" \
             --max-age-days "${{ github.event.inputs.max_age_days || '1' }}" \
             --importance "${{ github.event.inputs.importance || 'high' }}" \
