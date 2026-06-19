@@ -357,7 +357,7 @@ PROVIDER_PRESETS = {
     # agir rate-limitli (429). gpt-4o-mini bol ama zayif. Kucuk istek limiti -> 9k.
     "github": {
         "base": "https://models.github.ai/inference/chat/completions",
-        "token_env": "GITHUB_TOKEN", "model": "openai/gpt-4o-mini", "cap": 9000},
+        "token_env": "GITHUB_TOKEN", "model": "openai/gpt-4.1", "cap": 9000},
     # Groq: UCRETSIZ anahtar (kredi karti yok), ACIK model Llama-3.3-70B, yuksek
     # limit, cok hizli. Kalite + bol limit icin onerilen.
     "groq": {
@@ -386,10 +386,10 @@ def main():
     ap.add_argument("--sleep", type=float, default=0.5)
     ap.add_argument("--retries", type=int, default=2)
     ap.add_argument("--retry-wait", type=float, default=4.0)
-    ap.add_argument("--engine", default="groq",
-                    choices=["groq", "github", "openrouter", "cerebras", "llm", "rules"],
-                    help="UCRETSIZ acik: groq (Llama-3.3-70B, onerilen) | github (GitHub Models) | "
-                         "openrouter | cerebras. Ucretli: llm (Claude). LLM'siz: rules")
+    ap.add_argument("--engine", default="github",
+                    choices=["github", "groq", "openrouter", "cerebras", "llm", "rules"],
+                    help="UCRETSIZ: github (OpenAI gpt-4.1, GITHUB_TOKEN, onerilen) | groq "
+                         "(Llama-3.3-70B) | openrouter | cerebras. Ucretli: llm (Claude). LLM'siz: rules")
     ap.add_argument("--model", default="", help="model id (bos = saglayici varsayilani)")
     ap.add_argument("--base-url", default="", help="OpenAI-uyumlu endpoint (bos = preset)")
     ap.add_argument("--max-content-chars", type=int, default=60000,

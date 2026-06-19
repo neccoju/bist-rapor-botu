@@ -16,9 +16,9 @@ on:
   workflow_dispatch:
     inputs:
       engine:
-        description: "UCRETSIZ acik: groq (Llama-3.3-70B, onerilen) | github | openrouter | cerebras. Ucretli: llm. LLM'siz: rules"
+        description: "UCRETSIZ: github (OpenAI gpt-4.1, onerilen) | groq (Llama-3.3-70B) | openrouter | cerebras. Ucretli: llm. LLM'siz: rules"
         required: false
-        default: "groq"
+        default: "github"
       model:
         description: "Model id (bos=otomatik). github icin or. openai/gpt-4o-mini veya meta/Llama-3.3-70B-Instruct"
         required: false
@@ -74,7 +74,7 @@ jobs:
           FORCE=""
           if [ "${{ github.event.inputs.force }}" = "true" ]; then FORCE="--force"; fi
           python enrich_kap.py \
-            --engine "${{ github.event.inputs.engine || 'groq' }}" \
+            --engine "${{ github.event.inputs.engine || 'github' }}" \
             --model "${{ github.event.inputs.model || '' }}" \
             --max-items "${{ github.event.inputs.max_items || '25' }}" \
             --max-age-days "${{ github.event.inputs.max_age_days || '1' }}" \
