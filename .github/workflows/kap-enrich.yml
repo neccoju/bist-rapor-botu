@@ -1,0 +1,71 @@
+name: KAP Enrich (icerik yorumlama)
+
+# Secili (onemli + son N gun) KAP bildirimlerinin GOVDE metnini borsapy
+# get_news_content ile ceker, kural-tabanli yorumlar (rakam + sentiment + ozet) ve
+# data/kap_enrichment.json'a yazar. collect_kap.py'nin dosyasini DEGISTIRMEZ (ayri
+# dosya); rapor ikisini disclosureId ile birlestirir. Ana botu ETKILEMEZ.
+#
+# Zamanlama: collector partileri bittikten SONRA (or. 17:40) gunde bir tetiklenir;
+# ya da elle Run workflow. Throttle icin az sayida (vars. 25) bildirim yorumlanir.
+on:
+  workflow_dispatch:
+    inputs:
+      max_items:
+        description: "Bu kosuda en fazla yorumlanacak bildirim"
+        required: false
+        default: "25"
+      max_age_days:
+        description: "Kac gun geriye kadar"
+        required: false
+        default: "7"
+      importance:
+        description: "Hangi onem seviyeleri (virgulle; or. high veya high,insider)"
+        required: false
+        default: "high"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: kap-enrich
+  cancel-in-progress: false
+
+jobs:
+  enrich:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install borsapy
+        run: |
+          python -m pip install --upgrade pip
+          pip install borsapy
+      - name: Enrich KAP disclosures
+        run: |
+          python enrich_kap.py \
+            --max-items "${{ github.event.inputs.max_items || '25' }}" \
+            --max-age-days "${{ github.event.inputs.max_age_days || '7' }}" \
+            --importance "${{ github.event.inputs.importance || 'high' }}" \
+            --max-seconds 300
+      - name: Commit enrichment to repo
+        shell: bash
+        run: |
+          git config user.name 'kap-enrich-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f data/kap_enrichment.json
+          if git diff --cached --quiet; then
+            echo "Degisiklik yok; commit atlandi."
+            exit 0
+          fi
+          git commit -m 'chore(kap): KAP icerik yorumlari guncellendi [skip ci]'
+          for i in 1 2 3 4; do
+            git push origin "HEAD:${GITHUB_REF_NAME}" && { echo "push OK"; break; }
+            echo "push denemesi $i basarisiz; rebase + tekrar"
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            sleep $((2 ** i))
+          done
