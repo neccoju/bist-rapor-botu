@@ -37,7 +37,7 @@ concurrency:
 jobs:
   enrich:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 18
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -58,7 +58,7 @@ jobs:
             --max-items "${{ github.event.inputs.max_items || '25' }}" \
             --max-age-days "${{ github.event.inputs.max_age_days || '7' }}" \
             --importance "${{ github.event.inputs.importance || 'high' }}" \
-            --max-seconds 400
+            --max-seconds 960
       - name: Commit enrichment to repo
         shell: bash
         run: |
