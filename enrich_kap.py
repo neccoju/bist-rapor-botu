@@ -372,6 +372,11 @@ PROVIDER_PRESETS = {
     "cerebras": {
         "base": "https://api.cerebras.ai/v1/chat/completions",
         "token_env": "CEREBRAS_API_KEY", "model": "llama-3.3-70b", "cap": 18000},
+    # OpenCode Zen: UCRETSIZ anahtar (opencode.ai/auth), OpenAI-uyumlu gateway,
+    # ucretsiz modeller (minimax-m2.5-free, nemotron-3-super-free, big-pickle...).
+    "opencode": {
+        "base": "https://opencode.ai/zen/v1/chat/completions",
+        "token_env": "OPENCODE_ZEN_API_KEY", "model": "minimax-m2.5-free", "cap": 24000},
 }
 
 
@@ -387,9 +392,9 @@ def main():
     ap.add_argument("--retries", type=int, default=2)
     ap.add_argument("--retry-wait", type=float, default=4.0)
     ap.add_argument("--engine", default="github",
-                    choices=["github", "groq", "openrouter", "cerebras", "llm", "rules"],
-                    help="UCRETSIZ: github (OpenAI gpt-4.1, GITHUB_TOKEN, onerilen) | groq "
-                         "(Llama-3.3-70B) | openrouter | cerebras. Ucretli: llm (Claude). LLM'siz: rules")
+                    choices=["github", "groq", "opencode", "openrouter", "cerebras", "llm", "rules"],
+                    help="UCRETSIZ: github (OpenAI gpt-4.1, onerilen) | groq (Llama-3.3-70B) | "
+                         "opencode (Zen ucretsiz modeller) | openrouter | cerebras. Ucretli: llm. LLM'siz: rules")
     ap.add_argument("--model", default="", help="model id (bos = saglayici varsayilani)")
     ap.add_argument("--base-url", default="", help="OpenAI-uyumlu endpoint (bos = preset)")
     ap.add_argument("--max-content-chars", type=int, default=60000,
