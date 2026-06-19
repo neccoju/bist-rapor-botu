@@ -266,6 +266,7 @@ def interpret_openai_compatible(base_url, token, model, sym, title, cat, text, m
     """OpenAI-uyumlu endpoint (GitHub Models) ile içerik yorumu. Ek bagimlilik yok
     (urllib). GitHub Models: ucretsiz, Actions GITHUB_TOKEN ile (models: read)."""
     import urllib.request
+    import urllib.error
     prompt = LLM_PROMPT.format(sym=sym, title=title, cat=cat, body=_focus_content(text, max_chars))
     payload = json.dumps({
         "model": model,
@@ -277,9 +278,22 @@ def interpret_openai_compatible(base_url, token, model, sym, title, cat, text, m
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
         "Accept": "application/json",
+        # Bazi saglayicilar (Groq/Cloudflare) varsayilan "Python-urllib" UA'yi bot
+        # sanip 403 verir; normal bir UA + OpenRouter'in istedigi basliklar.
+        "User-Agent": "bist-rapor-botu/1.0 (+https://github.com/neccoju/bist-rapor-botu)",
+        "HTTP-Referer": "https://github.com/neccoju/bist-rapor-botu",
+        "X-Title": "bist-rapor-botu",
     })
-    with urllib.request.urlopen(req, timeout=90) as resp:
-        data = json.loads(resp.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(req, timeout=90) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        body = ""
+        try:
+            body = e.read().decode("utf-8", "replace")[:300]
+        except Exception:
+            pass
+        raise RuntimeError(f"HTTP {e.code}: {body}") from None
     raw = (data["choices"][0]["message"]["content"] or "").strip()
     u = data.get("usage", {}) or {}
     return _parse_llm_json(raw, {"in": u.get("prompt_tokens"), "out": u.get("completion_tokens")})
