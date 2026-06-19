@@ -177,6 +177,31 @@ def make_summary(text, max_len=240):
     return summary
 
 
+def _focus_content(text, max_chars):
+    """Buyuk KAP sayfasindan (menu/arama copu dahil) asil bildirimin oldugu en
+    BILGI-YOGUN max_chars'lik pencereyi secer: rakam yogunlugu + finansal anahtar
+    kelime sayisi en yuksek pencere. GitHub Models gibi kucuk girdi limitli motorlar
+    icin sart (aksi halde cop'u gonderir ya da 413 alir)."""
+    if not text or len(text) <= max_chars:
+        return text
+    keys = ["tl", "usd", "eur", "tutar", "sözleşme", "sermaye", " pay", "kâr", "kar payı",
+            "dağıt", "ihale", "satış", "satıl", "dava", "temettü", "bedel", "%", "milyon", "milyar"]
+    step = max(1500, max_chars // 3)
+    best_score, best = -1, text[:max_chars]
+    start = 0
+    n = len(text)
+    while start < n:
+        w = text[start:start + max_chars]
+        wl = w.lower()
+        score = sum(ch.isdigit() for ch in w[:6000]) + sum(wl.count(k) for k in keys) * 4
+        if score > best_score:
+            best_score, best = score, w
+        if start + max_chars >= n:
+            break
+        start += step
+    return best
+
+
 LLM_PROMPT = (
     "Sen BIST KAP bildirimlerini yorumlayan bir analistsin. Aşağıdaki ham metin bir "
     "KAP bildirim sayfasının içeriğidir; BAŞINDA/ARASINDA KAP site menüsü, arama "
@@ -218,7 +243,7 @@ def _parse_llm_json(raw, usage=None):
 
 def interpret_llm(client, model, sym, title, cat, text, max_chars):
     """Claude (anthropic) ile içerik yorumu."""
-    prompt = LLM_PROMPT.format(sym=sym, title=title, cat=cat, body=text[:max_chars])
+    prompt = LLM_PROMPT.format(sym=sym, title=title, cat=cat, body=_focus_content(text, max_chars))
     msg = client.messages.create(
         model=model, max_tokens=500,
         messages=[{"role": "user", "content": prompt}],
@@ -232,7 +257,7 @@ def interpret_openai_compatible(base_url, token, model, sym, title, cat, text, m
     """OpenAI-uyumlu endpoint (GitHub Models) ile içerik yorumu. Ek bagimlilik yok
     (urllib). GitHub Models: ucretsiz, Actions GITHUB_TOKEN ile (models: read)."""
     import urllib.request
-    prompt = LLM_PROMPT.format(sym=sym, title=title, cat=cat, body=text[:max_chars])
+    prompt = LLM_PROMPT.format(sym=sym, title=title, cat=cat, body=_focus_content(text, max_chars))
     payload = json.dumps({
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
@@ -349,7 +374,12 @@ def main():
             sys.exit(0)
         if not model:
             model = "openai/gpt-4o-mini"
-        print(f"Motor: GitHub Models (ucretsiz) / {model} @ {args.base_url}")
+        # GitHub Models'in istek/token limiti kucuk (413 Payload Too Large); icerigi
+        # bilgi-yogun pencereye kucult.
+        if args.max_content_chars > 9000:
+            args.max_content_chars = 9000
+        print(f"Motor: GitHub Models (ucretsiz) / {model} @ {args.base_url} "
+              f"(icerik<= {args.max_content_chars} kar.)")
     elif args.engine == "llm":
         if not os.environ.get("ANTHROPIC_API_KEY"):
             print("!! ANTHROPIC_API_KEY yok; LLM yorumlama atlandi. Cikiliyor (akis bozulmaz).")
