@@ -35,6 +35,10 @@ on:
         description: "Hangi onem seviyeleri (virgulle; or. high veya high,insider)"
         required: false
         default: "high"
+      force:
+        description: "Zaten yorumlanmislari da yeniden yorumla (true/false)"
+        required: false
+        default: "false"
 
 permissions:
   contents: write
@@ -64,13 +68,15 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
+          FORCE=""
+          if [ "${{ github.event.inputs.force }}" = "true" ]; then FORCE="--force"; fi
           python enrich_kap.py \
             --engine "${{ github.event.inputs.engine || 'github' }}" \
             --model "${{ github.event.inputs.model || '' }}" \
             --max-items "${{ github.event.inputs.max_items || '25' }}" \
             --max-age-days "${{ github.event.inputs.max_age_days || '1' }}" \
             --importance "${{ github.event.inputs.importance || 'high' }}" \
-            --max-seconds 960
+            --max-seconds 960 $FORCE
       - name: Commit enrichment to repo
         shell: bash
         run: |

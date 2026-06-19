@@ -178,12 +178,21 @@ def make_summary(text, max_len=240):
 
 
 def _focus_content(text, max_chars):
-    """Buyuk KAP sayfasindan (menu/arama copu dahil) asil bildirimin oldugu en
-    BILGI-YOGUN max_chars'lik pencereyi secer: rakam yogunlugu + finansal anahtar
-    kelime sayisi en yuksek pencere. GitHub Models gibi kucuk girdi limitli motorlar
-    icin sart (aksi halde cop'u gonderir ya da 413 alir)."""
+    """Buyuk KAP sayfasindan (menu/arama copu dahil) asil bildirimin oldugu pencereyi
+    secer. Once KAP ODA formundaki insan-okur alanlara (Ozet Bilgi / Aciklamalar)
+    sabitlenir; bulunamazsa rakam+finansal-kelime yogunlugu en yuksek pencereye
+    duser. GitHub Models gibi kucuk girdi limitli motorlar icin sart."""
     if not text or len(text) <= max_chars:
         return text
+    nt = _norm(text)
+    # KAP ODA formlarinda asil ozet bu alanlarda; sablon alanlardan (Guncelleme mi?
+    # Hayir vb.) once geleni degil, ASIL ozeti yakala. "ozet bilgi" en guvenilir.
+    for marker in ("özet bilgi", "açıklamalar", "bildirim içeriği", "konuya ilişkin",
+                   "yapılan açıklama"):
+        i = nt.find(marker)
+        if i != -1:
+            start = max(0, i - 80)
+            return text[start:start + max_chars]
     keys = ["tl", "usd", "eur", "tutar", "sözleşme", "sermaye", " pay", "kâr", "kar payı",
             "dağıt", "ihale", "satış", "satıl", "dava", "temettü", "bedel", "%", "milyon", "milyar"]
     step = max(1500, max_chars // 3)
