@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-06-19T13:23:14.298356+00:00",
+  "generatedAt": "2026-06-19T17:04:46.869574+00:00",
   "source": "borsapy 0.10.1 get_news_content",
-  "count": 27,
+  "count": 30,
   "lastRun": {
-    "targets": 5,
-    "enriched": 0,
-    "errors": 5,
-    "elapsedSec": 6
+    "targets": 8,
+    "enriched": 6,
+    "errors": 2,
+    "elapsedSec": 26
   },
   "items": {
     "1618795": {
@@ -423,13 +423,13 @@
       "date": "18.06.2026 18:11:23",
       "directionHint": "?",
       "contentChars": 74857,
-      "engine": "llm",
-      "enrichedAt": "2026-06-19T13:11:07.747507+00:00",
-      "directionRefined": "?",
-      "summary": "Birikim Varlık Yönetim A.Ş. 04.06.2026 tarihli özel durum açıklamasının güncellenmiş versiyonu. İlgili şirketler: ISATR, ISBTR, ISCTR, ISKUR, TIB.",
+      "engine": "github",
+      "enrichedAt": "2026-06-19T17:04:38.246628+00:00",
+      "directionRefined": "~",
+      "summary": "İş Bankası, özel durum açıklaması yaptı; güncelleme yapılmadığı belirtildi.",
       "impact": 2,
       "amounts": [],
-      "rationale": "Güncelleme bildirimi yapılmış ancak açıklamanın muhtevası ham metinde yer almamaktadır."
+      "rationale": "Açıklama güncellemesi olmaması belirsizlik yaratıyor."
     },
     "1618584": {
       "symbol": "CCOLA",
@@ -438,13 +438,13 @@
       "date": "18.06.2026 15:42:23",
       "directionHint": "~",
       "contentChars": 63588,
-      "engine": "llm",
-      "enrichedAt": "2026-06-19T13:11:11.265010+00:00",
-      "directionRefined": "+",
-      "summary": "JCR Eurasia Rating, Coca-Cola İçecek A.Ş.'nin uzun vadeli ulusal notunu AAA(tr), kısa vadeli notunu J1+(tr) ve uluslararası notunu BBB olarak teyit etti. Görünümler durağan.",
-      "impact": 2,
+      "engine": "github",
+      "enrichedAt": "2026-06-19T17:04:41.102433+00:00",
+      "directionRefined": "~",
+      "summary": "Coca-Cola İçecek A.Ş.'nin kredi derecelendirmesi güncellendi. Detaylar açıklanmadı.",
+      "impact": 3,
       "amounts": [],
-      "rationale": "En yüksek not seviyesinin teyiti kredibilite ve finansal istikrarı doğrulamakta, yatırımcı güvenini desteklemektedir."
+      "rationale": "Kredi derecelendirmesi, şirketin finansal sağlığına dair belirsizlik yaratabilir."
     },
     "1618583": {
       "symbol": "CCOLA",
@@ -453,13 +453,58 @@
       "date": "18.06.2026 15:35:27",
       "directionHint": "~",
       "contentChars": 56924,
-      "engine": "llm",
-      "enrichedAt": "2026-06-19T13:11:14.900769+00:00",
+      "engine": "github",
+      "enrichedAt": "2026-06-19T17:04:44.047004+00:00",
+      "directionRefined": "?",
+      "summary": "CCOLA'nın kredi derecelendirmesi güncellenmedi. Yatırımcılar için belirsizlik devam ediyor.",
+      "impact": 3,
+      "amounts": [],
+      "rationale": "Kredi notu güncellenmediği için piyasa tepkisi belirsiz."
+    },
+    "1618995": {
+      "symbol": "ENERY",
+      "title": "Özel Durum Açıklaması (Genel)",
+      "category": "Ozel Durum (Genel)",
+      "date": "19.06.2026 15:35:03",
+      "directionHint": "?",
+      "contentChars": 60636,
+      "engine": "github",
+      "enrichedAt": "2026-06-19T17:04:21.819083+00:00",
       "directionRefined": "~",
-      "summary": "Coca-Cola İçecek (CCOLA), JCR Avrasya tarafından kredi derecelendirilmiştir. A+ notu alınmıştır. Ayrıntılar PDF'de.",
+      "summary": "ENERY ve AHGAZ ile ilgili özel durum açıklaması yapıldı. Detaylar için KAP'a başvurulması önerildi.",
+      "impact": 3,
+      "amounts": [],
+      "rationale": "Şirketler arası ilişki ve açıklama belirsizlik taşıyor."
+    },
+    "1618729": {
+      "symbol": "SKBNK",
+      "title": "Özel Durum Açıklaması (Genel)",
+      "category": "Ozel Durum (Genel)",
+      "date": "18.06.2026 18:21:58",
+      "directionHint": "?",
+      "contentChars": 58457,
+      "engine": "github",
+      "enrichedAt": "2026-06-19T17:04:31.432881+00:00",
+      "directionRefined": "0",
+      "summary": "Şekerbank, özel durum açıklaması yapmadığını bildirdi. Yatırımcılar için güncel bir gelişme yok.",
+      "impact": 1,
+      "amounts": [],
+      "rationale": "Açıklama güncellemesi yapılmadığı için etkisi sınırlı."
+    },
+    "1618727": {
+      "symbol": "SKBNK",
+      "title": "Özel Durum Açıklaması (Genel)",
+      "category": "Ozel Durum (Genel)",
+      "date": "18.06.2026 18:21:43",
+      "directionHint": "?",
+      "contentChars": 58777,
+      "engine": "github",
+      "enrichedAt": "2026-06-19T17:04:34.620471+00:00",
+      "directionRefined": "~",
+      "summary": "Şekerbank T.A.Ş. özel durum açıklaması yaptı; güncelleme yok.",
       "impact": 2,
       "amounts": [],
-      "rationale": "Kredi notlandırması şirketin finansal durumunu değerlendirir. A+ notu olumlu ancak belirleyici fiyat etkisi yoktur."
+      "rationale": "Açıklama güncellemesi olmadığı için belirsiz bir etki var."
     }
   }
 }
