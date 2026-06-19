@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-06-19T12:58:40.872701+00:00",
+  "generatedAt": "2026-06-19T13:11:51.537933+00:00",
   "source": "borsapy 0.10.1 get_news_content",
-  "count": 23,
+  "count": 27,
   "lastRun": {
-    "targets": 25,
-    "enriched": 16,
+    "targets": 4,
+    "enriched": 4,
     "errors": 0,
-    "elapsedSec": 430
+    "elapsedSec": 54
   },
   "items": {
     "1618795": {
@@ -395,6 +395,71 @@
       "summary": "Daha geniş dönemli arama “detaylı sorgulama” sayfasından yapılmalıdır.\\\",\\\"smart\\\":\\\"Sık Arananlar\\\"},\\\"type\\\":\\\"minor\\\"}]}]]}],[\\\"$\\\",\\\"div\\\",null,{\\\"id\\\":\\\"menu-screen-banner\\\",\\\"className\\\":\\\"top-0 show:right-0 show:bottom-0 show:left-0…",
       "contentChars": 60115,
       "enrichedAt": "2026-06-19T10:59:11.625538+00:00"
+    },
+    "1618737": {
+      "symbol": "ENERY",
+      "title": "Kar Payı Dağıtım İşlemlerine İlişkin Bildirim",
+      "category": "Temettu",
+      "date": "18.06.2026 18:30:05",
+      "directionHint": "+",
+      "contentChars": 77259,
+      "engine": "llm",
+      "enrichedAt": "2026-06-19T13:11:00.112142+00:00",
+      "directionRefined": "+",
+      "summary": "ENERY, 2025 yılı için 150 milyon TL nakit kar payı dağıtımını onayladı. Pay başına net 0,0141666 TL (brüt %1,67), ödeme tarihi 27 Ağustos 2026. Düzeltilmiş bildirim.",
+      "impact": 3,
+      "amounts": [
+        "150 milyon TL kar payı",
+        "0,0141666 TL/pay (net)",
+        "1,67% pay başına (brüt)",
+        "4,7 milyar TL net kar (SPK)"
+      ],
+      "rationale": "Kar payı dağıtımı pozitif sinyaldir; ancak oran ve tutar orta düzeyde etki yaratır."
+    },
+    "1618714": {
+      "symbol": "ISCTR",
+      "title": "Özel Durum Açıklaması (Genel)",
+      "category": "Ozel Durum (Genel)",
+      "date": "18.06.2026 18:11:23",
+      "directionHint": "?",
+      "contentChars": 74857,
+      "engine": "llm",
+      "enrichedAt": "2026-06-19T13:11:07.747507+00:00",
+      "directionRefined": "?",
+      "summary": "Birikim Varlık Yönetim A.Ş. 04.06.2026 tarihli özel durum açıklamasının güncellenmiş versiyonu. İlgili şirketler: ISATR, ISBTR, ISCTR, ISKUR, TIB.",
+      "impact": 2,
+      "amounts": [],
+      "rationale": "Güncelleme bildirimi yapılmış ancak açıklamanın muhtevası ham metinde yer almamaktadır."
+    },
+    "1618584": {
+      "symbol": "CCOLA",
+      "title": "Kredi Derecelendirmesi",
+      "category": "Kredi Notu",
+      "date": "18.06.2026 15:42:23",
+      "directionHint": "~",
+      "contentChars": 63588,
+      "engine": "llm",
+      "enrichedAt": "2026-06-19T13:11:11.265010+00:00",
+      "directionRefined": "+",
+      "summary": "JCR Eurasia Rating, Coca-Cola İçecek A.Ş.'nin uzun vadeli ulusal notunu AAA(tr), kısa vadeli notunu J1+(tr) ve uluslararası notunu BBB olarak teyit etti. Görünümler durağan.",
+      "impact": 2,
+      "amounts": [],
+      "rationale": "En yüksek not seviyesinin teyiti kredibilite ve finansal istikrarı doğrulamakta, yatırımcı güvenini desteklemektedir."
+    },
+    "1618583": {
+      "symbol": "CCOLA",
+      "title": "Kredi Derecelendirmesi",
+      "category": "Kredi Notu",
+      "date": "18.06.2026 15:35:27",
+      "directionHint": "~",
+      "contentChars": 56924,
+      "engine": "llm",
+      "enrichedAt": "2026-06-19T13:11:14.900769+00:00",
+      "directionRefined": "~",
+      "summary": "Coca-Cola İçecek (CCOLA), JCR Avrasya tarafından kredi derecelendirilmiştir. A+ notu alınmıştır. Ayrıntılar PDF'de.",
+      "impact": 2,
+      "amounts": [],
+      "rationale": "Kredi notlandırması şirketin finansal durumunu değerlendirir. A+ notu olumlu ancak belirleyici fiyat etkisi yoktur."
     }
   }
 }
