@@ -293,7 +293,27 @@ def interpret_openai_compatible(base_url, token, model, sym, title, cat, text, m
             body = e.read().decode("utf-8", "replace")[:300]
         except Exception:
             pass
-        raise RuntimeError(f"HTTP {e.code}: {body}") from None
+        # 429: rate/token limiti — Retry-After kadar (yoksa 20s) bekleyip 1 kez dene.
+        if e.code == 429:
+            wait = 20
+            try:
+                wait = int(e.headers.get("Retry-After", "")) + 1
+            except Exception:
+                pass
+            wait = min(max(wait, 5), 40)
+            time.sleep(wait)
+            try:
+                with urllib.request.urlopen(req, timeout=90) as resp:
+                    data = json.loads(resp.read().decode("utf-8"))
+            except urllib.error.HTTPError as e2:
+                b2 = ""
+                try:
+                    b2 = e2.read().decode("utf-8", "replace")[:300]
+                except Exception:
+                    pass
+                raise RuntimeError(f"HTTP {e2.code} (429 sonrasi): {b2}") from None
+        else:
+            raise RuntimeError(f"HTTP {e.code}: {body}") from None
     raw = (data["choices"][0]["message"]["content"] or "").strip()
     u = data.get("usage", {}) or {}
     return _parse_llm_json(raw, {"in": u.get("prompt_tokens"), "out": u.get("completion_tokens")})
@@ -342,7 +362,8 @@ PROVIDER_PRESETS = {
     # limit, cok hizli. Kalite + bol limit icin onerilen.
     "groq": {
         "base": "https://api.groq.com/openai/v1/chat/completions",
-        "token_env": "GROQ_API_KEY", "model": "llama-3.3-70b-versatile", "cap": 24000},
+        "token_env": "GROQ_API_KEY", "model": "llama-3.3-70b-versatile", "cap": 12000,
+        "min_sleep": 7},
     # OpenRouter: UCRETSIZ :free acik modeller (Llama/DeepSeek/Qwen); limit orta.
     "openrouter": {
         "base": "https://openrouter.ai/api/v1/chat/completions",
@@ -428,8 +449,12 @@ def main():
             model = preset["model"]
         if args.max_content_chars > preset["cap"]:
             args.max_content_chars = preset["cap"]
+        # Bazi ucretsiz katmanlarda dakika-basi-token (TPM) limiti dusuk; istekler
+        # arasi minimum bekleme ile 429 azaltilir.
+        if preset.get("min_sleep") and args.sleep < preset["min_sleep"]:
+            args.sleep = preset["min_sleep"]
         print(f"Motor: {args.engine} (ucretsiz) / {model} @ {base_url} "
-              f"(icerik<= {args.max_content_chars} kar.)")
+              f"(icerik<= {args.max_content_chars} kar., bekleme {args.sleep}s)")
     elif args.engine == "llm":
         if not os.environ.get("ANTHROPIC_API_KEY"):
             print("!! ANTHROPIC_API_KEY yok; LLM yorumlama atlandi. Cikiliyor (akis bozulmaz).")
