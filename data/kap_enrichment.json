@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-06-19T19:38:08.088541+00:00",
+  "generatedAt": "2026-06-19T19:43:27.632946+00:00",
   "source": "borsapy 0.10.1 get_news_content",
   "count": 30,
   "lastRun": {
     "targets": 8,
-    "enriched": 1,
-    "errors": 7,
-    "elapsedSec": 9
+    "enriched": 7,
+    "errors": 1,
+    "elapsedSec": 123
   },
   "items": {
     "1618795": {
@@ -126,21 +126,19 @@
       "rationale": "Bedelsiz artırım pazar için tarafsız. Nakit dağıtım yokluğu olumsuz, kar varlığı olumlu faktör."
     },
     "1618769": {
-      "symbol": "THL",
+      "symbol": "HALKB",
       "title": "Maddi Duran Varlık Satımı",
       "category": "Varlik Alim/Satim",
       "date": "18.06.2026 19:32:36",
       "directionHint": "~",
       "contentChars": 140751,
-      "engine": "llm",
-      "enrichedAt": "2026-06-19T12:54:59.543161+00:00",
+      "engine": "groq",
+      "enrichedAt": "2026-06-19T19:41:34.346883+00:00",
       "directionRefined": "~",
-      "summary": "Halk Gayrimenkul, Kocaeli Dilovası'ndaki 16.275,63 m2'lik arsayı satmaktadır. Satış 22.10.2025 tarihli Yönetim Kurulu kararıyla onaylanmıştır. Bu bir güncellenmiş açıklamadır.",
-      "impact": 2,
-      "amounts": [
-        "16.275,63 m2 arsa"
-      ],
-      "rationale": "Tek gayrimenkul satışı, hacmi ve fiyat etkisi belirsiz. Operasyonel varlık tasfiyesi olarak değerlendirilmektedir."
+      "summary": "Halk Gayrimenkul yatırım ortaklığı maddi duran varlık sattı",
+      "impact": 3,
+      "amounts": [],
+      "rationale": "Varlık satışı"
     },
     "1618767": {
       "symbol": "PAPIL",
@@ -403,15 +401,13 @@
       "date": "18.06.2026 18:30:05",
       "directionHint": "+",
       "contentChars": 77259,
-      "engine": "github",
-      "enrichedAt": "2026-06-19T17:07:41.142351+00:00",
-      "directionRefined": "~",
-      "summary": "ENERY, kar payı dağıtım işlemlerine ilişkin bildirim yaptı. Dağıtım tarihi 18.06.2026 olarak belirlendi.",
-      "impact": 3,
-      "amounts": [
-        "-"
-      ],
-      "rationale": "Kar payı dağıtımı, yatırımcılar için belirsizlik yaratabilir."
+      "engine": "groq",
+      "enrichedAt": "2026-06-19T19:41:42.712686+00:00",
+      "directionRefined": "+",
+      "summary": "Enerya Enerji kar payı dağıtım işlemlerine başladı",
+      "impact": 4,
+      "amounts": [],
+      "rationale": "Kar payı dağıtımı yatırımcıları olumlu etkileyebilir"
     },
     "1618714": {
       "symbol": "ISCTR",
@@ -420,13 +416,13 @@
       "date": "18.06.2026 18:11:23",
       "directionHint": "?",
       "contentChars": 74857,
-      "engine": "github",
-      "enrichedAt": "2026-06-19T17:07:50.244512+00:00",
+      "engine": "groq",
+      "enrichedAt": "2026-06-19T19:42:37.615017+00:00",
       "directionRefined": "0",
-      "summary": "ISCTR, finansal tablolarına ilişkin genel açıklama yaptı. Bilgiler Sermaye Piyasası Kurulu'na uygun olarak sunuldu.",
-      "impact": 3,
+      "summary": "Özel Durum Açıklaması",
+      "impact": "1",
       "amounts": [],
-      "rationale": "Açıklama genel nitelikte, önemli bir finansal değişiklik yok."
+      "rationale": "Bilgi bulunmuyor"
     },
     "1618584": {
       "symbol": "CCOLA",
@@ -450,13 +446,13 @@
       "date": "18.06.2026 15:35:27",
       "directionHint": "~",
       "contentChars": 56924,
-      "engine": "github",
-      "enrichedAt": "2026-06-19T17:07:57.036760+00:00",
-      "directionRefined": "+",
-      "summary": "Coca-Cola İçecek A.Ş.'nin kredi derecelendirmesi güncellendi. Derecelendirme olumlu yönde değerlendirildi.",
-      "impact": 4,
+      "engine": "groq",
+      "enrichedAt": "2026-06-19T19:43:20.075101+00:00",
+      "directionRefined": "~",
+      "summary": "CCOLA'nın kredi derecelendirmesi yapılmıştır.",
+      "impact": 3,
       "amounts": [],
-      "rationale": "Olumlu kredi notu, şirketin finansal sağlığını güçlendirir."
+      "rationale": "Kredi derecelendirme"
     },
     "1618995": {
       "symbol": "ENERY",
@@ -466,12 +462,12 @@
       "directionHint": "?",
       "contentChars": 60636,
       "engine": "groq",
-      "enrichedAt": "2026-06-19T19:38:00.783773+00:00",
+      "enrichedAt": "2026-06-19T19:41:25.796145+00:00",
       "directionRefined": "~",
-      "summary": "ENERY için özel durum açıklaması",
+      "summary": "Enerji şirketinde özel durum açıklaması",
       "impact": 2,
       "amounts": [],
-      "rationale": "Açıklama içeriği belirtilmemiş"
+      "rationale": "Şirketin faaliyetleri"
     },
     "1618729": {
       "symbol": "SKBNK",
@@ -480,13 +476,13 @@
       "date": "18.06.2026 18:21:58",
       "directionHint": "?",
       "contentChars": 58457,
-      "engine": "github",
-      "enrichedAt": "2026-06-19T17:07:44.393767+00:00",
+      "engine": "groq",
+      "enrichedAt": "2026-06-19T19:41:51.457890+00:00",
       "directionRefined": "0",
-      "summary": "Şekerbank, finansal tablolarına ilişkin genel açıklama yaptı. Bilgiler Sermaye Piyasası Kurulu'na uygun olarak sunuldu.",
-      "impact": 2,
+      "summary": "Şekerbank özel durum açıklaması",
+      "impact": "1",
       "amounts": [],
-      "rationale": "Açıklama genel nitelikte, önemli bir finansal bilgi içermiyor."
+      "rationale": "Bilgi bulunmuyor"
     },
     "1618727": {
       "symbol": "SKBNK",
@@ -495,13 +491,13 @@
       "date": "18.06.2026 18:21:43",
       "directionHint": "?",
       "contentChars": 58777,
-      "engine": "github",
-      "enrichedAt": "2026-06-19T17:07:47.182142+00:00",
-      "directionRefined": "~",
-      "summary": "Şekerbank, finansal tablolarına ilişkin genel açıklama yaptı. Bilgiler doğru ve eksiksiz olarak sunulmuştur.",
-      "impact": 2,
+      "engine": "groq",
+      "enrichedAt": "2026-06-19T19:42:13.093307+00:00",
+      "directionRefined": "0",
+      "summary": "Şekerbank özel durum açıklaması",
+      "impact": "1",
       "amounts": [],
-      "rationale": "Açıklama genel nitelikte, spesifik bir finansal veri içermiyor."
+      "rationale": "Bilgi bulunmuyor"
     }
   }
 }
