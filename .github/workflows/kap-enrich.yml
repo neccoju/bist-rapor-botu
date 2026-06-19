@@ -16,9 +16,9 @@ on:
   workflow_dispatch:
     inputs:
       engine:
-        description: "Motor: github (UCRETSIZ, GITHUB_TOKEN) | llm (Claude API) | rules"
+        description: "UCRETSIZ acik: groq (Llama-3.3-70B, onerilen) | github | openrouter | cerebras. Ucretli: llm. LLM'siz: rules"
         required: false
-        default: "github"
+        default: "groq"
       model:
         description: "Model id (bos=otomatik). github icin or. openai/gpt-4o-mini veya meta/Llama-3.3-70B-Instruct"
         required: false
@@ -66,12 +66,15 @@ jobs:
       - name: Enrich KAP disclosures
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           FORCE=""
           if [ "${{ github.event.inputs.force }}" = "true" ]; then FORCE="--force"; fi
           python enrich_kap.py \
-            --engine "${{ github.event.inputs.engine || 'github' }}" \
+            --engine "${{ github.event.inputs.engine || 'groq' }}" \
             --model "${{ github.event.inputs.model || '' }}" \
             --max-items "${{ github.event.inputs.max_items || '25' }}" \
             --max-age-days "${{ github.event.inputs.max_age_days || '1' }}" \

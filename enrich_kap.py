@@ -316,6 +316,30 @@ def fetch_content(borsapy, sym, did, log=False):
     raise RuntimeError("icerik metodu bulunamadi")
 
 
+# OpenAI-uyumlu UCRETSIZ saglayici on-ayarlari. Hepsi /chat/completions; sadece
+# base-url + token env + varsayilan (acik) model + icerik karakter siniri degisir.
+PROVIDER_PRESETS = {
+    # GitHub Models: Actions GITHUB_TOKEN ile bedava; ama guclu modeller (DeepSeek)
+    # agir rate-limitli (429). gpt-4o-mini bol ama zayif. Kucuk istek limiti -> 9k.
+    "github": {
+        "base": "https://models.github.ai/inference/chat/completions",
+        "token_env": "GITHUB_TOKEN", "model": "openai/gpt-4o-mini", "cap": 9000},
+    # Groq: UCRETSIZ anahtar (kredi karti yok), ACIK model Llama-3.3-70B, yuksek
+    # limit, cok hizli. Kalite + bol limit icin onerilen.
+    "groq": {
+        "base": "https://api.groq.com/openai/v1/chat/completions",
+        "token_env": "GROQ_API_KEY", "model": "llama-3.3-70b-versatile", "cap": 24000},
+    # OpenRouter: UCRETSIZ :free acik modeller (Llama/DeepSeek/Qwen); limit orta.
+    "openrouter": {
+        "base": "https://openrouter.ai/api/v1/chat/completions",
+        "token_env": "OPENROUTER_API_KEY", "model": "meta-llama/llama-3.3-70b-instruct:free", "cap": 24000},
+    # Cerebras: UCRETSIZ anahtar, ACIK Llama-3.3-70B, cok hizli; gunluk limit orta.
+    "cerebras": {
+        "base": "https://api.cerebras.ai/v1/chat/completions",
+        "token_env": "CEREBRAS_API_KEY", "model": "llama-3.3-70b", "cap": 18000},
+}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--in", dest="inp", default="data/kap_disclosures.json")
@@ -327,13 +351,12 @@ def main():
     ap.add_argument("--sleep", type=float, default=0.5)
     ap.add_argument("--retries", type=int, default=2)
     ap.add_argument("--retry-wait", type=float, default=4.0)
-    ap.add_argument("--engine", default="github", choices=["github", "llm", "rules"],
-                    help="yorumlama motoru: github (GitHub Models, UCRETSIZ, GITHUB_TOKEN) | "
-                         "llm (Claude API, ANTHROPIC_API_KEY) | rules (anahtar kelime)")
-    ap.add_argument("--model", default="",
-                    help="model id. Bos ise: github->openai/gpt-4o-mini, llm->claude-haiku-4-5-20251001")
-    ap.add_argument("--base-url", default="https://models.github.ai/inference/chat/completions",
-                    help="github motoru icin OpenAI-uyumlu inference endpoint")
+    ap.add_argument("--engine", default="groq",
+                    choices=["groq", "github", "openrouter", "cerebras", "llm", "rules"],
+                    help="UCRETSIZ acik: groq (Llama-3.3-70B, onerilen) | github (GitHub Models) | "
+                         "openrouter | cerebras. Ucretli: llm (Claude). LLM'siz: rules")
+    ap.add_argument("--model", default="", help="model id (bos = saglayici varsayilani)")
+    ap.add_argument("--base-url", default="", help="OpenAI-uyumlu endpoint (bos = preset)")
     ap.add_argument("--max-content-chars", type=int, default=60000,
                     help="LLM'e gonderilecek en fazla icerik karakteri (maliyet siniri)")
     ap.add_argument("--force", action="store_true",
@@ -374,20 +397,24 @@ def main():
 
     # Motor kurulumu.
     llm_client = None
-    gh_token = None
+    api_token = None
+    base_url = args.base_url
     model = args.model
-    if args.engine == "github":
-        gh_token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
-        if not gh_token:
-            print("!! GITHUB_TOKEN yok; GitHub Models yorumlama atlandi. Cikiliyor (akis bozulmaz).")
+    if args.engine in PROVIDER_PRESETS:
+        preset = PROVIDER_PRESETS[args.engine]
+        api_token = os.environ.get(preset["token_env"]) or (
+            os.environ.get("GH_TOKEN") if preset["token_env"] == "GITHUB_TOKEN" else None)
+        if not api_token:
+            print(f"!! {preset['token_env']} yok; '{args.engine}' yorumlama atlandi. "
+                  f"Cikiliyor (akis bozulmaz). Ucretsiz anahtar ekleyip tekrar deneyin.")
             sys.exit(0)
+        if not base_url:
+            base_url = preset["base"]
         if not model:
-            model = "openai/gpt-4o-mini"
-        # GitHub Models'in istek/token limiti kucuk (413 Payload Too Large); icerigi
-        # bilgi-yogun pencereye kucult.
-        if args.max_content_chars > 9000:
-            args.max_content_chars = 9000
-        print(f"Motor: GitHub Models (ucretsiz) / {model} @ {args.base_url} "
+            model = preset["model"]
+        if args.max_content_chars > preset["cap"]:
+            args.max_content_chars = preset["cap"]
+        print(f"Motor: {args.engine} (ucretsiz) / {model} @ {base_url} "
               f"(icerik<= {args.max_content_chars} kar.)")
     elif args.engine == "llm":
         if not os.environ.get("ANTHROPIC_API_KEY"):
@@ -478,10 +505,10 @@ def main():
             "enrichedAt": datetime.now(timezone.utc).isoformat(),
         }
 
-        if args.engine in ("github", "llm"):
+        if args.engine in PROVIDER_PRESETS or args.engine == "llm":
             try:
-                if args.engine == "github":
-                    res = interpret_openai_compatible(args.base_url, gh_token, model, sym,
+                if args.engine in PROVIDER_PRESETS:
+                    res = interpret_openai_compatible(base_url, api_token, model, sym,
                                                       r.get("title", ""), r.get("category", ""),
                                                       text, args.max_content_chars)
                 else:
