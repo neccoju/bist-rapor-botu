@@ -42,6 +42,48 @@ def _parse_date(s):
     return None
 
 
+def load_priority_symbols(data_dir):
+    """Botun state dosyalarindan IZLENEN (oncelikli) hisseleri okur: Top picks +
+    model portfoy + anlik giris holdingleri. Token tasarrufu icin LLM yalniz bu
+    hisselerin son-gun bildirimlerini yorumlar (rapor da bunlari gosterir).
+    Best-effort; dosya yoksa bos kume."""
+    syms = set()
+
+    def _load(path):
+        with open(path, "r", encoding="utf-8-sig") as f:
+            return json.load(f)
+
+    def add(s):
+        if s:
+            c = re.sub(r"[^A-Z0-9]", "", str(s).strip().upper())
+            if 2 <= len(c) <= 6:
+                syms.add(c)
+
+    try:
+        d = _load(os.path.join(data_dir, "signal_performance.json"))
+        for p in ((d.get("PendingPicks") or {}).get("Picks") or []):
+            if isinstance(p, dict):
+                add(p.get("Symbol"))
+    except Exception:
+        pass
+    try:
+        d = _load(os.path.join(data_dir, "model_portfolios.json"))
+        for p in (d.get("Portfolios") or []):
+            for h in (p.get("Holdings") or []):
+                if isinstance(h, dict):
+                    add(h.get("Symbol"))
+    except Exception:
+        pass
+    try:
+        d = _load(os.path.join(data_dir, "instant_entry_portfolio.json"))
+        for h in (d.get("Holdings") or []):
+            if isinstance(h, dict):
+                add(h.get("Symbol"))
+    except Exception:
+        pass
+    return syms
+
+
 # --- Sentiment / yon ipucu sozlukleri (normalize edilmis koklerle) ---
 POS_HINTS = [
     "imzalan", "imzalad", "kazanıl", "kazandı", "sipariş al", "ihaleyi", "ihale kazan",
@@ -219,8 +261,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--in", dest="inp", default="data/kap_disclosures.json")
     ap.add_argument("--out", default="data/kap_enrichment.json")
-    ap.add_argument("--max-age-days", type=int, default=7)
-    ap.add_argument("--max-items", type=int, default=25, help="bu kosuda en fazla yorumlanacak bildirim")
+    ap.add_argument("--max-age-days", type=int, default=1, help="kac gun geriye (son gun = 1)")
+    ap.add_argument("--max-items", type=int, default=25, help="bu kosuda en fazla yorumlanacak bildirim (token siniri)")
     ap.add_argument("--importance", default="high", help="virgulle: hangi onem seviyeleri (or. high,insider)")
     ap.add_argument("--max-seconds", type=int, default=400)
     ap.add_argument("--sleep", type=float, default=0.5)
@@ -233,6 +275,10 @@ def main():
                     help="LLM'e gonderilecek en fazla icerik karakteri (maliyet siniri)")
     ap.add_argument("--force", action="store_true",
                     help="ayni motorla zaten yorumlanmis kayitlari da yeniden yorumla")
+    ap.add_argument("--priority-only", dest="priority_only", action="store_true", default=True,
+                    help="yalniz izlenen (Top/portfoy/anlik giris) hisselerin bildirimlerini yorumla (token tasarrufu)")
+    ap.add_argument("--all-stocks", dest="priority_only", action="store_false",
+                    help="tum hisseleri yorumla (oncelik filtresi kapali)")
     args = ap.parse_args()
 
     started = time.time()
@@ -282,9 +328,18 @@ def main():
     cutoff = datetime.now().replace(tzinfo=None)
     cutoff = cutoff.fromordinal(cutoff.toordinal() - args.max_age_days)
 
-    # Hedefleri sec: onemli + son N gun + disclosureId var + henuz yorumlanmamis.
+    # Izlenen hisseler (token tasarrufu + rapora gosterilenlerle ortusur).
+    data_dir = os.path.dirname(args.inp) or "."
+    priority = load_priority_symbols(data_dir) if args.priority_only else set()
+    if args.priority_only and not priority:
+        print("UYARI: oncelikli hisse listesi bos (state dosyalari yok); tum hisseler yorumlanacak.")
+
+    # Hedefleri sec: onemli + son N gun + disclosureId var + henuz yorumlanmamis
+    # (+ priority_only ise yalniz izlenen hisseler).
     targets = []
     for sym, rows in stocks.items():
+        if priority and sym.upper() not in priority:
+            continue
         for r in (rows or []):
             did = r.get("disclosureId")
             if not did:
@@ -301,7 +356,8 @@ def main():
     targets.sort(key=lambda x: x[3], reverse=True)   # yeni -> eski
     targets = targets[: args.max_items]
     print(f"Hedef bildirim: {len(targets)} (motor={args.engine}, onem={sorted(want_imp)}, "
-          f"son {args.max_age_days} gun, arsivde {len(items)} kayit, force={args.force})")
+          f"son {args.max_age_days} gun, izlenen-hisse={'acik (%d)'%len(priority) if priority else 'kapali'}, "
+          f"arsivde {len(items)} kayit, force={args.force})")
 
     done = 0
     errors = 0

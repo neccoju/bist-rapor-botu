@@ -5354,13 +5354,27 @@ function Get-StoredKapDisclosures {
         [string[]]$Symbols,
         [switch]$OnlyImportant,
         [int]$MaxAgeDays = 0,        # 0 = yas filtresi yok
-        [int]$Limit = 0             # 0 = sinirsiz
+        [int]$Limit = 0,            # 0 = sinirsiz
+        [string]$EnrichmentPath     # kap_enrichment.json (LLM yorumlari); bos = otomatik yan dosya
     )
 
     if ([string]::IsNullOrWhiteSpace($Path)) {
         $Path = Join-Path $PSScriptRoot 'data/kap_disclosures.json'
     }
     if (-not (Test-Path -LiteralPath $Path)) { return @() }
+
+    # LLM icerik yorumlari (varsa) disclosureId ile baglanir (best-effort).
+    if ([string]::IsNullOrWhiteSpace($EnrichmentPath)) {
+        $EnrichmentPath = Join-Path (Split-Path -Parent $Path) 'kap_enrichment.json'
+    }
+    $enrichItems = $null
+    if (Test-Path -LiteralPath $EnrichmentPath) {
+        try {
+            $enrichData = (Get-Content -LiteralPath $EnrichmentPath -Raw -Encoding UTF8 -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop)
+            $enrichItems = Get-ObjectPropertyValue -Object $enrichData -Name 'items'
+        }
+        catch { $enrichItems = $null }
+    }
 
     try {
         $json = Get-Content -LiteralPath $Path -Raw -Encoding UTF8 -ErrorAction Stop
@@ -5409,6 +5423,21 @@ function Get-StoredKapDisclosures {
                 }
             }
             if ($cutoff -and $dt -and $dt -lt $cutoff) { continue }
+            $did = [string](Get-ObjectPropertyValue -Object $rec -Name 'disclosureId')
+            $direction = [string](Get-ObjectPropertyValue -Object $rec -Name 'direction')
+            $summary = ''
+            $impact = $null
+            $rationale = ''
+            if ($null -ne $enrichItems -and -not [string]::IsNullOrWhiteSpace($did)) {
+                $en = Get-ObjectPropertyValue -Object $enrichItems -Name $did
+                if ($null -ne $en) {
+                    $summary = [string](Get-ObjectPropertyValue -Object $en -Name 'summary')
+                    $impact = Get-ObjectPropertyValue -Object $en -Name 'impact'
+                    $rationale = [string](Get-ObjectPropertyValue -Object $en -Name 'rationale')
+                    $enDir = [string](Get-ObjectPropertyValue -Object $en -Name 'directionRefined')
+                    if (-not [string]::IsNullOrWhiteSpace($enDir)) { $direction = $enDir }
+                }
+            }
             [void]$out.Add([pscustomobject][ordered]@{
                 Symbol       = $sym
                 Date         = $dateStr
@@ -5416,9 +5445,12 @@ function Get-StoredKapDisclosures {
                 Title        = [string](Get-ObjectPropertyValue -Object $rec -Name 'title')
                 Category     = [string](Get-ObjectPropertyValue -Object $rec -Name 'category')
                 Importance   = $imp
-                Direction    = [string](Get-ObjectPropertyValue -Object $rec -Name 'direction')
-                DisclosureId = [string](Get-ObjectPropertyValue -Object $rec -Name 'disclosureId')
+                Direction    = $direction
+                DisclosureId = $did
                 Url          = [string](Get-ObjectPropertyValue -Object $rec -Name 'url')
+                Summary      = $summary
+                Impact       = $impact
+                Rationale    = $rationale
             })
         }
     }
