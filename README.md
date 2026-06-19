@@ -342,21 +342,31 @@ geciktiği için harici tetikleyici kullanılır.
 > İ→i, I→ı dönüşümüyle Türkçe-güvenli küçük harf yapar; bu düzeltme 30 hisselik
 > örnekte "Diğer" oranını **%58'den ~%0'a** indirdi.
 
-**Ne yorumlanıyor, ne yorumlanmıyor (içerik durumu):**
+### İçerik yorumlama (LLM) — `enrich_kap.py` + `kap-enrich.yml`
 
-- ✅ **Yapılan:** Bildirimlerin **başlığı** çekilir ve anahtar kelimeye göre
-  kategori + önem + kaba yön ipucu atanır. Başlık/tarih/URL/`disclosureId` saklanır.
-  Filtreleme (sembol, önem, son 7 gün) ve gürültü eleme çalışır.
-- ❌ **Henüz yapılmayan:** Bildirimin **gövde/metin içeriği okunmuyor ve
-  yorumlanmıyor.** Yön ipucu yalnız başlıktan tahmindir; bu yüzden "Özel Durum
-  Açıklaması (Genel)" gibi başlığı kör olan kayıtlar `❔` kalır (gerçek bilgi
-  içeride). Gerçek anlamda metin yorumu (özet, etki/sentiment, rakam çıkarımı) **yok**.
-- 🔜 **İleride (planlı, kurulmadı):** borsapy `Ticker.get_news_content(disclosureId)`
-  ile (her kayıtta `disclosureId` zaten var) önemli + son 7 gün + öncelikli/Top
-  hisselerin metni çekilip ya regex ile yapısal veri (temettü TL/hisse, bedelli
-  oranı, ihale tutarı…) ya da Claude API ile özet + etki skoru üretilebilir; sonuç
-  JSON'a `summary`/netleşmiş `direction` olarak yazılıp raporda gösterilir. Throttle
-  için yalnız ~20-50 metin/gün çekilir. (Tümü gözlem modu; karar etkisi yok.)
+Başlık sınıflaması, "Özel Durum Açıklaması (Genel)" gibi kör başlıklarda yetersiz
+(`❔`). Bu katman, **izlenen hisselerin son-gün önemli bildirimlerinin GÖVDE
+metnini** borsapy `Ticker.get_news_content(disclosureId)` ile çeker ve bir LLM ile
+yorumlar: **kısa özet + yön + etki skoru (1-5) + tutarlar**. Sonuç ayrı
+`data/kap_enrichment.json`'a yazılır; rapor `disclosureId` ile birleştirip "Yorum"
+sütununda gösterir. **Gözlem modu — karar etkisi yok.**
+
+- **Motor (varsayılan): GitHub Models — ÜCRETSİZ.** Actions `GITHUB_TOKEN` +
+  `permissions: models: read`; OpenAI-uyumlu endpoint (`models.github.ai`), ek
+  bağımlılık yok (urllib). Model `openai/gpt-4o-mini` (veya açık modeller
+  Llama/Mistral/DeepSeek; `model` girdisiyle değiştirilebilir). Alternatif motor:
+  `llm` (Claude API, `ANTHROPIC_API_KEY` secret) — daha keskin ama ücretli;
+  `rules` (anahtar kelime, LLM'siz).
+- **Token tasarrufu:** yalnız **izlenen hisseler** (Top/portföy/anlık giriş; state
+  JSON'larından) + **son gün** + en fazla 25 bildirim → günde ~5-10 çağrı. (Günde
+  toplam ~90-108 "high" bildirim çıkar; hepsini değil, sadece izlenenleri yorumlar.)
+- **İçerik çıkarımı:** KAP sayfası ~60-150 KB (menü/arama çöbü dahil) gelir;
+  `_focus_content` ODA formundaki **"Özet Bilgi"** alanına sabitlenerek asıl metni
+  küçük bir pencereye indirir (GitHub Models'in istek limiti için şart; 60 KB → 413).
+- **Kalite notu:** GitHub Models (`gpt-4o-mini`) olay türünü ve tarihleri iyi
+  yakalar, bazı tutarları kaçırabilir; Claude daha keskin (tam rakam) ama ücretli.
+- **Zamanlama:** collector partileri bittikten sonra, rapordan önce (örn. **17:45**)
+  cron-job.org ile günde bir `kap-enrich.yml` tetiklenir.
 
 ## Dosyalar
 
@@ -372,6 +382,9 @@ geciktiği için harici tetikleyici kullanılır.
 - `collect_kap.py` + `.github/workflows/kap-collector.yml` — tüm BIST için KAP
   bildirim toplayıcısı (borsapy; `data/kap_disclosures.json` üretir/commit eder).
   Ayrı ubuntu job; ana botu etkilemez. (Bkz. "KAP Bildirim Toplayıcısı".)
+- `enrich_kap.py` + `.github/workflows/kap-enrich.yml` — KAP içerik yorumlama (LLM):
+  izlenen hisselerin son-gün önemli bildirimlerini GitHub Models (ücretsiz) ile
+  özetler/yön/etki üretir → `data/kap_enrichment.json`. (Bkz. "İçerik yorumlama".)
 - `BacktestEngine.psm1` / `Backtest-EventDriven.ps1` / `Test-BacktestEngine.ps1` —
   gerçek event-driven backtest motoru, koşucusu ve ağsız birim testi.
 - `config/report_settings.cloud.json` / `.example.json` — ayarlar.
