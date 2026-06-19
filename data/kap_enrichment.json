@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-06-19T19:49:48.221345+00:00",
+  "generatedAt": "2026-06-19T23:13:58.090317+00:00",
   "source": "borsapy 0.10.1 get_news_content",
   "count": 30,
   "lastRun": {
     "targets": 8,
-    "enriched": 0,
-    "errors": 8,
-    "elapsedSec": 67
+    "enriched": 7,
+    "errors": 1,
+    "elapsedSec": 25
   },
   "items": {
     "1618795": {
@@ -401,13 +401,13 @@
       "date": "18.06.2026 18:30:05",
       "directionHint": "+",
       "contentChars": 77259,
-      "engine": "groq",
-      "enrichedAt": "2026-06-19T19:41:42.712686+00:00",
-      "directionRefined": "+",
-      "summary": "Enerya Enerji kar payı dağıtım işlemlerine başladı",
-      "impact": 4,
+      "engine": "github",
+      "enrichedAt": "2026-06-19T23:13:39.514734+00:00",
+      "directionRefined": "?",
+      "summary": "ENERY, 18.06.2026 tarihinde kar payı dağıtımı işlemiyle ilgili bildirim yaptı; detaylar ve tutar PDF ekinde yer alıyor.",
+      "impact": 3,
       "amounts": [],
-      "rationale": "Kar payı dağıtımı yatırımcıları olumlu etkileyebilir"
+      "rationale": "Bildirimde tutar ve oran belirtilmemiş, ek dosyada detay var; fiyat etkisi belirsiz."
     },
     "1618714": {
       "symbol": "ISCTR",
@@ -416,13 +416,13 @@
       "date": "18.06.2026 18:11:23",
       "directionHint": "?",
       "contentChars": 74857,
-      "engine": "groq",
-      "enrichedAt": "2026-06-19T19:42:37.615017+00:00",
+      "engine": "github",
+      "enrichedAt": "2026-06-19T23:13:49.351345+00:00",
       "directionRefined": "0",
-      "summary": "Özel Durum Açıklaması",
-      "impact": "1",
+      "summary": "ISCTR, finansal tablolarına ilişkin genel açıklama yapmış; bilgiler SPK düzenlemelerine uygun ve tam olarak yansıtılmıştır.",
+      "impact": 1,
       "amounts": [],
-      "rationale": "Bilgi bulunmuyor"
+      "rationale": "Standart, rutin açıklama; yeni finansal veya operasyonel bilgi yok."
     },
     "1618584": {
       "symbol": "CCOLA",
@@ -432,12 +432,12 @@
       "directionHint": "~",
       "contentChars": 63588,
       "engine": "github",
-      "enrichedAt": "2026-06-19T17:07:53.491749+00:00",
-      "directionRefined": "~",
-      "summary": "Coca-Cola İçecek A.Ş.'nin kredi derecelendirmesi güncellendi. Bu durum, şirketin finansal sağlığına dair önemli bir gösterge.",
-      "impact": 3,
+      "enrichedAt": "2026-06-19T23:13:52.301308+00:00",
+      "directionRefined": "?",
+      "summary": "CCOLA'nın kredi derecelendirmesiyle ilgili KAP bildirimi yayımlandı, ancak not veya derecelendirme kuruluşu bilgisi verilmemiş.",
+      "impact": 2,
       "amounts": [],
-      "rationale": "Kredi derecelendirmesi, yatırımcı güvenini etkileyebilir."
+      "rationale": "Kredi notu açıklanmadığı için fiyat etkisi belirsiz; detay yok."
     },
     "1618583": {
       "symbol": "CCOLA",
@@ -446,13 +446,13 @@
       "date": "18.06.2026 15:35:27",
       "directionHint": "~",
       "contentChars": 56924,
-      "engine": "groq",
-      "enrichedAt": "2026-06-19T19:43:20.075101+00:00",
-      "directionRefined": "~",
-      "summary": "CCOLA'nın kredi derecelendirmesi yapılmıştır.",
+      "engine": "github",
+      "enrichedAt": "2026-06-19T23:13:55.181983+00:00",
+      "directionRefined": "?",
+      "summary": "CCOLA'nın kredi derecelendirme raporu JCR Avrasya tarafından yayımlandı; detaylar PDF ekinde, not ve görünüm belirtilmemiş.",
       "impact": 3,
       "amounts": [],
-      "rationale": "Kredi derecelendirme"
+      "rationale": "Kredi notu ve görünüm açıklanmadığı için fiyat etkisi belirsiz."
     },
     "1618995": {
       "symbol": "ENERY",
@@ -461,13 +461,13 @@
       "date": "19.06.2026 15:35:03",
       "directionHint": "?",
       "contentChars": 60636,
-      "engine": "groq",
-      "enrichedAt": "2026-06-19T19:41:25.796145+00:00",
-      "directionRefined": "~",
-      "summary": "Enerji şirketinde özel durum açıklaması",
-      "impact": 2,
+      "engine": "github",
+      "enrichedAt": "2026-06-19T23:13:34.314096+00:00",
+      "directionRefined": "0",
+      "summary": "ENERY, finansal tablolarına ilişkin genel açıklama yaptı; bildirimin içeriğinde yeni bir finansal veri veya önemli gelişme yer almıyor.",
+      "impact": 1,
       "amounts": [],
-      "rationale": "Şirketin faaliyetleri"
+      "rationale": "Açıklama rutin ve bilgi amaçlı; fiyat üzerinde etkisi beklenmez."
     },
     "1618729": {
       "symbol": "SKBNK",
@@ -476,13 +476,13 @@
       "date": "18.06.2026 18:21:58",
       "directionHint": "?",
       "contentChars": 58457,
-      "engine": "groq",
-      "enrichedAt": "2026-06-19T19:41:51.457890+00:00",
+      "engine": "github",
+      "enrichedAt": "2026-06-19T23:13:42.347580+00:00",
       "directionRefined": "0",
-      "summary": "Şekerbank özel durum açıklaması",
-      "impact": "1",
+      "summary": "Şekerbank, finansal tablolarına ilişkin genel açıklama yapmış, SPK düzenlemelerine uygunluğunu ve doğruluğunu beyan etmiştir. Somut rakam veya yeni bilgi yok.",
+      "impact": 1,
       "amounts": [],
-      "rationale": "Bilgi bulunmuyor"
+      "rationale": "Yalnızca rutin uyum ve doğruluk beyanı; fiyatı etkileyebilecek yeni bilgi yok."
     },
     "1618727": {
       "symbol": "SKBNK",
@@ -491,13 +491,13 @@
       "date": "18.06.2026 18:21:43",
       "directionHint": "?",
       "contentChars": 58777,
-      "engine": "groq",
-      "enrichedAt": "2026-06-19T19:42:13.093307+00:00",
+      "engine": "github",
+      "enrichedAt": "2026-06-19T23:13:45.755247+00:00",
       "directionRefined": "0",
-      "summary": "Şekerbank özel durum açıklaması",
-      "impact": "1",
+      "summary": "Şekerbank, finansal tablolarına ilişkin genel açıklama yapmış; SPK düzenlemelerine uygunluk ve doğruluk beyanı sunulmuş, yeni finansal veri veya rakam yok.",
+      "impact": 1,
       "amounts": [],
-      "rationale": "Bilgi bulunmuyor"
+      "rationale": "Yalnızca rutin uyum ve doğruluk beyanı; fiyatı etkileyen yeni bilgi yok."
     }
   }
 }
