@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-06-19T10:59:12.125674+00:00",
+  "generatedAt": "2026-06-19T12:58:40.872701+00:00",
   "source": "borsapy 0.10.1 get_news_content",
   "count": 23,
   "lastRun": {
     "targets": 25,
-    "enriched": 25,
+    "enriched": 16,
     "errors": 0,
-    "elapsedSec": 18
+    "elapsedSec": 430
   },
   "items": {
     "1618795": {
@@ -15,15 +15,17 @@
       "category": "Ozel Durum (Genel)",
       "date": "18.06.2026 21:55:08",
       "directionHint": "?",
-      "directionRefined": "+",
-      "sentiment": {
-        "pos": 2,
-        "neg": 1
-      },
-      "amounts": [],
-      "summary": "Daha geniş dönemli arama “detaylı sorgulama” sayfasından yapılmalıdır.\\\",\\\"smart\\\":\\\"Sık Arananlar\\\"},\\\"type\\\":\\\"minor\\\"}]}]]}],[\\\"$\\\",\\\"div\\\",null,{\\\"id\\\":\\\"menu-screen-banner\\\",\\\"className\\\":\\\"top-0 show:right-0 show:bottom-0 show:left-0…",
       "contentChars": 59441,
-      "enrichedAt": "2026-06-19T10:58:55.739045+00:00"
+      "engine": "llm",
+      "enrichedAt": "2026-06-19T12:51:33.472797+00:00",
+      "directionRefined": "~",
+      "summary": "Turkcell'in Belarus'taki bağlı ortaklığı BeST'nin sermayesi 10,88 milyar BYN artırılarak 1,37 trilyon BYN'ye çıkarıldı. Turkcell'in yeni pay alma hakkı tamamen ödenmiştir.",
+      "impact": 2,
+      "amounts": [
+        "10.876.568,78 BYN sermaye artışı",
+        "1.374.742.237,28 BYN yeni sermaye"
+      ],
+      "rationale": "Belarus operasyonlarında konsolidasyon. Fiyat etkisi sınırlı; rutin sermaye işlemi niteliğinde."
     },
     "1618788": {
       "symbol": "BINHO",
@@ -31,15 +33,14 @@
       "category": "Ozel Durum (Genel)",
       "date": "18.06.2026 21:32:26",
       "directionHint": "?",
-      "directionRefined": "+",
-      "sentiment": {
-        "pos": 3,
-        "neg": 1
-      },
-      "amounts": [],
-      "summary": "Daha geniş dönemli arama “detaylı sorgulama” sayfasından yapılmalıdır.\\\",\\\"smart\\\":\\\"Sık Arananlar\\\"},\\\"type\\\":\\\"minor\\\"}]}]]}],[\\\"$\\\",\\\"div\\\",null,{\\\"id\\\":\\\"menu-screen-banner\\\",\\\"className\\\":\\\"top-0 show:right-0 show:bottom-0 show:left-0…",
       "contentChars": 61895,
-      "enrichedAt": "2026-06-19T10:58:56.375791+00:00"
+      "engine": "llm",
+      "enrichedAt": "2026-06-19T12:51:37.224092+00:00",
+      "directionRefined": "+",
+      "summary": "1000 YATIRIMLAR HOLDİNG A.Ş., portföy şirketi Meta Mobilite Enerji A.Ş. için 10 MWe / 14,88 MWp kapasiteli Depolamalı Güneş Enerji Santralı yapımı sözleşmesi imzaladı. 2026 Q4'te işletmeye alınması hedefleniyor.",
+      "impact": 2,
+      "amounts": [],
+      "rationale": "Yenilenebilir enerji yatırımı olumlu, ancak portföy şirketi olması ve tarih belirsizliği etkisini sınırlandırıyor."
     },
     "1618787": {
       "symbol": "BINHO",
@@ -47,21 +48,14 @@
       "category": "Varlik Alim/Satim",
       "date": "18.06.2026 21:31:02",
       "directionHint": "~",
-      "directionRefined": "+",
-      "sentiment": {
-        "pos": 3,
-        "neg": 2
-      },
-      "amounts": [
-        "190.000.000 TL",
-        "1,00 TL",
-        "3,66 TL",
-        "3.66 TL",
-        "1.00 TL"
-      ],
-      "summary": "Daha geniş dönemli arama “detaylı sorgulama” sayfasından yapılmalıdır.\\\",\\\"smart\\\":\\\"Sık Arananlar\\\"},\\\"type\\\":\\\"minor\\\"}]}]]}],[\\\"$\\\",\\\"div\\\",null,{\\\"id\\\":\\\"menu-screen-banner\\\",\\\"className\\\":\\\"top-0 show:right-0 show:bottom-0 show:left-0…",
       "contentChars": 151612,
-      "enrichedAt": "2026-06-19T10:58:57.024944+00:00"
+      "engine": "llm",
+      "enrichedAt": "2026-06-19T12:51:41.168452+00:00",
+      "directionRefined": "?",
+      "summary": "1000 Yatırımlar Holding, 1000 Ödeme Hizmetleri ve Elektronik Para A.Ş.'ni satmıştır. Yönetim Kurulu kararı 18.06.2026 tarihinde alınmıştır. Bağımsız üyelerin onayı mevcuttur.",
+      "impact": 2,
+      "amounts": [],
+      "rationale": "Satış detayları (tutar, alıcı) açıklanmamıştır. Bağlantılı taraf işlemi olasılığı vardır."
     },
     "1618784": {
       "symbol": "ARZUM",
@@ -69,15 +63,14 @@
       "category": "Ozel Durum (Genel)",
       "date": "18.06.2026 20:31:45",
       "directionHint": "?",
-      "directionRefined": "?",
-      "sentiment": {
-        "pos": 1,
-        "neg": 1
-      },
-      "amounts": [],
-      "summary": "Daha geniş dönemli arama “detaylı sorgulama” sayfasından yapılmalıdır.\\\",\\\"smart\\\":\\\"Sık Arananlar\\\"},\\\"type\\\":\\\"minor\\\"}]}]]}],[\\\"$\\\",\\\"div\\\",null,{\\\"id\\\":\\\"menu-screen-banner\\\",\\\"className\\\":\\\"top-0 show:right-0 show:bottom-0 show:left-0…",
       "contentChars": 61281,
-      "enrichedAt": "2026-06-19T10:58:57.661205+00:00"
+      "engine": "llm",
+      "enrichedAt": "2026-06-19T12:51:44.470964+00:00",
+      "directionRefined": "0",
+      "summary": "Yönetim Kurulu Başkanı Talip Murat Kolbaşı, Başkan Vekili Yasemin Rezan Kolbaşı olarak 3 yıl görev yapmak üzere atanmıştır.",
+      "impact": 1,
+      "amounts": [],
+      "rationale": "Rutin yönetim kurulu görev dağılımı. Operasyonel değişiklik, finansal etki yok."
     },
     "1618783": {
       "symbol": "HLGYO",
@@ -85,17 +78,14 @@
       "category": "Ihale/Sozlesme",
       "date": "18.06.2026 20:25:25",
       "directionHint": "+",
-      "directionRefined": "+",
-      "sentiment": {
-        "pos": 1,
-        "neg": 1
-      },
-      "amounts": [
-        "2026 11604 $"
-      ],
-      "summary": "Daha geniş dönemli arama “detaylı sorgulama” sayfasından yapılmalıdır.\\\",\\\"smart\\\":\\\"Sık Arananlar\\\"},\\\"type\\\":\\\"minor\\\"}]}]]}],[\\\"$\\\",\\\"div\\\",null,{\\\"id\\\":\\\"menu-screen-banner\\\",\\\"className\\\":\\\"top-0 show:right-0 show:bottom-0 show:left-0…",
       "contentChars": 74429,
-      "enrichedAt": "2026-06-19T10:58:58.299547+00:00"
+      "engine": "llm",
+      "enrichedAt": "2026-06-19T12:52:26.071334+00:00",
+      "directionRefined": "0",
+      "summary": "HLGYO'nun güncellenmiş Esas Sözleşmesi KAP'ta yayınlandı. Şirket yönetişim çerçevesinde sözleşme bilgilerini kamunun bilgisine sunmuştur.",
+      "impact": 1,
+      "amounts": [],
+      "rationale": "Rutin sözleşme bildirimi; işletme faaliyetlerine ve finansallara doğrudan etki yoktur."
     },
     "1618781": {
       "symbol": "HLGYO",
@@ -103,15 +93,18 @@
       "category": "Sermaye Artirimi",
       "date": "18.06.2026 20:23:14",
       "directionHint": "~",
-      "directionRefined": "~",
-      "sentiment": {
-        "pos": 1,
-        "neg": 1
-      },
-      "amounts": [],
-      "summary": "Daha geniş dönemli arama “detaylı sorgulama” sayfasından yapılmalıdır.\\\",\\\"smart\\\":\\\"Sık Arananlar\\\"},\\\"type\\\":\\\"minor\\\"}]}]]}],[\\\"$\\\",\\\"div\\\",null,{\\\"id\\\":\\\"menu-screen-banner\\\",\\\"className\\\":\\\"top-0 show:right-0 show:bottom-0 show:left-0…",
       "contentChars": 46916,
-      "enrichedAt": "2026-06-19T10:58:58.932894+00:00"
+      "engine": "llm",
+      "enrichedAt": "2026-06-19T12:52:55.542974+00:00",
+      "directionRefined": "+",
+      "summary": "HLGYO, kayıtlı sermaye tavanını 7,5 milyar TL'den 15 milyar TL'ye çıkarmıştır. Değişiklik 30.04.2026'da genel kurul tarafından kabul edilmiş, 18.06.2026'da tescil edilmiştir.",
+      "impact": 3,
+      "amounts": [
+        "7,5 milyar TL (mevcut tavan)",
+        "15 milyar TL (yeni tavan)",
+        "31.12.2029 (geçerlilik tarihi)"
+      ],
+      "rationale": "Sermaye tavanı iki katına çıkarılması gelecekteki finansman/sermaye artırımı esnekliğini artırır. Olumlu sinyal ancak gerçekleştirilen artır"
     },
     "1618778": {
       "symbol": "TNZTP",
@@ -119,20 +112,18 @@
       "category": "Temettu",
       "date": "18.06.2026 20:17:42",
       "directionHint": "+",
-      "directionRefined": "+",
-      "sentiment": {
-        "pos": 5,
-        "neg": 2
-      },
-      "amounts": [
-        "1 TL",
-        "695.677.703 TL",
-        "735.321.840,58 TL",
-        "7.326.534,02 TL"
-      ],
-      "summary": "Daha geniş dönemli arama “detaylı sorgulama” sayfasından yapılmalıdır.\\\",\\\"smart\\\":\\\"Sık Arananlar\\\"},\\\"type\\\":\\\"minor\\\"}]}]]}],[\\\"$\\\",\\\"div\\\",null,{\\\"id\\\":\\\"menu-screen-banner\\\",\\\"className\\\":\\\"top-0 show:right-0 show:bottom-0 show:left-0…",
       "contentChars": 75917,
-      "enrichedAt": "2026-06-19T10:58:59.574704+00:00"
+      "engine": "llm",
+      "enrichedAt": "2026-06-19T12:53:24.436872+00:00",
+      "directionRefined": "~",
+      "summary": "TNZTP 2025 yılı karından 280 milyon TL bedelsiz sermaye artırımı kararı alınmıştır. Nakit dağıtım yapılmayacak, kalan kar Olağanüstü Yedek Akçeye ayrılacaktır.",
+      "impact": 2,
+      "amounts": [
+        "280.000.000 TL bedelsiz sermaye artırımı",
+        "695.677.703 TL net dönem kârı (SPK)",
+        "756.217.020,97 TL dağıtılabilir dönem kâ"
+      ],
+      "rationale": "Bedelsiz artırım pazar için tarafsız. Nakit dağıtım yokluğu olumsuz, kar varlığı olumlu faktör."
     },
     "1618769": {
       "symbol": "THL",
@@ -140,15 +131,16 @@
       "category": "Varlik Alim/Satim",
       "date": "18.06.2026 19:32:36",
       "directionHint": "~",
-      "directionRefined": "~",
-      "sentiment": {
-        "pos": 2,
-        "neg": 2
-      },
-      "amounts": [],
-      "summary": "Daha geniş dönemli arama “detaylı sorgulama” sayfasından yapılmalıdır.\\\",\\\"smart\\\":\\\"Sık Arananlar\\\"},\\\"type\\\":\\\"minor\\\"}]}]]}],[\\\"$\\\",\\\"div\\\",null,{\\\"id\\\":\\\"menu-screen-banner\\\",\\\"className\\\":\\\"top-0 show:right-0 show:bottom-0 show:left-0…",
       "contentChars": 140751,
-      "enrichedAt": "2026-06-19T10:59:01.529717+00:00"
+      "engine": "llm",
+      "enrichedAt": "2026-06-19T12:54:59.543161+00:00",
+      "directionRefined": "~",
+      "summary": "Halk Gayrimenkul, Kocaeli Dilovası'ndaki 16.275,63 m2'lik arsayı satmaktadır. Satış 22.10.2025 tarihli Yönetim Kurulu kararıyla onaylanmıştır. Bu bir güncellenmiş açıklamadır.",
+      "impact": 2,
+      "amounts": [
+        "16.275,63 m2 arsa"
+      ],
+      "rationale": "Tek gayrimenkul satışı, hacmi ve fiyat etkisi belirsiz. Operasyonel varlık tasfiyesi olarak değerlendirilmektedir."
     },
     "1618767": {
       "symbol": "PAPIL",
@@ -156,15 +148,14 @@
       "category": "Ozel Durum (Genel)",
       "date": "18.06.2026 19:21:05",
       "directionHint": "?",
-      "directionRefined": "?",
-      "sentiment": {
-        "pos": 1,
-        "neg": 1
-      },
-      "amounts": [],
-      "summary": "Daha geniş dönemli arama “detaylı sorgulama” sayfasından yapılmalıdır.\\\",\\\"smart\\\":\\\"Sık Arananlar\\\"},\\\"type\\\":\\\"minor\\\"}]}]]}],[\\\"$\\\",\\\"div\\\",null,{\\\"id\\\":\\\"menu-screen-banner\\\",\\\"className\\\":\\\"top-0 show:right-0 show:bottom-0 show:left-0…",
       "contentChars": 61045,
-      "enrichedAt": "2026-06-19T10:59:02.165368+00:00"
+      "engine": "llm",
+      "enrichedAt": "2026-06-19T12:55:31.817137+00:00",
+      "directionRefined": "0",
+      "summary": "PAPİLON SAVUNMA TEKNOLOJİ VE TİCARET A.Ş. Yönetim Kurulu, Kurumsal Yönetim Komitesi, Riskin Erken Saptanması Komitesi ve Denetimden Sorumlu Komite üyelerini atamıştır.",
+      "impact": 2,
+      "amounts": [],
+      "rationale": "Yönetim kurulu komite üye atamalarından oluşan rutin kurumsal yönetim işlemi. Fiyat etkisi minimal."
     },
     "1618766": {
       "symbol": "PAPIL",
@@ -172,15 +163,14 @@
       "category": "Ozel Durum (Genel)",
       "date": "18.06.2026 19:20:55",
       "directionHint": "?",
-      "directionRefined": "?",
-      "sentiment": {
-        "pos": 1,
-        "neg": 1
-      },
-      "amounts": [],
-      "summary": "Daha geniş dönemli arama “detaylı sorgulama” sayfasından yapılmalıdır.\\\",\\\"smart\\\":\\\"Sık Arananlar\\\"},\\\"type\\\":\\\"minor\\\"}]}]]}],[\\\"$\\\",\\\"div\\\",null,{\\\"id\\\":\\\"menu-screen-banner\\\",\\\"className\\\":\\\"top-0 show:right-0 show:bottom-0 show:left-0…",
       "contentChars": 60043,
-      "enrichedAt": "2026-06-19T10:59:03.098827+00:00"
+      "engine": "llm",
+      "enrichedAt": "2026-06-19T12:56:03.498320+00:00",
+      "directionRefined": "0",
+      "summary": "Yönetim Kurulu görev dağılımı yapıldı. Muhammet Nezir Erol Başkan, İbrahim Demir Başkan Yardımcısı olarak atandı. Bağımsız üyeler belirlendi.",
+      "impact": 1,
+      "amounts": [],
+      "rationale": "Rutin yönetim kurulu görev taksimi. Operasyonel önemi sınırlı, fiyat etkisi minimal."
     },
     "1618765": {
       "symbol": "PAPIL",
@@ -188,15 +178,14 @@
       "category": "Ozel Durum (Genel)",
       "date": "18.06.2026 19:20:46",
       "directionHint": "?",
-      "directionRefined": "?",
-      "sentiment": {
-        "pos": 1,
-        "neg": 1
-      },
-      "amounts": [],
-      "summary": "Daha geniş dönemli arama “detaylı sorgulama” sayfasından yapılmalıdır.\\\",\\\"smart\\\":\\\"Sık Arananlar\\\"},\\\"type\\\":\\\"minor\\\"}]}]]}],[\\\"$\\\",\\\"div\\\",null,{\\\"id\\\":\\\"menu-screen-banner\\\",\\\"className\\\":\\\"top-0 show:right-0 show:bottom-0 show:left-0…",
       "contentChars": 61218,
-      "enrichedAt": "2026-06-19T10:59:03.734639+00:00"
+      "engine": "llm",
+      "enrichedAt": "2026-06-19T12:56:33.274972+00:00",
+      "directionRefined": "0",
+      "summary": "Yönetim Kurulu'nda personel değişikliği: Sami Duman ve Ekrem Korkmaz istifa, Ferudun Çavuşer ve Faruk Yıldırım yeni üye olarak atanmıştır.",
+      "impact": 2,
+      "amounts": [],
+      "rationale": "Rutin yönetim kurulu değişikliği. Operasyonel etki sınırlı, şirket işleyişinde doğrudan etkilemez."
     },
     "1618764": {
       "symbol": "MEYSU",
@@ -204,15 +193,14 @@
       "category": "Ozel Durum (Genel)",
       "date": "18.06.2026 19:20:03",
       "directionHint": "?",
-      "directionRefined": "-",
-      "sentiment": {
-        "pos": 1,
-        "neg": 3
-      },
-      "amounts": [],
-      "summary": "Daha geniş dönemli arama “detaylı sorgulama” sayfasından yapılmalıdır.\\\",\\\"smart\\\":\\\"Sık Arananlar\\\"},\\\"type\\\":\\\"minor\\\"}]}]]}],[\\\"$\\\",\\\"div\\\",null,{\\\"id\\\":\\\"menu-screen-banner\\\",\\\"className\\\":\\\"top-0 show:right-0 show:bottom-0 show:left-0…",
       "contentChars": 63549,
-      "enrichedAt": "2026-06-19T10:59:04.371347+00:00"
+      "engine": "llm",
+      "enrichedAt": "2026-06-19T12:57:05.490929+00:00",
+      "directionRefined": "~",
+      "summary": "Şirket ve ana ortağı Gülsan A.Ş. aleyhine gönderilen ihtar sonrası, haksız isnat ve şantaj nedeniyle İhtar Çekenler hakkında Kayseri Cumhuriyet Başsavcılığı'na suç duyurusunda bulunulmuştur (Dosya No: 2026/32686).",
+      "impact": 2,
+      "amounts": [],
+      "rationale": "Hukuki uyuşmazlık ve itibar riski mevcuttur ancak finansal miktar açıklanmamıştır. İzlenecek yargı süreci belirsizdir."
     },
     "1618762": {
       "symbol": "ADEL",
@@ -220,15 +208,14 @@
       "category": "Ozel Durum (Genel)",
       "date": "18.06.2026 19:06:07",
       "directionHint": "?",
-      "directionRefined": "-",
-      "sentiment": {
-        "pos": 1,
-        "neg": 2
-      },
-      "amounts": [],
-      "summary": "Daha geniş dönemli arama “detaylı sorgulama” sayfasından yapılmalıdır.\\\",\\\"smart\\\":\\\"Sık Arananlar\\\"},\\\"type\\\":\\\"minor\\\"}]}]]}],[\\\"$\\\",\\\"div\\\",null,{\\\"id\\\":\\\"menu-screen-banner\\\",\\\"className\\\":\\\"top-0 show:right-0 show:bottom-0 show:left-0…",
       "contentChars": 66803,
-      "enrichedAt": "2026-06-19T10:59:05.008812+00:00"
+      "engine": "llm",
+      "enrichedAt": "2026-06-19T12:57:39.157389+00:00",
+      "directionRefined": "0",
+      "summary": "Yatırımcı Tazmin Merkezi tarafından Adel Kalemcilik'e ait kaydileştirilmemiş hisse ve fon payları nedeniyle hak sahiplerine iade/ödeme yapılmaktadır. Son başvuru tarihi 6 Eylül 2026.",
+      "impact": 2,
+      "amounts": [],
+      "rationale": "Şirkete doğrudan finansal etki yok. Eski hissedarları ilgilendiren idari işlem."
     },
     "1618761": {
       "symbol": "PEKGY",
@@ -236,15 +223,14 @@
       "category": "Ozel Durum (Genel)",
       "date": "18.06.2026 19:02:02",
       "directionHint": "?",
-      "directionRefined": "+",
-      "sentiment": {
-        "pos": 2,
-        "neg": 1
-      },
-      "amounts": [],
-      "summary": "Daha geniş dönemli arama “detaylı sorgulama” sayfasından yapılmalıdır.\\\",\\\"smart\\\":\\\"Sık Arananlar\\\"},\\\"type\\\":\\\"minor\\\"}]}]]}],[\\\"$\\\",\\\"div\\\",null,{\\\"id\\\":\\\"menu-screen-banner\\\",\\\"className\\\":\\\"top-0 show:right-0 show:bottom-0 show:left-0…",
       "contentChars": 65302,
-      "enrichedAt": "2026-06-19T10:59:05.700690+00:00"
+      "engine": "llm",
+      "enrichedAt": "2026-06-19T12:58:10.682720+00:00",
+      "directionRefined": "+",
+      "summary": "Şirketin %100 bağlı ortaklığı SozInv A.Ş. tarafından İstanbul Beykoz'da 'Tera Orman Beykoz' projesi lansmanı gerçekleştirilmiştir. ~25.000 m² arazide 70 villa inşası planlanmakta, 2028 yılı ortasında tamamlanması hedeflenmektedir.",
+      "impact": 2,
+      "amounts": [],
+      "rationale": "Yeni proje lansman duyurusu, nitelikli konut segmentinde büyüme stratejisinin başlangıcı; gelecek gelir kaynağı yaratacak ancak uzun vadeli "
     },
     "1618760": {
       "symbol": "SUMAS",
