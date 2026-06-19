@@ -135,6 +135,55 @@ def make_summary(text, max_len=240):
     return summary
 
 
+LLM_PROMPT = (
+    "Sen BIST KAP bildirimlerini yorumlayan bir analistsin. Aşağıdaki ham metin bir "
+    "KAP bildirim sayfasının içeriğidir; BAŞINDA/ARASINDA KAP site menüsü, arama "
+    "arayüzü, kategori listeleri ('Tüm Kategoriler', 'detaylı sorgulama', 'Sık "
+    "Arananlar' vb.) olabilir — bunları TAMAMEN YOKSAY ve yalnızca şirketin ASIL "
+    "açıklamasına odaklan. Yatırımcı gözüyle değerlendir.\n\n"
+    "Hisse: {sym}\nBaşlık: {title}\nKategori (ön-sınıf): {cat}\n\n"
+    "Ham içerik:\n\"\"\"\n{body}\n\"\"\"\n\n"
+    "SADECE şu JSON'u döndür (başka hiçbir metin yok):\n"
+    "{{\"summary\": \"Türkçe, en fazla 220 karakter, yatırımcıya net ve somut özet "
+    "(rakam/taraf/konu)\", \"direction\": \"+|-|~|0|?\" (fiyata olası etki yönü; + "
+    "olumlu, - olumsuz, ~ karışık, 0 nötr, ? belirsiz), \"impact\": 1-5 (1 önemsiz, "
+    "5 çok önemli fiyat etkisi), \"amounts\": [\"en fazla 5 önemli tutar, örn '1,25 "
+    "milyar TL'\"], \"rationale\": \"en fazla 120 karakter gerekçe\"}}"
+)
+
+
+def interpret_llm(client, model, sym, title, cat, text, max_chars):
+    """Claude API ile içerik yorumu. Doner: dict ya da hata firlatir."""
+    body = text[:max_chars]
+    prompt = LLM_PROMPT.format(sym=sym, title=title, cat=cat, body=body)
+    msg = client.messages.create(
+        model=model,
+        max_tokens=500,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    raw = "".join(getattr(b, "text", "") for b in msg.content).strip()
+    # JSON'u ayikla (model bazen ```json blogu koyabilir)
+    m = re.search(r"\{.*\}", raw, re.DOTALL)
+    if not m:
+        raise ValueError(f"LLM JSON dondurmedi: {raw[:120]}")
+    obj = json.loads(m.group(0))
+    direction = str(obj.get("direction", "?")).strip()[:1] or "?"
+    if direction not in "+-~0?":
+        direction = "?"
+    amounts = obj.get("amounts") or []
+    if not isinstance(amounts, list):
+        amounts = [str(amounts)]
+    return {
+        "summary": str(obj.get("summary", "")).strip()[:240],
+        "direction": direction,
+        "impact": obj.get("impact"),
+        "amounts": [str(a)[:40] for a in amounts][:5],
+        "rationale": str(obj.get("rationale", "")).strip()[:140],
+        "usage": {"in": getattr(msg.usage, "input_tokens", None),
+                  "out": getattr(msg.usage, "output_tokens", None)},
+    }
+
+
 def fetch_content(borsapy, sym, did, log=False):
     """borsapy ile bir bildirimin govdesini ceker. Once get_news_content; yoksa
     Ticker uzerinde icerik/detay metodlarini kesfedip dener. (sym, did) ister."""
@@ -173,10 +222,17 @@ def main():
     ap.add_argument("--max-age-days", type=int, default=7)
     ap.add_argument("--max-items", type=int, default=25, help="bu kosuda en fazla yorumlanacak bildirim")
     ap.add_argument("--importance", default="high", help="virgulle: hangi onem seviyeleri (or. high,insider)")
-    ap.add_argument("--max-seconds", type=int, default=300)
+    ap.add_argument("--max-seconds", type=int, default=400)
     ap.add_argument("--sleep", type=float, default=0.5)
     ap.add_argument("--retries", type=int, default=2)
     ap.add_argument("--retry-wait", type=float, default=4.0)
+    ap.add_argument("--engine", default="llm", choices=["llm", "rules"],
+                    help="yorumlama motoru: llm (Claude API) | rules (anahtar kelime)")
+    ap.add_argument("--model", default="claude-haiku-4-5-20251001", help="LLM modeli")
+    ap.add_argument("--max-content-chars", type=int, default=60000,
+                    help="LLM'e gonderilecek en fazla icerik karakteri (maliyet siniri)")
+    ap.add_argument("--force", action="store_true",
+                    help="ayni motorla zaten yorumlanmis kayitlari da yeniden yorumla")
     args = ap.parse_args()
 
     started = time.time()
@@ -207,6 +263,21 @@ def main():
             enrich = {"items": {}}
     items = enrich.get("items", {})
 
+    # LLM motoru icin istemci (gerekirse).
+    llm_client = None
+    if args.engine == "llm":
+        if not os.environ.get("ANTHROPIC_API_KEY"):
+            print("!! ANTHROPIC_API_KEY yok; LLM yorumlama atlandi (secret ekleyin). "
+                  "Cikiliyor (rapor/akis bozulmaz).")
+            sys.exit(0)
+        try:
+            import anthropic
+            llm_client = anthropic.Anthropic()
+            print(f"LLM motoru: anthropic / {args.model}")
+        except Exception as e:
+            print(f"!! anthropic istemcisi kurulamadi ({type(e).__name__}: {e}); cikiliyor.")
+            sys.exit(0)
+
     want_imp = set(x.strip() for x in args.importance.split(",") if x.strip())
     cutoff = datetime.now().replace(tzinfo=None)
     cutoff = cutoff.fromordinal(cutoff.toordinal() - args.max_age_days)
@@ -216,7 +287,10 @@ def main():
     for sym, rows in stocks.items():
         for r in (rows or []):
             did = r.get("disclosureId")
-            if not did or did in items:
+            if not did:
+                continue
+            # Idempotent: ayni motorla zaten yorumlanmissa atla (--force haric).
+            if not args.force and did in items and items[did].get("engine") == args.engine:
                 continue
             if r.get("importance") not in want_imp:
                 continue
@@ -226,8 +300,8 @@ def main():
             targets.append((sym, did, r, dt))
     targets.sort(key=lambda x: x[3], reverse=True)   # yeni -> eski
     targets = targets[: args.max_items]
-    print(f"Hedef bildirim: {len(targets)} (onem={sorted(want_imp)}, son {args.max_age_days} gun, "
-          f"zaten yorumlanmis {len(items)} atlandi)")
+    print(f"Hedef bildirim: {len(targets)} (motor={args.engine}, onem={sorted(want_imp)}, "
+          f"son {args.max_age_days} gun, arsivde {len(items)} kayit, force={args.force})")
 
     done = 0
     errors = 0
@@ -256,26 +330,55 @@ def main():
         text = to_text(content)
         if i <= 3:
             print(f"    [probe] {sym}/{did} icerik tip={type(content).__name__} "
-                  f"uzunluk={len(text)} ornek={text[:200]!r}")
-        amounts = extract_amounts(text)
-        direction, pos, neg = refine_direction(text, r.get("direction"))
-        summary = make_summary(text)
-        items[did] = {
+                  f"uzunluk={len(text)} ornek={text[:160]!r}")
+
+        rec = {
             "symbol": sym,
             "title": r.get("title"),
             "category": r.get("category"),
             "date": r.get("date"),
             "directionHint": r.get("direction"),
-            "directionRefined": direction,
-            "sentiment": {"pos": pos, "neg": neg},
-            "amounts": amounts,
-            "summary": summary,
             "contentChars": len(text),
+            "engine": args.engine,
             "enrichedAt": datetime.now(timezone.utc).isoformat(),
         }
+
+        if args.engine == "llm":
+            try:
+                res = interpret_llm(llm_client, args.model, sym, r.get("title", ""),
+                                    r.get("category", ""), text, args.max_content_chars)
+            except Exception as e:
+                errors += 1
+                if errors <= 8:
+                    print(f"  {sym}/{did}: LLM HATA {type(e).__name__}: {e}")
+                time.sleep(args.sleep)
+                continue
+            rec.update({
+                "directionRefined": res["direction"],
+                "summary": res["summary"],
+                "impact": res.get("impact"),
+                "amounts": res.get("amounts", []),
+                "rationale": res.get("rationale", ""),
+            })
+            direction = res["direction"]
+            summary = res["summary"]
+        else:
+            amounts = extract_amounts(text)
+            direction, pos, neg = refine_direction(text, r.get("direction"))
+            summary = make_summary(text)
+            rec.update({
+                "directionRefined": direction,
+                "summary": summary,
+                "sentiment": {"pos": pos, "neg": neg},
+                "amounts": amounts,
+            })
+
+        items[did] = rec
         done += 1
         if done <= 12:
-            print(f"  + {sym} [{r.get('category')}] {direction} | {summary[:90]}")
+            imp = rec.get("impact")
+            print(f"  + {sym} [{r.get('category')}] {direction}"
+                  f"{(' etki=' + str(imp)) if imp is not None else ''} | {summary[:90]}")
         time.sleep(args.sleep)
 
     enrich = {

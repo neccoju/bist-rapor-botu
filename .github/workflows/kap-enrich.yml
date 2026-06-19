@@ -22,6 +22,10 @@ on:
         description: "Hangi onem seviyeleri (virgulle; or. high veya high,insider)"
         required: false
         default: "high"
+      engine:
+        description: "Yorumlama motoru: llm (Claude API) | rules (anahtar kelime)"
+        required: false
+        default: "llm"
 
 permissions:
   contents: write
@@ -41,17 +45,20 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install borsapy
+      - name: Install borsapy + anthropic
         run: |
           python -m pip install --upgrade pip
-          pip install borsapy
+          pip install borsapy anthropic
       - name: Enrich KAP disclosures
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           python enrich_kap.py \
+            --engine "${{ github.event.inputs.engine || 'llm' }}" \
             --max-items "${{ github.event.inputs.max_items || '25' }}" \
             --max-age-days "${{ github.event.inputs.max_age_days || '7' }}" \
             --importance "${{ github.event.inputs.importance || 'high' }}" \
-            --max-seconds 300
+            --max-seconds 400
       - name: Commit enrichment to repo
         shell: bash
         run: |
