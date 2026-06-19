@@ -309,12 +309,20 @@ seferde değil, **gün içinde küçük partiler** halinde toplanır:
   taranır — önemli hisseleri daha sık tazelemek istenirse. (Gevşek bağlılık: yalnız
   mevcut JSON'ları okur.)
 
-**Zamanlama (cron-job.org):** Toplayıcı gün içinde **sık** tetiklenir; örn.
-09:30–18:00 arası **her ~30 dk** bir `kap-collector.yml` `workflow_dispatch`
-çağrısı (~17 parti → tüm evren gün içinde **~2 kez** taranır). Ana rapor
+**Zamanlama (cron-job.org):** Toplayıcı gün içinde **sık** tetiklenir; her tetikleme
+sıradaki 100 hisseyi tarar, 8 tetikleme tüm evreni (777) bir tur kapsar. **Kurulu
+düzen:** `kap-collector.yml`'yi **17:00–17:35 arası 5 dk'da bir** (8 parti) çağıran
+bir cron-job.org işi → tüm evren bu pencerede bir kez taranır. Ana rapor
 (`bist-cloud-report.yml`) **18:15**'te birikmiş `kap_disclosures.json`'u okur (son
-7 gün filtresiyle). Partileri 18:00'a kadar bitir; rapor 18:15'te. GitHub'ın kendi
-cron'u geciktiği için harici tetikleyici kullanılır.
+7 gün filtresiyle). Partiler ~2 dk sürer; 5 dk aralık çakışmayı önler, son parti
+(~17:37) ile rapor (18:15) arasında bol pay vardır. GitHub'ın kendi cron'u
+geciktiği için harici tetikleyici kullanılır.
+- cron-job.org isteği: `POST https://api.github.com/repos/neccoju/bist-rapor-botu/actions/workflows/kap-collector.yml/dispatches`,
+  header `Authorization: Bearer <PAT>` + `Accept: application/vnd.github+json` +
+  `X-GitHub-Api-Version: 2022-11-28`, gövde `{"ref":"main"}`, saat dilimi
+  **Europe/Istanbul**. (Varsayılan girdiler: `rotate_size=100`, `no_priority=true`.)
+- Daha sık/geniş istenirse pencere büyütülebilir; cursor git'te tutulduğu için
+  ertesi gün kaldığı yerden döner (sıfırlama gerekmez).
 
 **Kategoriler ve yön ipuçları** (başlık anahtar kelimesinden otomatik; kabadır,
 **karar etkisi yoktur**, ilk eşleşen kazanır):
@@ -333,6 +341,22 @@ cron'u geciktiği için harici tetikleyici kullanılır.
 > ürettiğinden ham `.lower()` ile `"ihale"` eşleşmez. `collect_kap.py._norm()`
 > İ→i, I→ı dönüşümüyle Türkçe-güvenli küçük harf yapar; bu düzeltme 30 hisselik
 > örnekte "Diğer" oranını **%58'den ~%0'a** indirdi.
+
+**Ne yorumlanıyor, ne yorumlanmıyor (içerik durumu):**
+
+- ✅ **Yapılan:** Bildirimlerin **başlığı** çekilir ve anahtar kelimeye göre
+  kategori + önem + kaba yön ipucu atanır. Başlık/tarih/URL/`disclosureId` saklanır.
+  Filtreleme (sembol, önem, son 7 gün) ve gürültü eleme çalışır.
+- ❌ **Henüz yapılmayan:** Bildirimin **gövde/metin içeriği okunmuyor ve
+  yorumlanmıyor.** Yön ipucu yalnız başlıktan tahmindir; bu yüzden "Özel Durum
+  Açıklaması (Genel)" gibi başlığı kör olan kayıtlar `❔` kalır (gerçek bilgi
+  içeride). Gerçek anlamda metin yorumu (özet, etki/sentiment, rakam çıkarımı) **yok**.
+- 🔜 **İleride (planlı, kurulmadı):** borsapy `Ticker.get_news_content(disclosureId)`
+  ile (her kayıtta `disclosureId` zaten var) önemli + son 7 gün + öncelikli/Top
+  hisselerin metni çekilip ya regex ile yapısal veri (temettü TL/hisse, bedelli
+  oranı, ihale tutarı…) ya da Claude API ile özet + etki skoru üretilebilir; sonuç
+  JSON'a `summary`/netleşmiş `direction` olarak yazılıp raporda gösterilir. Throttle
+  için yalnız ~20-50 metin/gün çekilir. (Tümü gözlem modu; karar etkisi yok.)
 
 ## Dosyalar
 
