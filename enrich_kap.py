@@ -452,6 +452,24 @@ def main():
             base_url = preset["base"]
         if not model:
             model = preset["model"]
+        # Tesis/kesif: model='list' verilirse saglayicinin /models ucunu listele ve cik.
+        if model in ("list", "?", "models"):
+            import urllib.request
+            import urllib.error
+            murl = base_url.replace("/chat/completions", "/models")
+            req = urllib.request.Request(murl, headers={
+                "Authorization": f"Bearer {api_token}", "Accept": "application/json",
+                "User-Agent": "bist-rapor-botu/1.0"})
+            try:
+                with urllib.request.urlopen(req, timeout=30) as r:
+                    md = json.loads(r.read().decode("utf-8"))
+                ids = [m.get("id") for m in (md.get("data") or md.get("models") or []) if isinstance(m, dict)]
+                print(f"[{args.engine}] kullanilabilir modeller ({len(ids)}):")
+                for i in ids:
+                    print("   ", i)
+            except Exception as e:
+                print(f"[{args.engine}] /models listelenemedi: {type(e).__name__}: {e}")
+            sys.exit(0)
         if args.max_content_chars > preset["cap"]:
             args.max_content_chars = preset["cap"]
         # Bazi ucretsiz katmanlarda dakika-basi-token (TPM) limiti dusuk; istekler
