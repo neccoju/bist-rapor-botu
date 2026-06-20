@@ -425,6 +425,12 @@ PROVIDER_PRESETS = {
     "opencode": {
         "base": "https://opencode.ai/zen/v1/chat/completions",
         "token_env": "OPENCODE_ZEN_API_KEY", "model": "qwen3.6-plus-free", "cap": 24000},
+    # NVIDIA build.nvidia.com: UCRETSIZ anahtar, OpenAI-uyumlu, Nemotron 3 Ultra
+    # (550B MoE, 1M baglam -> truncation YOK, sayfa+PDF tum rakamlar). Comert kota.
+    "nvidia": {
+        "base": "https://integrate.api.nvidia.com/v1/chat/completions",
+        "token_env": "NVIDIA_API_KEY", "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "cap": 80000, "min_sleep": 1},
 }
 
 
@@ -440,7 +446,7 @@ def main():
     ap.add_argument("--retries", type=int, default=2)
     ap.add_argument("--retry-wait", type=float, default=4.0)
     ap.add_argument("--engine", default="github",
-                    choices=["github", "groq", "opencode", "openrouter", "cerebras", "llm", "rules"],
+                    choices=["github", "groq", "opencode", "nvidia", "openrouter", "cerebras", "llm", "rules"],
                     help="UCRETSIZ: github (OpenAI gpt-4.1, onerilen) | groq (Llama-3.3-70B) | "
                          "opencode (Zen ucretsiz modeller) | openrouter | cerebras. Ucretli: llm. LLM'siz: rules")
     ap.add_argument("--model", default="", help="model id (bos = saglayici varsayilani)")
