@@ -45,6 +45,87 @@ Kurulum (bir kez):
    - Zaman: Europe/Istanbul, 18:15, Pazartesi–Cuma.
 3. Dilediğinde `Actions → BIST Cloud Report → Run workflow` ile elle de tetiklenir.
 
+## Tam Otomasyon Hattı (Pipeline / Katar) — uçtan uca günlük akış
+
+Sistem **üç bağımsız iş**ten (job) oluşur. Hepsi harici zamanlayıcı (cron-job.org)
+ile tetiklenir, birbirine **yalnız git'e commit edilen JSON dosyaları** üzerinden
+bağlıdır (gevşek bağlılık) ve biri çökse diğerleri çalışır. Bütün KAP/yorum akışı
+**gözlem modu**dur — skoru/portföyü/kararı ETKİLEMEZ.
+
+```
+  GÜN İÇİ (her ~5 dk, 17:00–17:35)         17:45                 18:15
+  ┌─────────────────────────┐      ┌──────────────────┐   ┌──────────────────┐
+  │ 1) KAP COLLECTOR         │      │ 2) KAP ENRICH    │   │ 3) GÜNLÜK RAPOR  │
+  │ kap-collector.yml (ubuntu)│ ──▶ │ kap-enrich.yml   │──▶│ bist-cloud-report│
+  │ borsapy ile KAP başlıkları│      │ izlenenleri LLM  │   │ .yml (windows)   │
+  │ → data/kap_disclosures.json│     │ (gpt-4.1) yorumlar│  │ tarar+skorlar+   │
+  │   (biriktirir, dönüşümlü) │      │ → kap_enrichment │   │ mail atar        │
+  └─────────────────────────┘      └──────────────────┘   └──────────────────┘
+        yazar ▼                          yazar ▼               okur ▲  ▲
+     data/kap_disclosures.json   data/kap_enrichment.json ─────┘  │
+                └──────────────────── ikisini disclosureId ile birleştirir ┘
+```
+
+### 1) KAP Collector — `kap-collector.yml` (ubuntu, Python/borsapy)
+- **Ne yapar:** borsapy ile BIST hisselerinin KAP **başlıklarını** çeker, kategori/
+  önem/yön etiketler, `data/kap_disclosures.json`'a **biriktirerek** yazar (merge,
+  `disclosureId` ile tekilleştirme).
+- **Dönüşümlü:** her koşu 100 hisse (saf rotasyon); `rotationCursor` git'te tutulur.
+  777 hisse 8 partide tam tur. Throttle güvenli bölge (~100 istek/koşu).
+- **Tetikleme:** cron-job.org, **17:00–17:35 arası her 5 dk** (8 parti → tüm evren).
+- **İzin/secret:** `contents: write` (JSON'u commit eder). Ekstra anahtar yok.
+- **Çıktı:** `data/kap_disclosures.json` (başlık + kategori + önem + yön + URL).
+
+### 2) KAP Enrich — `kap-enrich.yml` (ubuntu, Python)
+- **Ne yapar:** `kap_disclosures.json`'dan **izlenen hisselerin** (Top picks +
+  model portföy + anlık giriş; bot state'inden) **son gün** önemli bildirimlerini
+  alır, her birinin **gövde metnini** borsapy `get_news_content` ile çeker, **LLM**
+  ile yorumlar → **özet + yön + etki (1-5) + tutarlar** → `data/kap_enrichment.json`
+  (ayrı dosya; collector'la yazma yarışı yok).
+- **Motor (varsayılan):** GitHub Models + **`openai/gpt-4.1`** (ücretsiz,
+  `GITHUB_TOKEN`). Alternatifler: groq / opencode / openrouter / cerebras / llm
+  (Claude) / rules. (Bkz. "İçerik yorumlama".)
+- **Token tasarrufu:** sadece izlenenler + son gün + ≤25 → günde ~5-10 çağrı.
+- **Tetikleme:** cron-job.org, **~17:45** (collector bitince, rapordan önce), günde 1.
+- **İzin/secret:** `contents: write` + `models: read`; `GITHUB_TOKEN` (varsayılan
+  motor). Diğer motorlar için ilgili secret (GROQ_API_KEY, OPENCODE_ZEN_API_KEY,
+  ANTHROPIC_API_KEY...) opsiyonel.
+- **Çıktı:** `data/kap_enrichment.json` (disclosureId → özet/yön/etki/tutar).
+
+### 3) Günlük Rapor — `bist-cloud-report.yml` (windows-2025, PowerShell)
+- **Ne yapar:** TradingView'den ~600 hisseyi tarar, skorlar, 6 model portföy +
+  anlık fırsat portföyünü değerler, makro/gözlem göstergelerini üretir, **KAP
+  bölümünü** `kap_disclosures.json` (son gün) + `kap_enrichment.json`'u
+  **disclosureId ile birleştirerek** ("Yorum" sütunu = LLM özeti + etki) oluşturur,
+  HTML/CSV üretir, **e-posta (+Telegram)** gönderir, sonra **bot state'ini commit**
+  eder.
+- **Akış kapısı:** önce `Test-BistScanner.Core.ps1` (smoke + birim test) geçmeli.
+- **Tetikleme:** cron-job.org, **18:15 Europe/Istanbul, Pzt–Cuma**.
+- **İzin/secret:** `contents: write` + `actions: write`; SMTP/Telegram/EVDS
+  secret'ları (bkz. "Gerekli GitHub Secrets").
+- **Çıktı:** e-posta raporu + `data/*.json` state (model portföy, sinyal performansı,
+  PEAD, snapshot...).
+
+### Veri akışı ve kalıcılık
+- Tek tutkal **git'e commit'li `data/*.json`**: collector yazar → enrich okur+yazar
+  → rapor okur. Pencereler (collector commit'leri, enrich commit'i) farklı saatlerde
+  olduğu için çakışma yok; hepsinde `git pull --rebase` + retry var.
+- **Bağımsızlık:** enrich çökse rapor başlık-bazlı KAP'ı yine gösterir; collector
+  çökse rapor son commit'li veriyi okur; rapor çökse toplayıcılar etkilenmez.
+- **Commit'ler `[skip ci]`** taşır (collector/enrich), sonsuz tetikleme olmaz.
+
+### cron-job.org — kurulması gereken 3 iş (hepsi POST, Europe/Istanbul, Pzt–Cuma)
+| İş | URL (`.../workflows/<dosya>/dispatches`) | Zaman | Gövde |
+|---|---|---|---|
+| Collector | `kap-collector.yml` | 17:00–17:35, her 5 dk | `{"ref":"main"}` |
+| Enrich | `kap-enrich.yml` | 17:45 | `{"ref":"main"}` |
+| Rapor | `bist-cloud-report.yml` | 18:15 | `{"ref":"main"}` |
+
+Header'lar (üçünde de): `Authorization: Bearer <PAT>`,
+`Accept: application/vnd.github+json`, `X-GitHub-Api-Version: 2022-11-28`. PAT:
+fine-grained, bu repo, **Actions: Read and write**. Girdiler boş bırakılır
+(varsayılanlar: collector 100/saf-rotasyon, enrich github/gpt-4.1/son-gün).
+
 ## Raporda Gelen Bölümler
 
 - **Makro Görünüm:** BIST/BIST30/XBANK trendi, USD/TRY, Türkiye 5Y CDS, TR10Y faiz,
@@ -351,20 +432,29 @@ yorumlar: **kısa özet + yön + etki skoru (1-5) + tutarlar**. Sonuç ayrı
 `data/kap_enrichment.json`'a yazılır; rapor `disclosureId` ile birleştirip "Yorum"
 sütununda gösterir. **Gözlem modu — karar etkisi yok.**
 
-- **Motor (varsayılan): GitHub Models — ÜCRETSİZ.** Actions `GITHUB_TOKEN` +
-  `permissions: models: read`; OpenAI-uyumlu endpoint (`models.github.ai`), ek
-  bağımlılık yok (urllib). Model `openai/gpt-4o-mini` (veya açık modeller
-  Llama/Mistral/DeepSeek; `model` girdisiyle değiştirilebilir). Alternatif motor:
-  `llm` (Claude API, `ANTHROPIC_API_KEY` secret) — daha keskin ama ücretli;
-  `rules` (anahtar kelime, LLM'siz).
+- **Motor (varsayılan): GitHub Models + `openai/gpt-4.1` — ÜCRETSİZ.** Actions
+  `GITHUB_TOKEN` + `permissions: models: read`; OpenAI-uyumlu endpoint
+  (`models.github.ai`), ek bağımlılık yok (urllib). gpt-4.1 ücretsiz katmanda
+  güvenilir çalışır (429 yemez), olay/tarih/tarafı doğru yakalar, **bilmediğini
+  uydurmaz** (tam rakam ek PDF'teyse bunu açıkça yazar).
+- **Diğer motorlar (`model`/`engine` girdisiyle, `enrich_kap.py` preset):**
+  `groq` (Llama-3.3-70B, ücretsiz anahtar, ~2 dk), `opencode` (OpenCode Zen
+  ücretsiz modeller), `openrouter`, `cerebras`, `llm` (Claude — en keskin ama
+  ücretli ~$0,05/gün), `rules` (LLM'siz anahtar kelime). Hepsi OpenAI-uyumlu tek
+  yola bağlanır; sağlayıcı = base-url + token-env + model + içerik penceresi.
+  > Not: DeepSeek-V3 / Kimi-K2 gibi DEV açık modeller ücretsiz katmanlarda ağır
+  > rate-limit (429) yediği için güvenilir değil; bu yüzden varsayılan gpt-4.1.
 - **Token tasarrufu:** yalnız **izlenen hisseler** (Top/portföy/anlık giriş; state
   JSON'larından) + **son gün** + en fazla 25 bildirim → günde ~5-10 çağrı. (Günde
   toplam ~90-108 "high" bildirim çıkar; hepsini değil, sadece izlenenleri yorumlar.)
-- **İçerik çıkarımı:** KAP sayfası ~60-150 KB (menü/arama çöbü dahil) gelir;
-  `_focus_content` ODA formundaki **"Özet Bilgi"** alanına sabitlenerek asıl metni
-  küçük bir pencereye indirir (GitHub Models'in istek limiti için şart; 60 KB → 413).
-- **Kalite notu:** GitHub Models (`gpt-4o-mini`) olay türünü ve tarihleri iyi
-  yakalar, bazı tutarları kaçırabilir; Claude daha keskin (tam rakam) ama ücretli.
+- **İçerik çıkarımı:** KAP sayfası ~60-150 KB (menü/arama çöpü dahil) gelir;
+  `_focus_content` ODA formundaki **"Özet Bilgi"** alanına sabitleyerek asıl metni
+  küçük pencereye indirir (ücretsiz motorların istek limiti için şart; 60 KB → 413).
+- **Bilinen sınır:** KAP bildirimlerinde **tam rakamlar (temettü TL, kredi notu)
+  çoğu zaman ekteki PDF'te**, çektiğimiz sayfa metninde değil. Bu yüzden gpt-4.1
+  olayı/tarihi verir ama tutarı "ek PDF'te" diye işaretleyebilir. Tam rakamlar için
+  ya geniş pencere (Claude 60 KB → tutarı yakalar) ya da **PDF ekini ayrıştırmak**
+  gerekir (gelecek iş; `pymupdf` zaten bağımlılıkta var).
 - **Zamanlama:** collector partileri bittikten sonra, rapordan önce (örn. **17:45**)
   cron-job.org ile günde bir `kap-enrich.yml` tetiklenir.
 
@@ -383,8 +473,9 @@ sütununda gösterir. **Gözlem modu — karar etkisi yok.**
   bildirim toplayıcısı (borsapy; `data/kap_disclosures.json` üretir/commit eder).
   Ayrı ubuntu job; ana botu etkilemez. (Bkz. "KAP Bildirim Toplayıcısı".)
 - `enrich_kap.py` + `.github/workflows/kap-enrich.yml` — KAP içerik yorumlama (LLM):
-  izlenen hisselerin son-gün önemli bildirimlerini GitHub Models (ücretsiz) ile
-  özetler/yön/etki üretir → `data/kap_enrichment.json`. (Bkz. "İçerik yorumlama".)
+  izlenen hisselerin son-gün önemli bildirimlerini GitHub Models + `openai/gpt-4.1`
+  (ücretsiz; veya groq/opencode/llm...) ile özetler/yön/etki üretir →
+  `data/kap_enrichment.json`. (Bkz. "İçerik yorumlama".)
 - `BacktestEngine.psm1` / `Backtest-EventDriven.ps1` / `Test-BacktestEngine.ps1` —
   gerçek event-driven backtest motoru, koşucusu ve ağsız birim testi.
 - `config/report_settings.cloud.json` / `.example.json` — ayarlar.
@@ -392,6 +483,8 @@ sütununda gösterir. **Gözlem modu — karar etkisi yok.**
   `instant_entry_portfolio.json`, `signal_performance.json`, `earnings_reactions.json`,
   `signal_calibration.json`, `order_intents.json`, `paper_broker.json`,
   `latest_point_in_time_snapshot.json` ve `point_in_time_snapshots/*.json`.
+  Ayrıca KAP hattı: `kap_disclosures.json` (collector) ve `kap_enrichment.json`
+  (enrich/LLM yorumları).
 
 ### Analiz / araştırma araçları (elle tetiklenir; günlük raporu etkilemez)
 
