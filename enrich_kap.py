@@ -211,6 +211,54 @@ def _focus_content(text, max_chars):
     return best
 
 
+_ATTACH_URL_RE = re.compile(r"""https?://[^\s"'<>\\)]+""", re.IGNORECASE)
+
+
+def find_attachment_urls(raw, limit=3):
+    """KAP bildirim sayfasinin ham metninden PDF/ek (attachment) URL'lerini cikarir:
+    .pdf ile biten ya da KAP dosya-indirme kaliplari iceren baglantilar."""
+    urls = []
+    for m in _ATTACH_URL_RE.finditer(raw or ""):
+        u = m.group(0).rstrip("\\\",.)")
+        ul = u.lower()
+        is_pdf = ul.endswith(".pdf")
+        is_kap_file = ("kap.org.tr" in ul and any(
+            k in ul for k in ("file", "indir", "yayinindir", "attachment", "download", "/ek")))
+        if (is_pdf or is_kap_file) and u not in urls:
+            urls.append(u)
+        if len(urls) >= limit:
+            break
+    return urls
+
+
+def fetch_pdf_text(url, max_pages=8, timeout=40):
+    """PDF'i indirip pymupdf ile metne cevirir (ilk max_pages sayfa). Ek bagimlilik
+    yok: requests + pymupdf zaten borsapy ile geliyor."""
+    import requests
+    try:
+        import pymupdf as fitz
+    except Exception:
+        import fitz  # eski isim
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                      "(KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+        "Accept": "application/pdf,application/octet-stream,*/*",
+    }
+    r = requests.get(url, headers=headers, timeout=timeout)
+    r.raise_for_status()
+    ctype = r.headers.get("Content-Type", "")
+    if "pdf" not in ctype.lower() and not url.lower().endswith(".pdf") and not r.content[:5].startswith(b"%PDF"):
+        raise ValueError(f"PDF degil (Content-Type={ctype})")
+    doc = fitz.open(stream=r.content, filetype="pdf")
+    parts = []
+    for i, page in enumerate(doc):
+        if i >= max_pages:
+            break
+        parts.append(page.get_text())
+    doc.close()
+    return re.sub(r"\s+", " ", " ".join(parts)).strip()
+
+
 LLM_PROMPT = (
     "Sen BIST KAP bildirimlerini yorumlayan bir analistsin. Aşağıdaki ham metin bir "
     "KAP bildirim sayfasının içeriğidir; BAŞINDA/ARASINDA KAP site menüsü, arama "
@@ -401,6 +449,10 @@ def main():
                     help="LLM'e gonderilecek en fazla icerik karakteri (maliyet siniri)")
     ap.add_argument("--force", action="store_true",
                     help="ayni motorla zaten yorumlanmis kayitlari da yeniden yorumla")
+    ap.add_argument("--pdf", dest="pdf", action="store_true", default=True,
+                    help="bildirimdeki PDF ekini indirip ayristir (tam rakamlar icin)")
+    ap.add_argument("--no-pdf", dest="pdf", action="store_false", help="PDF ek ayristirmayi kapat")
+    ap.add_argument("--pdf-max-pages", type=int, default=8, help="PDF'ten en fazla okunacak sayfa")
     ap.add_argument("--priority-only", dest="priority_only", action="store_true", default=True,
                     help="yalniz izlenen (Top/portfoy/anlik giris) hisselerin bildirimlerini yorumla (token tasarrufu)")
     ap.add_argument("--all-stocks", dest="priority_only", action="store_false",
@@ -552,9 +604,37 @@ def main():
             continue
 
         text = to_text(content)
+        raw_str = content if isinstance(content, str) else str(content)
         if i <= 3:
             print(f"    [probe] {sym}/{did} icerik tip={type(content).__name__} "
                   f"uzunluk={len(text)} ornek={text[:160]!r}")
+
+        # PDF EK: tam rakamlar (temettu TL, kredi notu...) genelde sayfa metninde
+        # degil ekteki PDF'te. Linki bul, indir, pymupdf ile metnini cikar.
+        pdf_text = ""
+        pdf_urls = []
+        if args.pdf:
+            try:
+                pdf_urls = find_attachment_urls(raw_str)
+            except Exception:
+                pdf_urls = []
+            for u in pdf_urls[:2]:
+                if time.time() - started > args.max_seconds:
+                    break
+                try:
+                    t = fetch_pdf_text(u, max_pages=args.pdf_max_pages)
+                    if t:
+                        pdf_text += " " + t
+                except Exception as e:
+                    if i <= 3:
+                        print(f"    [pdf] {sym} indirilemedi ({u[:70]}): {type(e).__name__}: {e}")
+            if i <= 3:
+                print(f"    [pdf] {sym} ek-url={len(pdf_urls)} pdf-metin={len(pdf_text)} kar.")
+
+        # Regex tutarlar: PDF + tam sayfa (LLM penceresi disinda kalanlari da yakalar).
+        regex_amounts = extract_amounts((pdf_text + " " + text), limit=8)
+        # LLM'e govde: PDF metni anlamliysa onu (temiz, rakamli) tercih et; yoksa sayfa.
+        llm_body = pdf_text if len(pdf_text) > 200 else text
 
         rec = {
             "symbol": sym,
@@ -563,6 +643,8 @@ def main():
             "date": r.get("date"),
             "directionHint": r.get("direction"),
             "contentChars": len(text),
+            "pdfChars": len(pdf_text),
+            "pdfUrls": pdf_urls[:2],
             "engine": args.engine,
             "enrichedAt": datetime.now(timezone.utc).isoformat(),
         }
@@ -572,34 +654,34 @@ def main():
                 if args.engine in PROVIDER_PRESETS:
                     res = interpret_openai_compatible(base_url, api_token, model, sym,
                                                       r.get("title", ""), r.get("category", ""),
-                                                      text, args.max_content_chars)
+                                                      llm_body, args.max_content_chars)
                 else:
                     res = interpret_llm(llm_client, model, sym, r.get("title", ""),
-                                        r.get("category", ""), text, args.max_content_chars)
+                                        r.get("category", ""), llm_body, args.max_content_chars)
             except Exception as e:
                 errors += 1
                 if errors <= 8:
                     print(f"  {sym}/{did}: {args.engine.upper()} HATA {type(e).__name__}: {e}")
                 time.sleep(args.sleep)
                 continue
+            merged_amt = list(dict.fromkeys((res.get("amounts") or []) + regex_amounts))[:6]
             rec.update({
                 "directionRefined": res["direction"],
                 "summary": res["summary"],
                 "impact": res.get("impact"),
-                "amounts": res.get("amounts", []),
+                "amounts": merged_amt,
                 "rationale": res.get("rationale", ""),
             })
             direction = res["direction"]
             summary = res["summary"]
         else:
-            amounts = extract_amounts(text)
-            direction, pos, neg = refine_direction(text, r.get("direction"))
-            summary = make_summary(text)
+            direction, pos, neg = refine_direction((pdf_text + " " + text), r.get("direction"))
+            summary = make_summary(pdf_text if len(pdf_text) > 200 else text)
             rec.update({
                 "directionRefined": direction,
                 "summary": summary,
                 "sentiment": {"pos": pos, "neg": neg},
-                "amounts": amounts,
+                "amounts": regex_amounts[:6],
             })
 
         items[did] = rec
