@@ -461,6 +461,11 @@ sütununda gösterir. **Gözlem modu — karar etkisi yok.**
   sorunsuz sayfa metnine düşer.
 - **Küçük pürüz:** gpt-4.1 (Azure barındırmalı) ara sıra bir bildirimi içerik
   filtresine takıp HTTP 400 verebilir (koşuda ~1/8); o kayıt atlanır, akış bozulmaz.
+- **Denetim izi:** Her kayda LLM'e **gerçekten gönderilen** odaklanmış metnin ilk
+  ~500 karakteri (`inputSnippet`), kaynağı (`inputSource`: pdf|page) ve boyutu
+  (`inputChars`) yazılır; ayrıca `pdfUrls`/`disclosureId` ile tam girdi yeniden
+  üretilebilir. Böylece "model neden böyle dedi?" denetlenebilir. (Tam girdi metni
+  repo'yu şişirmemek için saklanmaz; gerekirse kaynaktan yeniden çekilir.)
 - **Zamanlama:** collector partileri bittikten sonra, rapordan önce (örn. **17:45**)
   cron-job.org ile günde bir `kap-enrich.yml` tetiklenir.
 

@@ -641,6 +641,8 @@ def main():
         regex_amounts = extract_amounts((pdf_text + " " + text), limit=8)
         # LLM'e govde: PDF metni anlamliysa onu (temiz, rakamli) tercih et; yoksa sayfa.
         llm_body = pdf_text if len(pdf_text) > 200 else text
+        # LLM'e GERCEKTE giden (odaklanmis) metin — denetim icin snippet'i saklanir.
+        focused = _focus_content(llm_body, args.max_content_chars)
 
         rec = {
             "symbol": sym,
@@ -651,6 +653,9 @@ def main():
             "contentChars": len(text),
             "pdfChars": len(pdf_text),
             "pdfUrls": pdf_urls[:2],
+            "inputSource": ("pdf" if len(pdf_text) > 200 else "page"),
+            "inputChars": len(focused),
+            "inputSnippet": focused[:500],
             "engine": args.engine,
             "enrichedAt": datetime.now(timezone.utc).isoformat(),
         }
@@ -660,10 +665,10 @@ def main():
                 if args.engine in PROVIDER_PRESETS:
                     res = interpret_openai_compatible(base_url, api_token, model, sym,
                                                       r.get("title", ""), r.get("category", ""),
-                                                      llm_body, args.max_content_chars)
+                                                      focused, args.max_content_chars)
                 else:
                     res = interpret_llm(llm_client, model, sym, r.get("title", ""),
-                                        r.get("category", ""), llm_body, args.max_content_chars)
+                                        r.get("category", ""), focused, args.max_content_chars)
             except Exception as e:
                 errors += 1
                 if errors <= 8:
