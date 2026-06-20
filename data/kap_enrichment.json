@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-06-20T11:52:24.945915+00:00",
+  "generatedAt": "2026-06-20T11:54:44.967990+00:00",
   "source": "borsapy 0.10.1 get_news_content",
   "count": 30,
   "lastRun": {
-    "targets": 1,
-    "enriched": 1,
-    "errors": 0,
-    "elapsedSec": 4
+    "targets": 3,
+    "enriched": 2,
+    "errors": 1,
+    "elapsedSec": 10
   },
   "items": {
     "1618795": {
@@ -401,13 +401,24 @@
       "date": "18.06.2026 18:30:05",
       "directionHint": "+",
       "contentChars": 77259,
+      "pdfChars": 1891,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9ec11d3d019edaca06b412d2"
+      ],
       "engine": "github",
-      "enrichedAt": "2026-06-19T23:13:39.514734+00:00",
-      "directionRefined": "?",
-      "summary": "ENERY, 18.06.2026 tarihinde kar payı dağıtımı işlemiyle ilgili bildirim yaptı; detaylar ve tutar PDF ekinde yer alıyor.",
+      "enrichedAt": "2026-06-20T11:54:42.535577+00:00",
+      "directionRefined": "+",
+      "summary": "ENERYA, 2025 için toplam 127,5 milyon TL nakit temettü dağıtacak; hisse başı net 0,01417 TL, %2,92 oranında.",
       "impact": 3,
-      "amounts": [],
-      "rationale": "Bildirimde tutar ve oran belirtilmemiş, ek dosyada detay var; fiyat etkisi belirsiz."
+      "amounts": [
+        "127,5 milyon TL",
+        "0,01417 TL/hisse",
+        "%2,92",
+        "1 TL",
+        "4.695.334.853 TL",
+        "4.372.967.444 TL"
+      ],
+      "rationale": "Temettü oranı makul, nakit dağıtım yatırımcı için olumlu; fiyatı destekleyebilir."
     },
     "1618714": {
       "symbol": "ISCTR",
@@ -464,12 +475,12 @@
       "pdfChars": 0,
       "pdfUrls": [],
       "engine": "github",
-      "enrichedAt": "2026-06-20T11:52:22.126677+00:00",
+      "enrichedAt": "2026-06-20T11:54:36.045034+00:00",
       "directionRefined": "0",
-      "summary": "ENERY, finansal tablolarına ilişkin genel açıklama yaptı; SPK düzenlemelerine uygun ve doğru bilgi sağlandığını beyan etti. Somut finansal veri veya yeni gelişme yok.",
+      "summary": "ENERY, finansal tablolarına ilişkin genel açıklama yaptı; ek bilgi veya rakam paylaşılmadı.",
       "impact": 1,
       "amounts": [],
-      "rationale": "Açıklama rutin ve bilgi teyidi niteliğinde; fiyat etkisi beklenmez."
+      "rationale": "Açıklama rutin ve bilgi içermiyor; fiyat etkisi yok."
     },
     "1618729": {
       "symbol": "SKBNK",
