@@ -450,11 +450,17 @@ sütununda gösterir. **Gözlem modu — karar etkisi yok.**
 - **İçerik çıkarımı:** KAP sayfası ~60-150 KB (menü/arama çöpü dahil) gelir;
   `_focus_content` ODA formundaki **"Özet Bilgi"** alanına sabitleyerek asıl metni
   küçük pencereye indirir (ücretsiz motorların istek limiti için şart; 60 KB → 413).
-- **Bilinen sınır:** KAP bildirimlerinde **tam rakamlar (temettü TL, kredi notu)
-  çoğu zaman ekteki PDF'te**, çektiğimiz sayfa metninde değil. Bu yüzden gpt-4.1
-  olayı/tarihi verir ama tutarı "ek PDF'te" diye işaretleyebilir. Tam rakamlar için
-  ya geniş pencere (Claude 60 KB → tutarı yakalar) ya da **PDF ekini ayrıştırmak**
-  gerekir (gelecek iş; `pymupdf` zaten bağımlılıkta var).
+- **PDF ek ayrıştırma (tam rakamlar için — AKTİF):** KAP bildirimlerinde tam
+  rakamlar (temettü TL, hisse başı, verim %, kredi notu) çoğu zaman **ekteki PDF'te**.
+  `find_attachment_urls` bildirim sayfasından PDF/ek linkini bulur, `fetch_pdf_text`
+  (`requests` + `pymupdf`, ikisi de borsapy bağımlılığı) PDF'i indirip metne çevirir;
+  PDF metni varsa **LLM'e o (temiz, rakamlı) verilir** ve ayrıca PDF+sayfa regex
+  tutarları LLM çıktısıyla birleştirilir. Sonuç: ENERY temettü → *"127,5 milyon TL,
+  hisse başı 0,01417 TL, %2,92"* gibi **tam rakamlar ücretsiz** geliyor. (`--no-pdf`
+  ile kapatılır; `--pdf-max-pages` ile sayfa sınırı.) Eki olmayan bildirimlerde
+  sorunsuz sayfa metnine düşer.
+- **Küçük pürüz:** gpt-4.1 (Azure barındırmalı) ara sıra bir bildirimi içerik
+  filtresine takıp HTTP 400 verebilir (koşuda ~1/8); o kayıt atlanır, akış bozulmaz.
 - **Zamanlama:** collector partileri bittikten sonra, rapordan önce (örn. **17:45**)
   cron-job.org ile günde bir `kap-enrich.yml` tetiklenir.
 

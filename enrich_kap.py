@@ -630,13 +630,6 @@ def main():
                         print(f"    [pdf] {sym} indirilemedi ({u[:70]}): {type(e).__name__}: {e}")
             if i <= 3:
                 print(f"    [pdf] {sym} ek-url={len(pdf_urls)} pdf-metin={len(pdf_text)} kar.")
-                if not pdf_urls:
-                    allu = _ATTACH_URL_RE.findall(raw_str)
-                    uniq = list(dict.fromkeys(allu))[:12]
-                    print(f"    [pdf-tani] toplam URL={len(allu)} ornek={uniq}")
-                    low = raw_str.lower()
-                    print(f"    [pdf-tani] 'pdf' gecis={low.count('pdf')} 'dosya'={low.count('dosya')} "
-                          f"'/file'={low.count('/file')} 'indir'={low.count('indir')} 'ek '={low.count('ek ')}")
 
         # Regex tutarlar: PDF + tam sayfa (LLM penceresi disinda kalanlari da yakalar).
         regex_amounts = extract_amounts((pdf_text + " " + text), limit=8)
