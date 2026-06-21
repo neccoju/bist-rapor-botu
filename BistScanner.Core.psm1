@@ -6058,9 +6058,12 @@ function New-PerformanceComparisonChart {
 
     $payload = [ordered]@{ width = 860; height = 480; backgroundColor = 'white'; chart = $config }
     $json = $payload | ConvertTo-Json -Depth 20 -Compress
+    # Windows PowerShell 5.1 string govdeyi UTF-8 gondermez -> Turkce karakterler
+    # bozulur (Portf�y�). Govdeyi UTF-8 byte dizisi olarak yolla + charset belirt.
+    $bodyBytes = [System.Text.Encoding]::UTF8.GetBytes($json)
     try {
         $resp = Invoke-WithRetry -OperationName 'QuickChart' -MaxAttempts 2 -BaseDelaySec 1 -ScriptBlock {
-            Invoke-RestMethod -Uri 'https://quickchart.io/chart/create' -Method Post -Body $json -ContentType 'application/json' -TimeoutSec $TimeoutSec -ErrorAction Stop
+            Invoke-RestMethod -Uri 'https://quickchart.io/chart/create' -Method Post -Body $bodyBytes -ContentType 'application/json; charset=utf-8' -TimeoutSec $TimeoutSec -ErrorAction Stop
         }
     }
     catch { return $null }

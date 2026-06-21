@@ -151,6 +151,37 @@ function ConvertTo-HtmlText {
     return [Net.WebUtility]::HtmlEncode((ConvertTo-PlainText $Value))
 }
 
+function Add-MidasLinks {
+    <#
+        Raporun nihai HTML'inde hisse kisaltmalarini Midas linkine cevirir
+        (or. A1CAP -> https://app.getmidas.com/gmih/a1cap). Yalniz GECERLI hisse
+        kumesindeki semboller baglanir (yanlis eslesme olmaz). Tablo hucreleri
+        (<td>SEMBOL</td>) ve detay kart basliklari (<h3>SEMBOL - ...) hedeflenir.
+        Tablolar ConvertTo-Html ile uretildiginden cell'e dogrudan <a> konamaz;
+        bu yuzden son adimda post-process edilir.
+    #>
+    param([string]$Html, $Symbols)
+
+    if ([string]::IsNullOrEmpty($Html) -or $null -eq $Symbols -or $Symbols.Count -eq 0) {
+        return $Html
+    }
+    $base = 'https://app.getmidas.com/gmih/'
+    $eval = {
+        param($m)
+        $sym = $m.Groups['sym'].Value
+        if ($Symbols.Contains($sym)) {
+            $href = $base + $sym.ToLowerInvariant()
+            return "$($m.Groups['pre'].Value)<a href=`"$href`" target=`"_blank`" rel=`"noopener`" style=`"color:#2563eb;text-decoration:none;font-weight:600`">$sym</a>$($m.Groups['post'].Value)"
+        }
+        return $m.Value
+    }
+    # Tablo hucresi: <td>SEMBOL</td>
+    $Html = [regex]::Replace($Html, '(?<pre><td>)(?<sym>[A-Z0-9]{2,6})(?<post></td>)', $eval)
+    # Detay kart basligi: <h3>SEMBOL - Sirket</h3>
+    $Html = [regex]::Replace($Html, '(?<pre><h3>)(?<sym>[A-Z0-9]{2,6})(?<post> - )', $eval)
+    return $Html
+}
+
 function Get-NumberValue {
     param(
         $Object,
@@ -2448,6 +2479,14 @@ CDS, DXY, VIX izleme metrikleri ücretsiz/gecikmeli kaynaklardandır. İşlem ka
 </body>
 </html>
 "@
+
+    # Hisse kisaltmalarini Midas linkine cevir (yalniz gecerli sembol kumesi -> guvenli).
+    $validSymbols = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+    foreach ($s in @($scored)) {
+        $sy = ([string](Get-ObjectPropertyValue -Object $s -Name 'Symbol')).Trim().ToUpperInvariant()
+        if ($sy) { [void]$validSymbols.Add($sy) }
+    }
+    $htmlBody = Add-MidasLinks -Html $htmlBody -Symbols $validSymbols
 
     $stageStartedAt = Get-Date
     [IO.File]::WriteAllText($htmlPath, $htmlBody, [Text.UTF8Encoding]::new($true))
