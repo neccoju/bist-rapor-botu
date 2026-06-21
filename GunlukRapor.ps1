@@ -171,7 +171,7 @@ function Add-MidasLinks {
         $sym = $m.Groups['sym'].Value
         if ($Symbols.Contains($sym)) {
             $href = $base + $sym.ToLowerInvariant()
-            return "$($m.Groups['pre'].Value)<a href=`"$href`" target=`"_blank`" rel=`"noopener`" style=`"color:#2563eb;text-decoration:none;font-weight:600`">$sym</a>$($m.Groups['post'].Value)"
+            return "$($m.Groups['pre'].Value)<a class=`"sym`" target=`"_blank`" href=`"$href`">$sym</a>$($m.Groups['post'].Value)"
         }
         return $m.Value
     }
@@ -2259,6 +2259,8 @@ h2 { margin:30px 0 3px; font-size:18px; color:#0b1220; border-left:4px solid #c9
 .detail-card ul { margin-top:4px; padding-left:20px; }
 .detail-card li { margin:4px 0; }
 .badge { display:inline-block; padding:4px 11px; border-radius:999px; background:#0b1220; color:#d6b34a; font-weight:700; font-size:11.5px; letter-spacing:.3px; border:1px solid #c9a227; }
+.sym { color:#2563eb; text-decoration:none; font-weight:600; }
+.clip-note { margin:10px 30px 0; padding:8px 12px; border-radius:7px; background:#fffbeb; border:1px solid #fde68a; color:#92400e; font-size:12px; }
 .portfolio-group { margin:18px 0 26px 0; }
 .portfolio-group h3 { margin:0 0 4px 0; }
 .pie-grid { font-size:0; margin-top:12px; }
@@ -2396,6 +2398,7 @@ $css
 <div class="mh-sub mono">$($runAt.ToString('dd.MM.yyyy HH:mm')) · Strateji: $strategy · $($stocks.Count) hisse tarandı</div>
 <div class="disclaim">⚠ Otomatik sayısal taramadır; yatırım tavsiyesi değildir.</div>
 </div>
+<div class="clip-note">📎 Bu rapor uzundur; Gmail çok uzun e-postaları <b>kırpabilir</b> ("Mesaj kırpıldı / Tümünü görüntüle"). Mail altta kesilirse <b>"Tümünü görüntüle"</b>ye tıkla ya da ekteki <b>HTML dosyasını</b> aç — tam rapor orada. Hisse kodlarına tıklayınca Midas'ta açılır.</div>
 <div class="kpi-row">
 <div class="kpi gold"><div class="lab">Skor Lideri</div><div class="val">$($leader.Symbol)</div><div class="sub">Skor $($leader.Score) · $($leader.Signal)</div></div>
 <div class="kpi"><div class="lab">Ham-Faktör Lideri</div><div class="val">$(($scored | Sort-Object RawFactorScore100 -Descending | Select-Object -First 1).Symbol)</div><div class="sub">RFS100 $(($scored | Sort-Object RawFactorScore100 -Descending | Select-Object -First 1).RawFactorScore100)</div></div>
@@ -2487,6 +2490,13 @@ CDS, DXY, VIX izleme metrikleri ücretsiz/gecikmeli kaynaklardandır. İşlem ka
         if ($sy) { [void]$validSymbols.Add($sy) }
     }
     $htmlBody = Add-MidasLinks -Html $htmlBody -Symbols $validSymbols
+
+    # Gmail ~102 KB ustu HTML mailleri "kirpar" (tam icerik ekte kalir). Icerik
+    # KAYBETMEDEN boyutu kucult: etiketler arasi girinti/satir-sonu bosluklarini sil
+    # (metin ici bosluklar korunur). Bu ~%20-35 kazandirir, klipe takilmayi azaltir.
+    $htmlBefore = $htmlBody.Length
+    $htmlBody = [regex]::Replace($htmlBody, '>[ \t]*\r?\n[ \t]*<', '><')
+    Write-Host ("HTML boyutu: {0:N0} -> {1:N0} bayt (Gmail klip siniri ~102.000)" -f $htmlBefore, $htmlBody.Length)
 
     $stageStartedAt = Get-Date
     [IO.File]::WriteAllText($htmlPath, $htmlBody, [Text.UTF8Encoding]::new($true))
