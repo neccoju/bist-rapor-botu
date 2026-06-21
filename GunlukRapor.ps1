@@ -2398,7 +2398,7 @@ $css
 <div class="mh-sub mono">$($runAt.ToString('dd.MM.yyyy HH:mm')) · Strateji: $strategy · $($stocks.Count) hisse tarandı</div>
 <div class="disclaim">⚠ Otomatik sayısal taramadır; yatırım tavsiyesi değildir.</div>
 </div>
-<div class="clip-note">📎 Bu rapor uzundur; Gmail çok uzun e-postaları <b>kırpabilir</b> ("Mesaj kırpıldı / Tümünü görüntüle"). Mail altta kesilirse <b>"Tümünü görüntüle"</b>ye tıkla ya da ekteki <b>HTML dosyasını</b> aç — tam rapor orada. Hisse kodlarına tıklayınca Midas'ta açılır.</div>
+<div class="clip-note">📎 Bu e-posta, Gmail'in kırpma sınırının (~102 KB) altında kalmak için <b>özetlenmiştir</b>: bazı araştırma/denetim bölümleri (akademik faktör, bilanço öncesi ivme + PEAD, model portföy işlem geçmişi, paper broker) <b>ekteki tam HTML raporunda</b>. Hisse kodlarına tıklayınca Midas'ta açılır.</div>
 <div class="kpi-row">
 <div class="kpi gold"><div class="lab">Skor Lideri</div><div class="val">$($leader.Symbol)</div><div class="sub">Skor $($leader.Score) · $($leader.Signal)</div></div>
 <div class="kpi"><div class="lab">Ham-Faktör Lideri</div><div class="val">$(($scored | Sort-Object RawFactorScore100 -Descending | Select-Object -First 1).Symbol)</div><div class="sub">RFS100 $(($scored | Sort-Object RawFactorScore100 -Descending | Select-Object -First 1).RawFactorScore100)</div></div>
@@ -2432,20 +2432,20 @@ $detailedCardsHtml
 $(New-HtmlTable -Rows $topRows)
 <h2>Skor İsabet Takibi (Öz-Değerlendirme)</h2>
 <p class="muted">Bot, her çalışmada o günkü Top $topCount seçimini ve fiyatlarını saklar; bir sonraki çalışmada bu seçimlerin gerçekleşen getirisini tüm taranan evrenin ortalama getirisiyle karşılaştırır. <b>İsabet oranı</b>, seçimlerin evren ortalamasını geçtiği gün yüzdesidir; <b>ortalama fark (edge)</b> ise seçimlerin evrene kıyasla ortalama getiri üstünlüğüdür. Bu, skorlama mantığının zaman içinde gerçekten ayrıştırıcı olup olmadığını ölçen kendi kendine öğrenme/denetim sinyalidir. $(if ($null -ne $signalPerfSummary.HitRatePct) { "Şu ana kadar $($signalPerfSummary.SampleCount) değerlendirme gününde isabet oranı %$($signalPerfSummary.HitRatePct), ortalama fark %$($signalPerfSummary.AvgEdgePct)." } else { 'Henüz karşılaştırılacak önceki seçim yok; ilk isabet ölçümü bir sonraki çalışmada üretilecek.' })</p>
-<h2>Akademik Çok-Faktör Skoru (AFS)</h2>
+<!--EMAIL-DROP-START--><h2>Akademik Çok-Faktör Skoru (AFS)</h2>
 <p class="muted">AFS, akademik literatürde getiriyi kesitsel olarak en tutarlı açıklayan faktörlerin standartlaştırılmış (z-skor) bir karışımıdır ve bağımsız bir beklenen-getiri sıralamasıdır (mevcut Skor'u değiştirmez). Bileşenler ve yönleri: <b>Momentum 12-1</b> (Jegadeesh-Titman 1993; son ay hariç 12 aylık getiri, kısa vadeli ters dönüşten arındırılmış), <b>Kalite</b> (Novy-Marx 2013 / Fama-French RMW; yüksek ROE, düşük borç, FAVÖK ardışık artışı), <b>Değer</b> (düşük FD/FAVÖK, PD/DD, F/K), <b>Düşük Volatilite</b> (Frazzini-Pedersen 2014; düşük volatilite primi) ve <b>Boyut</b> (küçük piyasa değeri hafif prim). Ağırlıklar momentum 0.30 · kalite 0.25 · değer 0.20 · düşük-vol 0.20 · boyut 0.05. "Getiri/Risk", momentum 12-1'in yıllıklandırılmış volatiliteye oranıdır (Sharpe benzeri). Tüm metrikler teoriktir; işlem maliyeti/kayma içermez.</p>
-$(New-HtmlTable -Rows $academicRows)
+$(New-HtmlTable -Rows $academicRows)<!--EMAIL-DROP-END-->
 <h2>USD Güçlü Bilanço</h2>
 $(New-HtmlTable -Rows $strongUsdRows)
 <h2>Yaklaşan Bilanço Takvimi</h2>
 <p class="muted">Skora göre öne çıkan hisselerin bir sonraki bilanço/finansal rapor açıklama tarihi (TradingView takviminden; tahmini olabilir) ve son açıklanan bilanço tarihi. "Kalan Gün" 7 ve altındaysa olay riski yüksektir: bilanço öncesi oynaklık artar, kademeli giriş veya bilanço sonrası teyit beklemek daha disiplinlidir. Bilançoya 0-7 gün kalan hisselere skorda olay-riski cezası uygulanır. Açıklanan rakamlar bir sonraki taramada otomatik olarak skorlara yansır.</p>
 $(New-HtmlTable -Rows $earningsCalendarRows)
-<h2>Bilanço Öncesi İvme Radarı (Anticipation)</h2>
+<!--EMAIL-DROP-START--><h2>Bilanço Öncesi İvme Radarı (Anticipation)</h2>
 <p class="muted">Geniş örneklemli olay çalışması (~1600 çeyrek-olayı) iyi bilanço gelen hisselerde açıklama öncesi ılımlı bir fiyat yükselişi (run-up) gösterir; etki ortalamada zayıftır (sürpriz↔ön run-up r≈0,08) ama yönü pozitiftir. Bu bölüm, bilançosuna 8-25 gün kalan ve fiyat/hacmi güçlenen (fiyat>SMA20≥SMA50, görece hacim≥1,1x, aylık getiri pozitif) hisseleri öncü aday olarak listeler ve skora bilanço öncesi bonus (+$([string]$activeCalibration.PreEarningsRunupBonus)) verir. Yeni açıklamış aşırı uzamış pozitif-sürpriz hisselere bilanço sonrası ayar ($([string]$activeCalibration.PostEarningsAdjustment)) uygulanır; geniş örneklemde bilanço sonrası eğilim hafif pozitif (PEAD, long-short ≈+%2,4) çıktığından bu ayar küçük tutulur ve canlı veriyle güncellenir. <b>Kendini öğrenen kalibrasyon:</b> $($activeCalibration.Note) Bu ayar, canlı PEAD takibi yeterli örnek biriktikçe ($(if ($activeCalibration.Calibrated) { 'şu an veriyle kalibre edilmiş durumda' } else { 'henüz tarihsel varsayılan; ~30 yönlü örnek sonrası otomatik kalibre olacak' })) veriye göre otomatik güncellenir.</p>
 $(if ($preEarningsRows.Count -gt 0) { New-HtmlTable -Rows $preEarningsRows } else { '<p class="muted">Bugün bilanço öncesi ivme kriterini sağlayan hisse yok.</p>' })
 <h2>Bilanço Sonrası Sürüklenme (PEAD) Takibi</h2>
 <p class="muted">Akademik PEAD bulgusu (Bernard-Thomas 1989): hisseler bilanço sürprizinin yönünde haftalarca sürüklenir. Bot, yeni bilanço açıklayan hisseleri tespit anındaki fiyat ve sürpriz proxy'siyle (USD net kâr/FAVÖK Y/Y + FAVÖK trendi; 0-100, 50 nötr) kaydeder; ~28 gün sonra tespit fiyatına göre getiriyi ölçer ve "pozitif sürpriz → pozitif sürüklenme" isabet oranını biriktirir. $(if ($null -ne $earningsReactionSummary.PeadHitRatePct) { "Şu ana kadar $($earningsReactionSummary.DirectionalCount) yönlü örnekte isabet %$($earningsReactionSummary.PeadHitRatePct); pozitif sürpriz ortalama sürüklenmesi %$($earningsReactionSummary.AvgPositiveSurpriseDriftPct). Halen izlenen $($earningsReactionSummary.TrackedCount) hisse." } else { "Henüz tamamlanmış sürüklenme örneği yok; halen izlenen $($earningsReactionSummary.TrackedCount) hisse. İlk isabet ölçümü açıklamalardan ~28 gün sonra üretilecek." })</p>
-$(New-HtmlTable -Rows $peadTrackedRows)
+$(New-HtmlTable -Rows $peadTrackedRows)<!--EMAIL-DROP-END-->
 <h2>KAP Son Gün Bildirimleri (Deneysel — gözlem)</h2>
 <p class="muted">Kaynak: <b>$kapMeta</b>. Bildirimler ayrı bir işle (borsapy üzerinden BIST evreni için, dönüşümlü/biriktirerek) toplanıp depolanır; bu rapor <b>son gün</b> içindekileri gösterir. "Yorum" sütunu, izlenen (Top/portföy/anlık giriş) hisselerin önemli açıklamaları için <b>Claude (LLM) ile içerikten üretilmiş özet + etki skoru (1-5)</b>'dur; LLM yorumu olmayan satırlarda başlık görünür. Yön ikonu: 🟢 olumlu · 🔴 olumsuz · 🟡 karışık · ⚪ nötr · ❔ belirsiz. Piyasa mekaniği gürültüsü (devre kesici, likidite, endeks) elenir; Top radar hisseleri öne alınır. <b>Tümü otomatik; karar etkisi yoktur.</b> Özel durum açıklamaları işlem öncesi mutlaka KAP'tan birinci elden doğrulanmalıdır.</p>
 $(if ($kapRows.Count -gt 0) { New-HtmlTable -Rows $kapRows } else { '<p class="muted">KAP bildirimleri bu çalışmada alınamadı (depolanmış dosya yok ve canlı kaynak erişilemedi).</p>' })
@@ -2461,7 +2461,7 @@ $portfolioDistributionPieHtml
 <h2>Model Portföy Aktif Hisse Detayları</h2>
 <p class="muted">İlk alış fiyatı işlem geçmişindeki ilk AL kaydından, satış fiyatı varsa ilk SAT/EŞİTLEME SAT kaydından gelir. Rebalance getirisi son portföy ayarlamasından bu yana, ilk alıştan getiri ilk AL fiyatına göre hesaplanır.</p>
 $portfolioHoldingGroupsHtml
-<h2>Model Portföy Son İşlemler</h2>
+<!--EMAIL-DROP-START--><h2>Model Portföy Son İşlemler</h2>
 <p class="muted">Her portföy için son 12 işlem gösterilir; ilk kurulum, AL, SAT ve ay sonu eşitleme kayıtları fiyat/adet/tutar/not alanlarıyla izlenir.</p>
 $(New-HtmlTable -Rows $portfolioTransactionRows)
 <h2>Paper Order Intents</h2>
@@ -2469,7 +2469,7 @@ $(New-HtmlTable -Rows $portfolioTransactionRows)
 $(if ($orderIntentRows.Count -gt 0) { New-HtmlTable -Rows $orderIntentRows } else { '<p class="muted">Bu çalışmada yeni paper order intent oluşmadı.</p>' })
 <h2>PaperBroker Pozisyon Defteri</h2>
 <p class="muted">PaperBroker, intent kayıtlarını kağıt üzerinde doldurulmuş varsayan denetim defteridir; gerçek portföy veya emir sistemi değildir.</p>
-$(if ($paperBrokerPositionRows.Count -gt 0) { New-HtmlTable -Rows $paperBrokerPositionRows } else { '<p class="muted">PaperBroker defterinde açık pozisyon yok.</p>' })
+$(if ($paperBrokerPositionRows.Count -gt 0) { New-HtmlTable -Rows $paperBrokerPositionRows } else { '<p class="muted">PaperBroker defterinde açık pozisyon yok.</p>' })<!--EMAIL-DROP-END-->
 </div>
 $perfChartSectionHtml
 $observationSectionHtml
@@ -2496,17 +2496,23 @@ CDS, DXY, VIX izleme metrikleri ücretsiz/gecikmeli kaynaklardandır. İşlem ka
     # (metin ici bosluklar korunur). Bu ~%20-35 kazandirir, klipe takilmayi azaltir.
     $htmlBefore = $htmlBody.Length
     $htmlBody = [regex]::Replace($htmlBody, '>[ \t]*\r?\n[ \t]*<', '><')
-    Write-Host ("HTML boyutu: {0:N0} -> {1:N0} bayt (Gmail klip siniri ~102.000)" -f $htmlBefore, $htmlBody.Length)
 
     $stageStartedAt = Get-Date
+    # TAM rapor (ek/arsiv) -> dosyaya yazilir; e-postaya giden sip surum ise
+    # <!--EMAIL-DROP-START/END--> ile isaretli agir/dusuk-gunluk-deger bolumler
+    # (akademik faktor, bilanco oncesi ivme + PEAD, islem gecmisi, paper broker)
+    # cikarilarak Gmail klip sinirinin (~102 KB) altina indirilir. Tam icerik ekte.
     [IO.File]::WriteAllText($htmlPath, $htmlBody, [Text.UTF8Encoding]::new($true))
+    $emailHtml = [regex]::Replace($htmlBody, '(?s)<!--EMAIL-DROP-START-->.*?<!--EMAIL-DROP-END-->',
+        '<p class="muted">— Bu araştırma/denetim bölümü, e-posta boyutu için ekteki tam HTML raporuna taşındı.</p>')
+    Write-Host ("HTML boyutu: tam {0:N0} bayt -> e-posta {1:N0} bayt (Gmail klip ~102.000)" -f $htmlBody.Length, $emailHtml.Length)
     Write-TimingLog -Step 'HTML rapor yazimi' -StartedAt $stageStartedAt
 
     $sendMessages = [System.Collections.Generic.List[string]]::new()
     if (-not $NoSend) {
         if ([bool](Get-ConfigValue -Object $settings.Send -Name 'EmailEnabled' -Default $false)) {
             $stageStartedAt = Get-Date
-            Send-EmailReport -Settings $settings -Subject $subject -HtmlBody $htmlBody -HtmlPath $htmlPath -CsvPath $csvPath
+            Send-EmailReport -Settings $settings -Subject $subject -HtmlBody $emailHtml -HtmlPath $htmlPath -CsvPath $csvPath
             Write-TimingLog -Step 'E-posta gonderimi' -StartedAt $stageStartedAt
             [void]$sendMessages.Add('E-posta gonderildi.')
         }
