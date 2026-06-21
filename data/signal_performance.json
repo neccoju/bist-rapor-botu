@@ -1,11 +1,11 @@
 ﻿{
-    "UpdatedAt":  "2026-06-20T15:15:50.3495954+00:00",
+    "UpdatedAt":  "2026-06-21T15:15:43.5450305+00:00",
     "Summary":  {
-                    "SampleCount":  33,
-                    "HitRatePct":  54.5,
+                    "SampleCount":  34,
+                    "HitRatePct":  52.9,
                     "AvgEdgePct":  -0.001,
-                    "LastEdgePct":  0.085,
-                    "LastPickReturnPct":  0.04,
+                    "LastEdgePct":  0,
+                    "LastPickReturnPct":  0,
                     "HasEvaluationToday":  true
                 },
     "Evaluations":  [
@@ -338,10 +338,20 @@
                             "UniverseMeanReturnPct":  -0.045,
                             "EdgePct":  0.085,
                             "Win":  true
+                        },
+                        {
+                            "PicksAsOf":  "2026-06-20T15:15:50.3495954+00:00",
+                            "EvaluatedAt":  "2026-06-21T15:15:43.5450305+00:00",
+                            "PickCount":  20,
+                            "UniverseCount":  607,
+                            "PickMeanReturnPct":  0,
+                            "UniverseMeanReturnPct":  0,
+                            "EdgePct":  0,
+                            "Win":  false
                         }
                     ],
     "PendingPicks":  {
-                         "AsOf":  "2026-06-20T15:15:50.3495954+00:00",
+                         "AsOf":  "2026-06-21T15:15:43.5450305+00:00",
                          "Picks":  [
                                        {
                                            "Symbol":  "ORGE",
@@ -379,14 +389,14 @@
                                            "Price":  20.76
                                        },
                                        {
-                                           "Symbol":  "SKBNK",
-                                           "Score":  74.5,
-                                           "Price":  15.6
-                                       },
-                                       {
                                            "Symbol":  "TTKOM",
                                            "Score":  74.5,
                                            "Price":  63.1
+                                       },
+                                       {
+                                           "Symbol":  "SKBNK",
+                                           "Score":  74.5,
+                                           "Price":  15.6
                                        },
                                        {
                                            "Symbol":  "TRGYO",
@@ -1002,8 +1012,8 @@
                                               "Price":  3.17
                                           },
                                           {
-                                              "Symbol":  "ANSGR",
-                                              "Price":  29.62
+                                              "Symbol":  "LUKSK",
+                                              "Price":  110.3
                                           },
                                           {
                                               "Symbol":  "ASGYO",
@@ -1398,6 +1408,10 @@
                                               "Price":  22.6
                                           },
                                           {
+                                              "Symbol":  "ANSGR",
+                                              "Price":  29.62
+                                          },
+                                          {
                                               "Symbol":  "MGROS",
                                               "Price":  687
                                           },
@@ -1680,10 +1694,6 @@
                                           {
                                               "Symbol":  "MNDRS",
                                               "Price":  11.49
-                                          },
-                                          {
-                                              "Symbol":  "LUKSK",
-                                              "Price":  110.3
                                           },
                                           {
                                               "Symbol":  "VAKBN",
