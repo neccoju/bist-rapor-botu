@@ -104,6 +104,45 @@ jobs:
         run: |
           powershell -NoProfile -ExecutionPolicy Bypass -File .\GunlukRapor.ps1 -SettingsPath .\config\report_settings.cloud.json
 
+      # Kosu basarisiz olursa sessiz kalmasin: gunluk rapor maili hic gitmedigi
+      # icin ayri bir uyari maili gonderilir. Boylece "rapor neden gelmedi?"
+      # durumu fark edilir. SMTP secret'lari yoksa adim sessizce atlanir.
+      - name: Notify on failure
+        if: failure()
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $to = $env:BIST_EMAIL_TO
+          $from = $env:BIST_EMAIL_FROM
+          $user = $env:BIST_SMTP_USERNAME
+          $pass = $env:BIST_SMTP_PASSWORD
+          $server = $env:BIST_SMTP_SERVER
+          $port = $env:BIST_SMTP_PORT
+          if ([string]::IsNullOrWhiteSpace($to) -or [string]::IsNullOrWhiteSpace($server) -or [string]::IsNullOrWhiteSpace($user)) {
+            Write-Host 'SMTP ayarlari eksik; uyari maili atlandi.'
+            exit 0
+          }
+          if ([string]::IsNullOrWhiteSpace($from)) { $from = $user }
+          if ([string]::IsNullOrWhiteSpace($port)) { $port = '587' }
+          $runUrl = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
+          $subject = "[BIST BOT] Gunluk rapor kosusu BASARISIZ ($(Get-Date -Format 'dd.MM.yyyy HH:mm'))"
+          $body = "Gunluk BIST rapor kosusu basarisiz oldu; rapor maili gonderilemedi.`r`n`r`nKosu kaydi (loglar):`r`n$runUrl`r`n`r`nBranch: $env:GITHUB_REF_NAME`r`nCommit: $env:GITHUB_SHA"
+          try {
+            $msg = New-Object System.Net.Mail.MailMessage
+            $msg.From = $from
+            foreach ($addr in ($to -split '[;,]')) { if ($addr.Trim()) { $msg.To.Add($addr.Trim()) } }
+            $msg.Subject = $subject
+            $msg.Body = $body
+            $smtp = New-Object System.Net.Mail.SmtpClient($server, [int]$port)
+            $smtp.EnableSsl = $true
+            $smtp.Credentials = New-Object System.Net.NetworkCredential($user, $pass)
+            $smtp.Send($msg)
+            Write-Host 'Basarisizlik uyari maili gonderildi.'
+          }
+          catch {
+            Write-Warning "Uyari maili gonderilemedi: $($_.Exception.Message)"
+          }
+
       - name: Upload report artifacts
         if: always()
         uses: actions/upload-artifact@v7
