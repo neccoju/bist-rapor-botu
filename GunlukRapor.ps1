@@ -1331,7 +1331,8 @@ function Invoke-ClaudeMessage {
         [Parameter(Mandatory)][string]$System,
         [Parameter(Mandatory)][string]$UserMessage,
         [int]$MaxTokens = 2000,
-        [int]$TimeoutSec = 90
+        [int]$TimeoutSec = 120,
+        [string]$FallbackModel = ''
     )
 
     $payload = [ordered]@{
@@ -1340,17 +1341,25 @@ function Invoke-ClaudeMessage {
         system     = $System
         messages   = @(@{ role = 'user'; content = $UserMessage })
     }
-    $json = $payload | ConvertTo-Json -Depth 6 -Compress
-    $bodyBytes = [System.Text.Encoding]::UTF8.GetBytes($json)
     $headers = @{
         'x-api-key'         = $ApiKey
         'anthropic-version' = '2023-06-01'
     }
+    # En ust model (Fable/Mythos) icin: nadir bir reddi (refusal) sessizce
+    # dusurmemek adina sunucu-tarafi fallback'i (Opus 4.8) ac.
+    if (-not [string]::IsNullOrWhiteSpace($FallbackModel)) {
+        $payload['fallbacks'] = @(@{ model = $FallbackModel })
+        $headers['anthropic-beta'] = 'server-side-fallback-2026-06-01'
+    }
+    $json = $payload | ConvertTo-Json -Depth 6 -Compress
+    $bodyBytes = [System.Text.Encoding]::UTF8.GetBytes($json)
     $resp = Invoke-RestMethod -Uri 'https://api.anthropic.com/v1/messages' -Method Post `
         -Headers $headers -Body $bodyBytes -ContentType 'application/json; charset=utf-8' -TimeoutSec $TimeoutSec
     if ([string](Get-ObjectPropertyValue -Object $resp -Name 'stop_reason') -eq 'refusal') {
         return $null
     }
+    # Fable/Mythos: yanitta bos metinli 'thinking' bloklari olabilir; yalniz 'text'
+    # bloklarini al ('fallback' blogu da varsa atlanir, sorun degil).
     $parts = [System.Collections.Generic.List[string]]::new()
     foreach ($block in @(Get-ObjectPropertyValue -Object $resp -Name 'content')) {
         if ([string](Get-ObjectPropertyValue -Object $block -Name 'type') -eq 'text') {
@@ -1459,10 +1468,12 @@ function Update-ModelPortfolioCommentary {
         'genel ozet ver. Bu bir yatirim tavsiyesi degildir; gozlem/yorumdur.'
     )
     $userMessage = Build-ModelPortfolioCommentaryPrompt -PortfolioSet $PortfolioSet -PeriodEnd $latestPeriod
+    # En ust model (Fable/Mythos) icin reddi Opus 4.8'e dusur (best-effort guvence).
+    $fallbackModel = if ($model -like 'claude-fable*' -or $model -like 'claude-mythos*') { 'claude-opus-4-8' } else { '' }
 
     $text = $null
     try {
-        $text = Invoke-ClaudeMessage -ApiKey $apiKey -Model $model -System $system -UserMessage $userMessage -MaxTokens $maxTokens
+        $text = Invoke-ClaudeMessage -ApiKey $apiKey -Model $model -System $system -UserMessage $userMessage -MaxTokens $maxTokens -FallbackModel $fallbackModel
     }
     catch {
         Write-Warning "Ay sonu portfoy yorumu uretilemedi ($model): $($_.Exception.Message)"
