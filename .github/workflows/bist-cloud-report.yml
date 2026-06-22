@@ -40,6 +40,8 @@ jobs:
       BIST_EVDS_API_KEY: ${{ secrets.BIST_EVDS_API_KEY }}
       # TR10Y icin EVDS seri kodu (repo Variable; or. TP.xxx). Bos ise Investing'e duser.
       BIST_EVDS_TR10Y_SERIES: ${{ vars.BIST_EVDS_TR10Y_SERIES }}
+      # Ay sonu portfoy yorumu icin Claude (best-effort; yoksa yorum atlanir).
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
     steps:
       - name: Checkout

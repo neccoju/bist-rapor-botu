@@ -587,6 +587,58 @@ arşivden gerçek temel veriyle beslenebilir hale gelir.
 > veri* hâlâ ücretsiz değildir. Survivorship arşiv biriktikçe ileriye dönük olarak
 > azalır; rakamlar uydurulmaz, kısıtlar açıkça belirtilir.
 
+## Son Eklenen İyileştirmeler
+
+### Ay Sonu Portföy Yorumu (Claude) — `MonthlyCommentary`
+Model portföyler **ay sonunda yeniden dengelendiğinde**, o ayki değişiklikler (çıkan/giren
+hisseler, seçim gerekçeleri, ağırlıklar, getiri/alfa) bir **fon yöneticisi gözüyle** Claude'a
+yorumlatılır ve rapora **"🤖 Ay Sonu Portföy Yorumu"** bölümü olarak eklenir.
+- **Yalnızca dönem değiştiğinde** üretilir (ayda ~1 LLM çağrısı) — `Update-ModelPortfolioCommentary`
+  son rebalance dönemini izler; aynı dönem için yorum varsa yeniden üretmez (idempotent, token tasarrufu).
+- Üretilen yorum `data/model_portfolios.json` içinde `MonthlyCommentary` (Period/Model/GeneratedAt/Text)
+  olarak saklanır ve sonraki ay sonuna kadar **her gün raporda gösterilir**.
+- **Best-effort:** `ANTHROPIC_API_KEY` yoksa veya çağrı/içerik reddi olursa yorum atlanır, **rapor bozulmaz**.
+- Ayar: `config/report_settings.cloud.json → Report.ModelPortfolioCommentary`:
+  `Enabled` (vars. true), `Model` (vars. `claude-opus-4-8`; en yüksek kalite için `claude-fable-5`
+  yazılabilir — bu model 30 günlük veri saklama gerektirir), `MaxOutputTokens` (vars. 2000).
+- **Maliyet:** ayda ~1 çağrı, ~6K girdi + ~2-4K çıktı token. `claude-opus-4-8` ile ≈ **$0,13/ay (~$1,5/yıl)**;
+  `claude-fable-5` ile ≈ **$0,26/ay (~$3/yıl)**. Yorum sadece ay sonu üretildiği için günlük maliyet yok.
+
+### Sektör Yoğunlaşma Tavanı (model portföyler)
+Hisse başına `MaxWeightPct`'in yanına **sektör bazında ağırlık tavanı** eklendi
+(`SectorMaxWeightPct`, vars. **%35**). Hiçbir sektörün toplam ağırlığı bu eşiği geçemez; aşan sektör
+oransal küçültülür, serbest kalan ağırlık tavan-altı isimlere dağıtılır (çok-geçişli, toplam %100
+korunur). Hem eşit ağırlıklı hem ters-oynaklık (RiskDengeli) portföylerine uygulanır
+(`Get-SectorCappedWeights`). Mevcut "sektör başına en fazla 2 isim" sayı kuralıyla birlikte gerçek
+çeşitlendirme sağlar.
+
+### Anlık Fırsat Portföyüne Risk Çıkışları (stop / kâr-al / iz-süren stop)
+Model portföyler aylık kalmaya devam eder; **anlık fırsat portföyü** ise artık her gün kapanışta
+`RiskRules` eşiklerine göre pozisyon kapatır (`Get-InstantEntryExitDecision`): **stop-loss** (getiri ≤
+StopLossPct), **kâr-al** (≥ TakeProfitPct), **iz-süren stop** (tepe kazanç TrailingStopPct'i geçtiyse ve
+tepeden o kadar geri verildiyse). Teoriktir; gerçek emir gönderilmez (`SAT` kaydı oluşur). Her pozisyonun
+**tepe fiyatı** (high-water mark) izlenir. Kapatılan pozisyonun K/Z'si `RealizedGainTL`'de kümülatif
+birikir ve raporda **"Gerçekleşen K/Z"** satırı olarak gösterilir (survivorship önlenir).
+
+### KAP Enrich — Otomatik Sağlayıcı Fallback Zinciri
+Birincil LLM motoru (varsayılan GitHub Models / gpt-4.1) **günlük kotaya/hız limitine (429)** takılırsa,
+enrich otomatik olarak anahtarı **mevcut** bir sonraki ücretsiz sağlayıcıya geçer (varsayılan sıra:
+github → groq → cerebras → openrouter → opencode → nvidia). Yalnızca 429'da geçilir; içerik filtresi/parse
+hataları zinciri tetiklemez (`RateLimitError`). `--fallback auto|none|liste` argümanı + `kap-enrich.yml`
+`fallback` girdisi ile ayarlanır. Enrich öncesi **ağsız birim test kapısı** (`test_enrich_kap.py`, 21 test)
+çalışır.
+
+### Otomasyon Sağlamlaştırması
+- **Başarısızlık uyarı maili:** günlük rapor koşusu rapor e-postası gönderilmeden çökerse (`if: failure()`)
+  koşu log linki + branch/commit içeren ayrı bir uyarı maili gider — sessiz başarısızlık önlenir.
+- **State yalnız başarılı koşuda yazılır** (`if: success()`): yarım/başarısız bir koşu bot hafızasını
+  (portföy/sinyal state'ini) ileri alamaz.
+- `__pycache__/` ve `*.pyc` artık `.gitignore`'da.
+
+### Test Kapsamı
+- `Test-BistScanner.Core.ps1`: sektör tavanı ve anlık-fırsat risk çıkışı için deterministik birim testleri.
+- `test_enrich_kap.py`: enrich saf yardımcıları + fallback zinciri için 21 ağsız test.
+
 ## Gerekli GitHub Secrets
 
 `Settings > Secrets and variables > Actions > New repository secret`:
@@ -596,7 +648,9 @@ arşivden gerçek temel veriyle beslenebilir hale gelir.
 
 Opsiyonel secret: `BIST_SMTP_SERVER` (vars. smtp.gmail.com), `BIST_SMTP_PORT` (587),
 `BIST_SMTP_USE_SSL` (true), `BIST_TELEGRAM_BOT_TOKEN`, `BIST_TELEGRAM_CHAT_ID`,
-`BIST_EVDS_API_KEY` (TÜFE/faiz/dinamik enflasyon için).
+`BIST_EVDS_API_KEY` (TÜFE/faiz/dinamik enflasyon için), `ANTHROPIC_API_KEY` (ay sonu portföy
+yorumu için; aynı anahtar KAP enrich'in `llm` motorunda da kullanılır — yoksa yorum atlanır,
+rapor bozulmaz).
 
 Opsiyonel **Variables** (`Actions > Variables`):
 - `BIST_MODEL_COST_BPS` — model portföy işlem maliyeti (bps; vars. 20).

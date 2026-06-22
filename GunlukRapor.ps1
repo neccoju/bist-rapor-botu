@@ -1319,6 +1319,172 @@ function Get-InstantEntryPortfolioTransactionRows {
     )
 }
 
+function Invoke-ClaudeMessage {
+    <#
+        Anthropic Messages API'ye tek seferlik (non-streaming) cagri (ham REST,
+        ek bagimlilik yok). Doner: metin (text blocklari birlestirilmis) ya da $null.
+        Best-effort: hata/refusal durumunda $null doner; cagiran tarafi bozmaz.
+    #>
+    param(
+        [Parameter(Mandatory)][string]$ApiKey,
+        [Parameter(Mandatory)][string]$Model,
+        [Parameter(Mandatory)][string]$System,
+        [Parameter(Mandatory)][string]$UserMessage,
+        [int]$MaxTokens = 2000,
+        [int]$TimeoutSec = 90
+    )
+
+    $payload = [ordered]@{
+        model      = $Model
+        max_tokens = $MaxTokens
+        system     = $System
+        messages   = @(@{ role = 'user'; content = $UserMessage })
+    }
+    $json = $payload | ConvertTo-Json -Depth 6 -Compress
+    $bodyBytes = [System.Text.Encoding]::UTF8.GetBytes($json)
+    $headers = @{
+        'x-api-key'         = $ApiKey
+        'anthropic-version' = '2023-06-01'
+    }
+    $resp = Invoke-RestMethod -Uri 'https://api.anthropic.com/v1/messages' -Method Post `
+        -Headers $headers -Body $bodyBytes -ContentType 'application/json; charset=utf-8' -TimeoutSec $TimeoutSec
+    if ([string](Get-ObjectPropertyValue -Object $resp -Name 'stop_reason') -eq 'refusal') {
+        return $null
+    }
+    $parts = [System.Collections.Generic.List[string]]::new()
+    foreach ($block in @(Get-ObjectPropertyValue -Object $resp -Name 'content')) {
+        if ([string](Get-ObjectPropertyValue -Object $block -Name 'type') -eq 'text') {
+            [void]$parts.Add([string](Get-ObjectPropertyValue -Object $block -Name 'text'))
+        }
+    }
+    $text = ($parts -join "`n").Trim()
+    if ([string]::IsNullOrWhiteSpace($text)) { return $null }
+    return $text
+}
+
+function Build-ModelPortfolioCommentaryPrompt {
+    <#
+        Ay sonu yeniden dengeleme degisikliklerini (cikan/giren/kalan + secim
+        gerekceleri + agirliklar) LLM'e verilecek kompakt Turkce metne cevirir.
+    #>
+    param($PortfolioSet, [string]$PeriodEnd)
+
+    $lines = [System.Collections.Generic.List[string]]::new()
+    [void]$lines.Add("Ay sonu donem: $PeriodEnd")
+    foreach ($p in @(Get-ObjectPropertyValue -Object $PortfolioSet -Name 'Portfolios')) {
+        $name = [string](Get-ObjectPropertyValue -Object $p -Name 'Name')
+        $strategy = [string](Get-ObjectPropertyValue -Object $p -Name 'Strategy')
+        $ret = Get-ObjectPropertyValue -Object $p -Name 'TotalReturnPct'
+        $alpha = Get-ObjectPropertyValue -Object $p -Name 'AlphaPct'
+        [void]$lines.Add('')
+        [void]$lines.Add(("### {0} (strateji: {1}) — kurulustan getiri %{2}, alfa %{3}" -f `
+                    $name, $strategy, $ret, $(if ($null -ne $alpha) { $alpha } else { 'yok' })))
+        # Bu donemin islemleri (cikan/giren/esitleme) — secim gerekceleri Note'ta.
+        $periodTx = @(Get-ObjectPropertyValue -Object $p -Name 'Transactions') | Where-Object {
+            $pe = Get-ObjectPropertyValue -Object $_ -Name 'ExecutionDate'
+            $act = [string](Get-ObjectPropertyValue -Object $_ -Name 'Action')
+            $matchPeriod = $false
+            try { $matchPeriod = ([datetime]$pe).ToString('yyyy-MM') -eq ([datetime]$PeriodEnd).ToString('yyyy-MM') } catch { $matchPeriod = $false }
+            $matchPeriod -and ($act -ne 'PORTFÖY') -and ($act -ne 'KOMİSYON')
+        }
+        if (@($periodTx).Count -eq 0) {
+            [void]$lines.Add('Bu donem islem kaydi yok (degisiklik olmadi).')
+        }
+        else {
+            foreach ($t in @($periodTx | Select-Object -First 12)) {
+                $act = [string](Get-ObjectPropertyValue -Object $t -Name 'Action')
+                $sym = [string](Get-ObjectPropertyValue -Object $t -Name 'Symbol')
+                $note = [string](Get-ObjectPropertyValue -Object $t -Name 'Note')
+                [void]$lines.Add(("- {0} {1}: {2}" -f $act, $sym, $note))
+            }
+        }
+        # Guncel holdingler + agirlik + skor.
+        $hold = @(Get-ObjectPropertyValue -Object $p -Name 'Holdings') | ForEach-Object {
+            '{0} %{1} (skor {2})' -f `
+                [string](Get-ObjectPropertyValue -Object $_ -Name 'Symbol'),
+            (Get-ObjectPropertyValue -Object $_ -Name 'WeightPct'),
+            (Get-ObjectPropertyValue -Object $_ -Name 'StrategyScore')
+        }
+        if (@($hold).Count -gt 0) {
+            [void]$lines.Add('Guncel dagilim: ' + (@($hold) -join ', '))
+        }
+    }
+    return ($lines -join "`n")
+}
+
+function Update-ModelPortfolioCommentary {
+    <#
+        Ay sonu portfoy YENIDEN DENGELENDIGINDE (donem degistiginde) Claude ile
+        portfoy degisikliklerini yorumlatip set'e (MonthlyCommentary) yazar; rapor
+        bu yorumu her gun gosterir. Yalniz donem degisince uretilir (ayda 1 cagri).
+        Best-effort: anahtar yoksa / hata olursa yorum atlanir, set bozulmaz.
+    #>
+    param($PortfolioSet, $Settings, [datetime]$AsOf, [switch]$Force)
+
+    if ($null -eq $PortfolioSet) { return $PortfolioSet }
+    $cfg = Get-ConfigValue -Object $Settings.Report -Name 'ModelPortfolioCommentary' -Default $null
+    $enabled = [bool](Get-ConfigValue -Object $cfg -Name 'Enabled' -Default $false)
+    if (-not $enabled) { return $PortfolioSet }
+
+    # En guncel yeniden dengeleme donemi (tum portfoyler ayni gun dengelenir).
+    $latestPeriod = $null
+    foreach ($p in @(Get-ObjectPropertyValue -Object $PortfolioSet -Name 'Portfolios')) {
+        $pe = Get-ObjectPropertyValue -Object $p -Name 'LastRebalancePeriodEnd'
+        if ($pe -and -not [string]::IsNullOrWhiteSpace([string]$pe)) {
+            if ($null -eq $latestPeriod -or ([datetime]$pe) -gt ([datetime]$latestPeriod)) { $latestPeriod = [string]$pe }
+        }
+    }
+    if ($null -eq $latestPeriod) { return $PortfolioSet }
+
+    # Idempotent: bu donem icin yorum zaten varsa yeniden uretme (ayda 1 token).
+    $existing = Get-ObjectPropertyValue -Object $PortfolioSet -Name 'MonthlyCommentary'
+    $existingPeriod = if ($null -ne $existing) { [string](Get-ObjectPropertyValue -Object $existing -Name 'Period') } else { '' }
+    if (-not $Force -and $existingPeriod -eq $latestPeriod) { return $PortfolioSet }
+
+    $apiKey = $env:ANTHROPIC_API_KEY
+    if ([string]::IsNullOrWhiteSpace($apiKey)) {
+        Write-Warning 'ANTHROPIC_API_KEY yok; ay sonu portfoy yorumu atlandi (rapor bozulmaz).'
+        return $PortfolioSet
+    }
+    $model = [string](Get-ConfigValue -Object $cfg -Name 'Model' -Default 'claude-opus-4-8')
+    $maxTokens = [int](Get-ConfigValue -Object $cfg -Name 'MaxOutputTokens' -Default 2000)
+
+    $system = (
+        'Sen BIST''te islem yapan deneyimli bir fon yoneticisisin. Sana bir kantitatif botun ' +
+        'AY SONU yeniden dengeledigi model portfoylerin degisiklikleri (cikan/giren hisseler, secim ' +
+        'gerekceleri, agirliklar, getiri/alfa) veriliyor. Gorevin: bu degisiklikleri YATIRIMCI gozuyle ' +
+        'kisa ve net yorumlamak. Her portfoy icin 2-4 cumle: neden bu degisiklikler mantikli/riskli, ' +
+        'sektor yogunlasmasi veya momentum/deger rotasyonu varsa belirt, dikkat edilecek riskler. ' +
+        'Abartma, uydurma rakam kullanma, sadece verilen veriye dayan. Turkce yaz. Sonunda 1 cumlelik ' +
+        'genel ozet ver. Bu bir yatirim tavsiyesi degildir; gozlem/yorumdur.'
+    )
+    $userMessage = Build-ModelPortfolioCommentaryPrompt -PortfolioSet $PortfolioSet -PeriodEnd $latestPeriod
+
+    $text = $null
+    try {
+        $text = Invoke-ClaudeMessage -ApiKey $apiKey -Model $model -System $system -UserMessage $userMessage -MaxTokens $maxTokens
+    }
+    catch {
+        Write-Warning "Ay sonu portfoy yorumu uretilemedi ($model): $($_.Exception.Message)"
+        return $PortfolioSet
+    }
+    if ([string]::IsNullOrWhiteSpace($text)) {
+        Write-Warning 'Ay sonu portfoy yorumu bos dondu (refusal/bos); atlandi.'
+        return $PortfolioSet
+    }
+
+    $commentary = [pscustomobject][ordered]@{
+        Period      = $latestPeriod
+        Model       = $model
+        GeneratedAt = $AsOf.ToString('o')
+        GeneratedAtText = $AsOf.ToString('dd.MM.yyyy HH:mm')
+        Text        = $text.Trim()
+    }
+    $PortfolioSet | Add-Member -NotePropertyName 'MonthlyCommentary' -NotePropertyValue $commentary -Force
+    Write-Host "Ay sonu portfoy yorumu uretildi ($model, donem $latestPeriod, $($text.Length) kar.)."
+    return $PortfolioSet
+}
+
 function Get-TransactionOrderSide {
     param($Transaction)
 
@@ -1924,6 +2090,14 @@ try {
     if ($null -eq $updatedPortfolioSet) {
         $updatedPortfolioSet = New-ModelPortfolioSet -Stocks $stocks -AsOf $runAt -BenchmarkLevel $bist100Level -CostBps $modelCostBps
     }
+    # Ay sonu Claude yorumu (best-effort): yalniz portfoy bu donem yeniden
+    # dengelendiyse uretilir; aksi halde onceki donemin yorumu korunup gosterilir.
+    try {
+        $updatedPortfolioSet = Update-ModelPortfolioCommentary -PortfolioSet $updatedPortfolioSet -Settings $settings -AsOf $runAt
+    }
+    catch {
+        Write-Warning "Ay sonu portfoy yorumu adimi atlandi: $($_.Exception.Message)"
+    }
     Save-JsonFile -Path $portfolioPath -Value $updatedPortfolioSet -Depth 8
     Write-TimingLog -Step 'Model portfoy degerleme' -StartedAt $stageStartedAt
 
@@ -2302,6 +2476,23 @@ try {
     $portfolioTransactionRows = Get-ModelPortfolioTransactionRows -PortfolioSet $updatedPortfolioSet -PerPortfolio 12
     $portfolioHoldingGroupsHtml = New-ModelPortfolioHoldingGroupsHtml -PortfolioSet $updatedPortfolioSet -HoldingRows $portfolioHoldingRows
     $portfolioDistributionPieHtml = New-ModelPortfolioDistributionPieChartsHtml -PortfolioSet $updatedPortfolioSet
+    # Ay sonu Claude yorumu (varsa) — donem degisince uretilir, her gun gosterilir.
+    $portfolioCommentaryHtml = ''
+    $commentaryObj = Get-ObjectPropertyValue -Object $updatedPortfolioSet -Name 'MonthlyCommentary'
+    if ($null -ne $commentaryObj) {
+        $cText = [string](Get-ObjectPropertyValue -Object $commentaryObj -Name 'Text')
+        if (-not [string]::IsNullOrWhiteSpace($cText)) {
+            $cModel = [string](Get-ObjectPropertyValue -Object $commentaryObj -Name 'Model')
+            $cPeriod = [string](Get-ObjectPropertyValue -Object $commentaryObj -Name 'Period')
+            $cWhen = [string](Get-ObjectPropertyValue -Object $commentaryObj -Name 'GeneratedAtText')
+            $cHtml = $cText.Replace('&', '&amp;').Replace('<', '&lt;').Replace('>', '&gt;') -replace '\r?\n', '<br>'
+            $portfolioCommentaryHtml = @"
+<h2>🤖 Ay Sonu Portföy Yorumu (Claude)</h2>
+<p class="muted">$cPeriod ay sonu yeniden dengelemesinde portföy değişikliklerinin <b>$cModel</b> ile fon-yöneticisi gözüyle yorumu (üretim: $cWhen). Yalnızca ay sonu portföy değiştiğinde yenilenir. Yatırım tavsiyesi değildir.</p>
+<div class="claude-commentary">$cHtml</div>
+"@
+        }
+    }
     $instantEntryPortfolioSummaryRows = Get-InstantEntryPortfolioSummaryRows -Portfolio $updatedInstantEntryPortfolio
     $instantEntryPortfolioHoldingRows = Get-InstantEntryPortfolioHoldingRows -Portfolio $updatedInstantEntryPortfolio
     $instantEntryPortfolioTransactionRows = Get-InstantEntryPortfolioTransactionRows -Portfolio $updatedInstantEntryPortfolio -Count 30
@@ -2361,6 +2552,7 @@ h2 { margin:30px 0 3px; font-size:18px; color:#0b1220; border-left:4px solid #c9
 .badge { display:inline-block; padding:4px 11px; border-radius:999px; background:#0b1220; color:#d6b34a; font-weight:700; font-size:11.5px; letter-spacing:.3px; border:1px solid #c9a227; }
 .sym { color:#2563eb; text-decoration:none; font-weight:600; }
 .clip-note { margin:10px 30px 0; padding:8px 12px; border-radius:7px; background:#fffbeb; border:1px solid #fde68a; color:#92400e; font-size:12px; }
+.claude-commentary { margin:6px 0 4px; padding:14px 16px; border-radius:9px; background:#f5f3ff; border:1px solid #ddd6fe; color:#312e81; font-size:13.5px; line-height:1.6; }
 .portfolio-group { margin:18px 0 26px 0; }
 .portfolio-group h3 { margin:0 0 4px 0; }
 .pie-grid { font-size:0; margin-top:12px; }
@@ -2555,6 +2747,7 @@ $(New-HtmlTable -Rows $sectorRows)
 <h2>Model Portföyler</h2>
 <p class="muted">Portföyler her çalışmada sadece değerlenir; ay sonu son işlem günü 18:10 sonrası tamamlanmış dönem varsa yeniden sıralanır ve AL/SAT/EŞİTLEME işlemleri state dosyasına yazılır. <b>Dengeli / Değer / Momentum / Kalite</b> portföyleri strateji skoruna (Get-BistScore) göre seçilir ve eşit ağırlıklı kalır. <b>RFS100</b> portföyü ise — backtest bulgusuna dayanarak — aynı uygunluk filtresini geçen hisseleri, eşik puanlaması yerine ham teknik faktörlerin kesitsel z-skor karışımı olan <b>RawFactorScore100</b> ile sıralayıp seçer. <b>Risk Dengeli</b> portföy ayrı izlenir: seçimi Dengeli skorla yapar ama ağırlıkları günlük oynaklık tersine göre dağıtır; normal model portföylerin ağırlığını değiştirmez. Her portföyün kuruluştan beri getirisi BIST100 ile kıyaslanır; <b>Alfa = portföy getirisi − BIST100 getirisi</b>. Tablo ayrıca <b>maksimum düşüşü</b> gösterir. Ay sonu işlemlerinde <b>işlem maliyeti + kayma</b> ($([string]$modelCostBps) bps) düşülür. <b>$leaderText</b></p>
 $(New-HtmlTable -Rows $portfolioRows)
+$portfolioCommentaryHtml
 <h2>Model Portföy Hisse Dağılımı</h2>
 <p class="muted">Her model portföydeki güncel hisse ağırlıkları pasta grafik olarak gösterilir.</p>
 $portfolioDistributionPieHtml
