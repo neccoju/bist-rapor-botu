@@ -9,6 +9,26 @@ ve sonucu e-posta + artifact olarak veren bulut botu. Bilgisayar kapalıyken de
 > eksik olabilir; işlem öncesi KAP, Borsa İstanbul, TCMB ve lisanslı kaynaklarla
 > doğrulayın.
 
+## ⚠️ Dürüst Performans Notu (önce bunu okuyun)
+
+Aşağıdaki backtest rakamları (örn. "%341 getiri / Sharpe 2,46 / %297 alfa") **iyimser
+birer üst sınırdır, gerçekçi beklenti değildir**:
+
+- **Survivorship:** evren her zaman *bugün listede olan* hisselerden çekilir; delist olan
+  kaybedenler hiç dahil edilmez. Gelişmekte olan piyasada bu tek başına alfayı kayda değer
+  şişirir.
+- **Kısa örnek + in-sample:** ~21 aylık tek bir dönem; parametreler (TopN, maliyet, eşikler)
+  aynı dönemde seçilmiş, gerçek bir out-of-sample / walk-forward doğrulaması **yoktur**.
+- **En önemlisi — botun KENDİ canlı takibi backtest'le çelişiyor:** ileriye dönük izlenen
+  sinyal performansı (`data/signal_performance.json`) bugüne kadar **~%47 isabet ve ≈0
+  (hatta hafif negatif) edge** gösteriyor. Yani **kanıtlanmış bir alfa henüz yoktur**; bot
+  bir *araştırma/gözlem aracı* olarak değerlendirilmelidir, "kazandıran sistem" olarak değil.
+
+Skorlama eşik/ağırlıklarının çoğu **elle seçilmiştir** (veriyle kalibre/OOS doğrulanmamış);
+"earnings surprise" gerçek analist konsensüsü içermediğinden trend-temelli bir vekildir
+(rapor bunu açıkça belirtir). Backtest motoru gerçekçi dolum (komisyon+kayma+ADV) ve kurumsal
+metrikler üretir ama yukarıdaki kısıtlar baskındır.
+
 ## Mimari (tek kaynak + kalıcı state)
 
 - Workflow doğrudan repodaki `GunlukRapor.ps1` ve `BistScanner.Core.psm1`'i çalıştırır
@@ -588,6 +608,43 @@ arşivden gerçek temel veriyle beslenebilir hale gelir.
 > azalır; rakamlar uydurulmaz, kısıtlar açıkça belirtilir.
 
 ## Son Eklenen İyileştirmeler
+
+### Skeptik İnceleme Sonrası Düzeltmeler
+Detaylı eleştirel inceleme (kod tabanı kanıtıyla) sonrası uygulananlar:
+
+- **Dürüstlük (yukarıda):** README'ye canlı izlenen gerçek isabet/edge ve backtest'in
+  iyimserliği nicel olarak eklendi; "kanıtlanmış alfa yok" açıkça yazıldı.
+- **Veri kalitesi uyarısı (sessiz yanlış veriyi önler):** USD/TRY, BIST100, TR10Y, DXY/VIX
+  gibi kritik makro/benchmark girdileri eksik geldiğinde rapora **görünür kırmızı uyarı**
+  bandı eklenir (`Get-DataQualitySummary`); temel verisi eksik hisse oranı da gösterilir.
+  Artık eksik veri sessizce yanlış skor/alfa üretmez — kullanıcı uyarılır.
+- **Portföyler-arası yoğunlaşma (gözlem):** aynı hissenin 6 model portföyün **tamamı**
+  üzerindeki toplam ağırlığı hesaplanıp rapora **yeni bir tablo** olarak eklendi
+  (`Get-CrossPortfolioConcentration`); defterin %12'sini aşan isimler ⚠️ ile işaretlenir.
+  Tek portföy içi sektör tavanının görmediği gizli yoğunlaşma artık izlenir.
+- **Eksik temel veri cezalı:** eksik F/K, PD/DD, FD/FAVÖK, ROE artık "nötr 45" yerine
+  **hafif cezalı (32)** puanlanır; düşük-açıklamalı/illikit hisseleri kayırma önyargısı azaltıldı.
+- **İşlem maliyeti gerçekçi:** model portföy maliyeti varsayılanı **20 → 50 bps** (BIST'te
+  BSMV + komisyon + kayma); raporlanan getiriler daha gerçekçi (biraz daha düşük) olur.
+- **Repo şişmesi durduruldu:** tarihli PIT anlık görüntü arşivleri (`data/pit/`,
+  `data/point_in_time_snapshots/`) artık git'e commit **edilmez** (.gitignore + persist
+  adımından çıkarıldı, mevcut izlenenler untrack edildi). Çalışma anında yalnız
+  `latest_point_in_time_snapshot.json` okunur; arşiv birikimi gerekirse ayrı depo/branch'e.
+- **Prompt-injection sertleştirme:** KAP başlığı/kategori/şirket metni LLM prompt'una
+  girmeden önce temizlenir (`_safe_field`: tek satır, süslü parantez nötrlenir) — hem
+  `.format` kırılmasını hem manipülasyonu engeller.
+- **Dürüst etiketleme:** "earnings surprise" raporda artık **trend-temelli vekil** olarak
+  açıkça belirtilir (gerçek analist konsensüsü ücretsiz veride yok).
+
+**Bilinçli ertelenenler (sahte düzeltme shiplenmedi — gerekçeli karar):**
+- *Free-float filtresi:* ücretsiz kaynaklarda fiili dolaşım verisi olmadığından eklenmedi;
+  yerine mevcut likidite (10g hacim/relatif hacim) eşikleri kullanılır.
+- *Sabit cross-portfolio TAVAN (yalnız izleme değil):* 6 bağımsız portföyün seçimini
+  koordine etmek track record'u baştan değiştirir; önce izleme/uyarı eklendi.
+- *Tam lot / tavan-taban / T+2:* gün-içi/mikroyapı verisi gerektirir; teorik model
+  bunları modellemez (kesirli adet kullanılır) — kısıt açıkça belgelenir.
+- *Skorlamanın OOS yeniden kalibrasyonu:* ayrı bir araştırma işidir; mevcut eşikler
+  "elle seçilmiş" olarak dürüstçe işaretlendi.
 
 ### Ay Sonu Portföy Yorumu (Claude) — `MonthlyCommentary`
 Model portföyler **ay sonunda yeniden dengelendiğinde**, o ayki değişiklikler (çıkan/giren

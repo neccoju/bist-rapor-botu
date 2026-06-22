@@ -6,3 +6,7 @@ data/
 # Python bytecode cache (enrich_kap.py / collect_kap.py)
 __pycache__/
 *.pyc
+
+# Tarihli PIT arsivleri git'e commit edilmez (repo sismesi); yalniz latest_* tutulur
+data/pit/
+data/point_in_time_snapshots/

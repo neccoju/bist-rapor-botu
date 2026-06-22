@@ -2065,7 +2065,7 @@ $instantEntryMaxElapsedSec = [int](Get-ConfigValue -Object $settings.Report -Nam
 $instantEntryPortfolioDailyBudgetTL = [double](Get-ConfigValue -Object $settings.Report -Name 'InstantEntryPortfolioDailyBudgetTL' -Default 5000)
 $instantEntryPortfolioMinBuyScore = [double](Get-ConfigValue -Object $settings.Report -Name 'InstantEntryPortfolioMinBuyScore' -Default 90)
 $instantEntryPortfolioMaxBuysPerDay = [int](Get-ConfigValue -Object $settings.Report -Name 'InstantEntryPortfolioMaxBuysPerDay' -Default 3)
-$modelCostBps = [double](Get-EnvironmentValue -Names @('BIST_MODEL_COST_BPS') -Default ([string](Get-ConfigValue -Object $settings.Report -Name 'ModelPortfolioCostBps' -Default 20)))
+$modelCostBps = [double](Get-EnvironmentValue -Names @('BIST_MODEL_COST_BPS') -Default ([string](Get-ConfigValue -Object $settings.Report -Name 'ModelPortfolioCostBps' -Default 50)))
 $snapshotMaxStocks = [int](Get-ConfigValue -Object $settings.Report -Name 'SnapshotMaxStocks' -Default 120)
 $riskRules = Get-ReportRiskRules -Settings $settings
 $outputDirectory = Resolve-ReportPath -Path ([string](Get-ConfigValue -Object $settings.Report -Name 'OutputDirectory' -Default 'reports'))
@@ -2595,6 +2595,33 @@ try {
     $orderIntentRows = @(Get-OrderIntentRows -OrderIntents $orderIntents)
     $paperBrokerPositionRows = @(Get-PaperBrokerPositionRows -PaperBroker $paperBroker)
 
+    # --- Veri kalitesi (sessiz yanlis veri uyarisi) + portfoyler-arasi yogunlasma ---
+    $dqInputs = [ordered]@{ 'BIST100 endeks' = $(if ($bist100Level -gt 0) { $bist100Level } else { $null }) }
+    foreach ($m in @(Get-ObjectPropertyValue -Object $macroSnapshot -Name 'Metrics')) {
+        $nm = [string](Get-ObjectPropertyValue -Object $m -Name 'Name')
+        if (-not [string]::IsNullOrWhiteSpace($nm)) { $dqInputs[$nm] = (Get-ObjectPropertyValue -Object $m -Name 'Value') }
+    }
+    $stocksMissingFund = @($scored | Where-Object { $null -eq (Get-ObjectPropertyValue -Object $_ -Name 'PE') }).Count
+    $dataQuality = Get-DataQualitySummary -Inputs $dqInputs -StocksMissingFundamentals $stocksMissingFund -TotalStocks @($scored).Count
+    $dataQualityBanner = ''
+    if ($dataQuality.Degraded) {
+        $miss = if (@($dataQuality.MissingInputs).Count -gt 0) { 'Eksik kaynak: <b>' + ((@($dataQuality.MissingInputs)) -join ', ') + '</b>. ' } else { '' }
+        $dataQualityBanner = '<div class="dq-warn">⚠️ <b>Veri kalitesi uyarısı.</b> ' + $miss + ('Makro/benchmark tamlık %{0}; temel verisi eksik hisse {1}/{2} (%{3}). Bu koşudaki skorlar ve alfa eksik veriden etkilenmiş olabilir; ihtiyatla okuyun.' -f $dataQuality.CompletenessPct, $dataQuality.StocksMissingFundamentals, $dataQuality.TotalStocks, $dataQuality.StaleRatioPct) + '</div>'
+    }
+
+    $crossConc = @(Get-CrossPortfolioConcentration -PortfolioSet $updatedPortfolioSet -WarnPct 12)
+    $crossConcRows = @($crossConc | Where-Object { $_.PortfolioCount -gt 1 } | Select-Object -First 12 | ForEach-Object {
+            [pscustomobject][ordered]@{
+                Sembol = $_.Symbol
+                Şirket = ConvertTo-PlainText $_.Company
+                'Portföy Sayısı' = $_.PortfolioCount
+                'Defter %' = Format-ReportNumber -Value $_.BookPct -Format 'N1' -Suffix '%'
+                'Değer TL' = Format-ReportNumber -Value $_.ValueTL -Format 'N0'
+                Durum = if ($_.Warn) { '⚠️ yüksek' } else { '' }
+            }
+        })
+    $crossConcWarnCount = @($crossConc | Where-Object { $_.Warn }).Count
+
     $topRows | Export-Csv -Path $csvPath -NoTypeInformation -Delimiter ';' -Encoding UTF8
 
     $subjectPrefix = [string](Get-ConfigValue -Object $settings.Email -Name 'SubjectPrefix' -Default 'BIST Gunluk Rapor')
@@ -2648,6 +2675,7 @@ h2 { margin:30px 0 3px; font-size:18px; color:#0b1220; border-left:4px solid #c9
 .badge { display:inline-block; padding:4px 11px; border-radius:999px; background:#0b1220; color:#d6b34a; font-weight:700; font-size:11.5px; letter-spacing:.3px; border:1px solid #c9a227; }
 .sym { color:#2563eb; text-decoration:none; font-weight:600; }
 .clip-note { margin:10px 30px 0; padding:8px 12px; border-radius:7px; background:#fffbeb; border:1px solid #fde68a; color:#92400e; font-size:12px; }
+.dq-warn { margin:10px 30px 0; padding:10px 14px; border-radius:7px; background:#fef2f2; border:1px solid #fecaca; color:#991b1b; font-size:12.5px; }
 .claude-commentary { margin:6px 0 4px; padding:14px 16px; border-radius:9px; background:#f5f3ff; border:1px solid #ddd6fe; color:#312e81; font-size:13.5px; line-height:1.6; }
 .portfolio-group { margin:18px 0 26px 0; }
 .portfolio-group h3 { margin:0 0 4px 0; }
@@ -2787,6 +2815,7 @@ $css
 <div class="disclaim">⚠ Otomatik sayısal taramadır; yatırım tavsiyesi değildir.</div>
 </div>
 <div class="clip-note">📎 Bu e-posta, Gmail'in kırpma sınırının (~102 KB) altında kalmak için <b>özetlenmiştir</b>: bazı araştırma/denetim bölümleri (akademik faktör, bilanço öncesi ivme + PEAD, model portföy işlem geçmişi, paper broker) <b>ekteki tam HTML raporunda</b>. Hisse kodlarına tıklayınca Midas'ta açılır.</div>
+$dataQualityBanner
 <div class="kpi-row">
 <div class="kpi gold"><div class="lab">Skor Lideri</div><div class="val">$($leader.Symbol)</div><div class="sub">Skor $($leader.Score) · $($leader.Signal)</div></div>
 <div class="kpi"><div class="lab">Ham-Faktör Lideri</div><div class="val">$(($scored | Sort-Object RawFactorScore100 -Descending | Select-Object -First 1).Symbol)</div><div class="sub">RFS100 $(($scored | Sort-Object RawFactorScore100 -Descending | Select-Object -First 1).RawFactorScore100)</div></div>
@@ -2832,7 +2861,7 @@ $(New-HtmlTable -Rows $earningsCalendarRows)
 <p class="muted">Geniş örneklemli olay çalışması (~1600 çeyrek-olayı) iyi bilanço gelen hisselerde açıklama öncesi ılımlı bir fiyat yükselişi (run-up) gösterir; etki ortalamada zayıftır (sürpriz↔ön run-up r≈0,08) ama yönü pozitiftir. Bu bölüm, bilançosuna 8-25 gün kalan ve fiyat/hacmi güçlenen (fiyat>SMA20≥SMA50, görece hacim≥1,1x, aylık getiri pozitif) hisseleri öncü aday olarak listeler ve skora bilanço öncesi bonus (+$([string]$activeCalibration.PreEarningsRunupBonus)) verir. Yeni açıklamış aşırı uzamış pozitif-sürpriz hisselere bilanço sonrası ayar ($([string]$activeCalibration.PostEarningsAdjustment)) uygulanır; geniş örneklemde bilanço sonrası eğilim hafif pozitif (PEAD, long-short ≈+%2,4) çıktığından bu ayar küçük tutulur ve canlı veriyle güncellenir. <b>Kendini öğrenen kalibrasyon:</b> $($activeCalibration.Note) Bu ayar, canlı PEAD takibi yeterli örnek biriktikçe ($(if ($activeCalibration.Calibrated) { 'şu an veriyle kalibre edilmiş durumda' } else { 'henüz tarihsel varsayılan; ~30 yönlü örnek sonrası otomatik kalibre olacak' })) veriye göre otomatik güncellenir.</p>
 $(if ($preEarningsRows.Count -gt 0) { New-HtmlTable -Rows $preEarningsRows } else { '<p class="muted">Bugün bilanço öncesi ivme kriterini sağlayan hisse yok.</p>' })
 <h2>Bilanço Sonrası Sürüklenme (PEAD) Takibi</h2>
-<p class="muted">Akademik PEAD bulgusu (Bernard-Thomas 1989): hisseler bilanço sürprizinin yönünde haftalarca sürüklenir. Bot, yeni bilanço açıklayan hisseleri tespit anındaki fiyat ve sürpriz proxy'siyle (USD net kâr/FAVÖK Y/Y + FAVÖK trendi; 0-100, 50 nötr) kaydeder; ~28 gün sonra tespit fiyatına göre getiriyi ölçer ve "pozitif sürpriz → pozitif sürüklenme" isabet oranını biriktirir. $(if ($null -ne $earningsReactionSummary.PeadHitRatePct) { "Şu ana kadar $($earningsReactionSummary.DirectionalCount) yönlü örnekte isabet %$($earningsReactionSummary.PeadHitRatePct); pozitif sürpriz ortalama sürüklenmesi %$($earningsReactionSummary.AvgPositiveSurpriseDriftPct). Halen izlenen $($earningsReactionSummary.TrackedCount) hisse." } else { "Henüz tamamlanmış sürüklenme örneği yok; halen izlenen $($earningsReactionSummary.TrackedCount) hisse. İlk isabet ölçümü açıklamalardan ~28 gün sonra üretilecek." })</p>
+<p class="muted">Akademik PEAD bulgusu (Bernard-Thomas 1989): hisseler bilanço sürprizinin yönünde haftalarca sürüklenir. Bot, yeni bilanço açıklayan hisseleri tespit anındaki fiyat ve sürpriz proxy'siyle (USD net kâr/FAVÖK Y/Y + FAVÖK <b>trendi</b>; 0-100, 50 nötr) kaydeder; <b>not:</b> gerçek analist konsensüsü ücretsiz veride olmadığından bu bir <b>trend-temelli vekildir</b>, klasik anlamda "konsensüs sürprizi" değildir; ~28 gün sonra tespit fiyatına göre getiriyi ölçer ve "pozitif sürpriz → pozitif sürüklenme" isabet oranını biriktirir. $(if ($null -ne $earningsReactionSummary.PeadHitRatePct) { "Şu ana kadar $($earningsReactionSummary.DirectionalCount) yönlü örnekte isabet %$($earningsReactionSummary.PeadHitRatePct); pozitif sürpriz ortalama sürüklenmesi %$($earningsReactionSummary.AvgPositiveSurpriseDriftPct). Halen izlenen $($earningsReactionSummary.TrackedCount) hisse." } else { "Henüz tamamlanmış sürüklenme örneği yok; halen izlenen $($earningsReactionSummary.TrackedCount) hisse. İlk isabet ölçümü açıklamalardan ~28 gün sonra üretilecek." })</p>
 $(New-HtmlTable -Rows $peadTrackedRows)<!--EMAIL-DROP-END-->
 <h2>KAP Son Gün Bildirimleri (Deneysel — gözlem)</h2>
 <p class="muted">Kaynak: <b>$kapMeta</b>. Bildirimler ayrı bir işle (borsapy üzerinden BIST evreni için, dönüşümlü/biriktirerek) toplanıp depolanır; bu rapor <b>son gün</b> içindekileri gösterir. "Yorum" sütunu, izlenen (Top/portföy/anlık giriş) hisselerin önemli açıklamaları için <b>Claude (LLM) ile içerikten üretilmiş özet + etki skoru (1-5)</b>'dur; LLM yorumu olmayan satırlarda başlık görünür. Yön ikonu: 🟢 olumlu · 🔴 olumsuz · 🟡 karışık · ⚪ nötr · ❔ belirsiz. Piyasa mekaniği gürültüsü (devre kesici, likidite, endeks) elenir; Top radar hisseleri öne alınır. <b>Tümü otomatik; karar etkisi yoktur.</b> Özel durum açıklamaları işlem öncesi mutlaka KAP'tan birinci elden doğrulanmalıdır.</p>
@@ -2853,6 +2882,9 @@ $portfolioHoldingGroupsHtml
 <!--EMAIL-DROP-START--><h2>Model Portföy Son İşlemler</h2>
 <p class="muted">Her portföy için son 12 işlem gösterilir; ilk kurulum, AL, SAT ve ay sonu eşitleme kayıtları fiyat/adet/tutar/not alanlarıyla izlenir.</p>
 $(New-HtmlTable -Rows $portfolioTransactionRows)
+<h2>Portföyler-Arası Yoğunlaşma (gözlem)</h2>
+<p class="muted">Aynı hissenin <b>6 model portföyün tamamı</b> üzerindeki toplam ağırlığı. Tek portföy içi sektör tavanı portföyler-arası örtüşmeyi görmez; bu tablo, bir ismin tüm defterdeki gizli yoğunlaşmasını izler. ⚠️ = defterin %12'sini aşan isim (tek bir şoka aşırı maruziyet riski).$(if ($crossConcWarnCount -gt 0) { " <b>$crossConcWarnCount isim eşiği aşıyor.</b>" })</p>
+$(if ($crossConcRows.Count -gt 0) { New-HtmlTable -Rows $crossConcRows } else { '<p class="muted">Portföyler arası örtüşen isim yok.</p>' })
 <h2>Emir Niyetleri (Kağıt — gerçek emir değildir)</h2>
 <p class="muted">Bu bölüm gerçek emir değildir. Model portföy ve anlık fırsat portföyünün bu koşuda ürettiği teorik AL/SAT niyetlerini ayrı bir kağıt-broker defterine yazar; ileride aracı kurum entegrasyonu gerekirse execution katmanı bu niyet formatından beslenebilir.</p>
 $(if ($orderIntentRows.Count -gt 0) { New-HtmlTable -Rows $orderIntentRows } else { '<p class="muted">Bu çalışmada yeni emir niyeti oluşmadı.</p>' })

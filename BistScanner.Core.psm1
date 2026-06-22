@@ -1437,7 +1437,9 @@ function Get-OptionalNumberText {
 function Get-PEComponentScore {
     param($Value)
 
-    if ($null -eq $Value) { return 45 }
+    # Eksik temel veri NÖTR degil HAFIF CEZALI (32): bilinmeyen degerleme genelde
+    # zarar/aciklanmamis bilanco demektir; "nötr 45" dusuk-aciklamali hisseleri kayirir.
+    if ($null -eq $Value) { return 32 }
     if ($Value -le 0) { return 15 }
     if ($Value -le 5) { return 78 }
     if ($Value -le 10) { return 95 }
@@ -1451,7 +1453,7 @@ function Get-PEComponentScore {
 function Get-PBComponentScore {
     param($Value)
 
-    if ($null -eq $Value) { return 45 }
+    if ($null -eq $Value) { return 32 }   # eksik temel veri hafif cezali (bkz. F/K)
     if ($Value -le 0) { return 20 }
     if ($Value -le 0.75) { return 90 }
     if ($Value -le 1.5) { return 85 }
@@ -1468,7 +1470,7 @@ function Get-EvEbitdaComponentScore {
     )
 
     if ($Sector -eq 'Finance') { return 50 }
-    if ($null -eq $Value) { return 45 }
+    if ($null -eq $Value) { return 32 }   # eksik temel veri hafif cezali (bkz. F/K)
     if ($Value -le 0) { return 15 }
     if ($Value -le 4) { return 95 }
     if ($Value -le 6) { return 90 }
@@ -1482,7 +1484,7 @@ function Get-EvEbitdaComponentScore {
 function Get-ROEComponentScore {
     param($Value)
 
-    if ($null -eq $Value) { return 45 }
+    if ($null -eq $Value) { return 32 }   # eksik temel veri hafif cezali (bkz. F/K)
     if ($Value -le 0) { return 15 }
     if ($Value -lt 5) { return 35 }
     if ($Value -lt 10) { return 55 }
@@ -6394,6 +6396,92 @@ function Add-RelativeStrengthRank {
     return $stocksArr
 }
 
+function Get-CrossPortfolioConcentration {
+    <#
+        TUM model portfoyler arasinda her hissenin TOPLAM TL maruziyetini ve defterin
+        yuzdesini hesaplar; esigi (vars. %12) gecenleri isaretler. Portfoyler-arasi
+        gizli yogunlasma riskini GOZLEMLEMEK icin (secimi degistirmez).
+    #>
+    param($PortfolioSet, [double]$WarnPct = 12.0)
+
+    $bySymbol = @{}
+    $totalBook = 0.0
+    foreach ($p in @(Get-ObjectPropertyValue -Object $PortfolioSet -Name 'Portfolios')) {
+        foreach ($h in @(Get-ObjectPropertyValue -Object $p -Name 'Holdings')) {
+            $sym = [string](Get-ObjectPropertyValue -Object $h -Name 'Symbol')
+            if ([string]::IsNullOrWhiteSpace($sym)) { continue }
+            $v = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $h -Name 'CurrentValueTL')
+            if ($null -eq $v) { $v = 0.0 }
+            if (-not $bySymbol.ContainsKey($sym)) {
+                $bySymbol[$sym] = [pscustomobject]@{
+                    Symbol = $sym
+                    Company = [string](Get-ObjectPropertyValue -Object $h -Name 'Company')
+                    ValueTL = 0.0
+                    PortfolioCount = 0
+                }
+            }
+            $bySymbol[$sym].ValueTL += $v
+            $bySymbol[$sym].PortfolioCount += 1
+            $totalBook += $v
+        }
+    }
+    $rows = foreach ($s in $bySymbol.Values) {
+        $pct = if ($totalBook -gt 0) { ($s.ValueTL / $totalBook) * 100.0 } else { 0.0 }
+        [pscustomobject][ordered]@{
+            Symbol = $s.Symbol
+            Company = $s.Company
+            PortfolioCount = $s.PortfolioCount
+            ValueTL = [Math]::Round($s.ValueTL, 2)
+            BookPct = [Math]::Round($pct, 2)
+            Warn = ($pct -ge $WarnPct)
+        }
+    }
+    return @($rows | Sort-Object BookPct -Descending)
+}
+
+function Get-DataQualitySummary {
+    <#
+        Kritik makro/benchmark girdilerinin (USD/TRY, BIST100, TR10Y, DXY, VIX) ve
+        hisse temel verisinin eksikligini ozetler. Rapor, veri bozuldugunda GORUNUR
+        uyari gostersin diye; sessizce yanlis skor/alfa uretmeyi onler.
+        $Inputs: ad -> deger (null/bos/<=0 = eksik).
+    #>
+    param([hashtable]$Inputs, [int]$StocksMissingFundamentals = 0, [int]$TotalStocks = 0)
+
+    # Eksik = null / sayisal-olmayan (kaynak HIC veri dondurmedi). Negatif/sifir
+    # gecerli olabilir (degisim%, CDS) — bunlari eksik sayma; cagiran taraf seviye
+    # girdilerini (or. BIST100=0) eksikse null olarak gecirir.
+    # NOT: ConvertTo-DoubleOrNull burada KULLANILMAZ; PowerShell'de "0 -eq ''" true
+    # oldugundan gecerli bir 0'i eksik sayar. Burada eksik = null VEYA sayisal-degil.
+    $missing = New-Object System.Collections.Generic.List[string]
+    if ($null -ne $Inputs) {
+        foreach ($k in @($Inputs.Keys)) {
+            $v = $Inputs[$k]
+            $isMissing = $false
+            if ($null -eq $v) {
+                $isMissing = $true
+            }
+            else {
+                try { [void][double]$v } catch { $isMissing = $true }
+            }
+            if ($isMissing) { [void]$missing.Add([string]$k) }
+        }
+    }
+    $count = if ($null -ne $Inputs) { $Inputs.Count } else { 0 }
+    $present = $count - $missing.Count
+    $completeness = if ($count -gt 0) { [Math]::Round(($present / [double]$count) * 100.0, 0) } else { 100 }
+    $staleRatio = if ($TotalStocks -gt 0) { $StocksMissingFundamentals / [double]$TotalStocks } else { 0.0 }
+    $degraded = ($missing.Count -gt 0) -or ($staleRatio -gt 0.25)
+    return [pscustomobject][ordered]@{
+        CompletenessPct = $completeness
+        MissingInputs = @($missing.ToArray())
+        StocksMissingFundamentals = $StocksMissingFundamentals
+        TotalStocks = $TotalStocks
+        StaleRatioPct = [Math]::Round($staleRatio * 100.0, 1)
+        Degraded = $degraded
+    }
+}
+
 Export-ModuleMember -Function `
     Invoke-WithRetry, `
     Update-SignalPerformance, `
@@ -6436,4 +6524,6 @@ Export-ModuleMember -Function `
     New-PerformanceComparisonChart, `
     Get-MarketBreadth, `
     Add-RelativeStrengthRank, `
-    Get-StrategySelectionScore
+    Get-StrategySelectionScore, `
+    Get-CrossPortfolioConcentration, `
+    Get-DataQualitySummary

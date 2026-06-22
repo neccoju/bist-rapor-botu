@@ -304,9 +304,17 @@ def _parse_llm_json(raw, usage=None):
     }
 
 
+def _safe_field(s, limit=300):
+    """Guvensiz KAP/sirket metnini prompt'a koymadan once temizler: tek satir, suslu
+    parantezsiz (.format kirilmasin VE yapilandirilmis prompt'u taklit edemesin),
+    uzunluk sinirli. Prompt-injection yuzeyini daraltir; uydurma talimatlari notr'ler."""
+    s = re.sub(r"\s+", " ", str(s or "")).strip().replace("{", "(").replace("}", ")")
+    return s[:limit]
+
+
 def interpret_llm(client, model, sym, title, cat, text, max_chars):
     """Claude (anthropic) ile içerik yorumu."""
-    prompt = LLM_PROMPT.format(sym=sym, title=title, cat=cat, body=_focus_content(text, max_chars))
+    prompt = LLM_PROMPT.format(sym=_safe_field(sym, 12), title=_safe_field(title, 200), cat=_safe_field(cat, 80), body=_safe_field(_focus_content(text, max_chars), max_chars + 200))
     msg = client.messages.create(
         model=model, max_tokens=500,
         messages=[{"role": "user", "content": prompt}],
@@ -321,7 +329,7 @@ def interpret_openai_compatible(base_url, token, model, sym, title, cat, text, m
     (urllib). GitHub Models: ucretsiz, Actions GITHUB_TOKEN ile (models: read)."""
     import urllib.request
     import urllib.error
-    prompt = LLM_PROMPT.format(sym=sym, title=title, cat=cat, body=_focus_content(text, max_chars))
+    prompt = LLM_PROMPT.format(sym=_safe_field(sym, 12), title=_safe_field(title, 200), cat=_safe_field(cat, 80), body=_safe_field(_focus_content(text, max_chars), max_chars + 200))
     payload = json.dumps({
         "model": model,
         "messages": [{"role": "user", "content": prompt}],

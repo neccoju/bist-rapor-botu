@@ -522,6 +522,47 @@ if ($null -ne (Get-InstantEntryExitDecision -Holding $hNoTrail -Rules $exitRules
 if ($null -ne (Get-InstantEntryExitDecision -Holding $hStop -Rules $null)) { throw "Risk çıkışı: kural yokken çıkış üretildi." }
 Write-Host "Anlık fırsat risk çıkışı testi başarılı (stop/kar-al/iz-süren stop ayrışıyor)."
 
+# --- Eksik temel veri CEZALI olmalı (nötr 45 değil) ---
+$peGood = & (Get-Module 'BistScanner.Core') { Get-PEComponentScore -Value 10 }
+$peNull = & (Get-Module 'BistScanner.Core') { Get-PEComponentScore -Value $null }
+$roeNull = & (Get-Module 'BistScanner.Core') { Get-ROEComponentScore -Value $null }
+if ($peNull -ge 45) { throw "Eksik F/K hâlâ nötr/yüksek puanlanıyor: $peNull" }
+if ($peNull -ge $peGood) { throw "Eksik F/K, iyi F/K'dan düşük olmalı ($peNull vs $peGood)." }
+if ($roeNull -ge 45) { throw "Eksik ROE hâlâ nötr puanlanıyor: $roeNull" }
+Write-Host "Eksik temel veri ceza testi başarılı (eksik F/K=$peNull, ROE=$roeNull < 45)."
+
+# --- Portföyler-arası yoğunlaşma (Get-CrossPortfolioConcentration) ---
+$ccSet = [pscustomobject]@{ Portfolios = @(
+        [pscustomobject]@{ Holdings = @(
+                [pscustomobject]@{ Symbol = 'AAA'; Company = 'A Co'; CurrentValueTL = 30000 }
+                [pscustomobject]@{ Symbol = 'BBB'; Company = 'B Co'; CurrentValueTL = 10000 }
+            ) }
+        [pscustomobject]@{ Holdings = @(
+                [pscustomobject]@{ Symbol = 'AAA'; Company = 'A Co'; CurrentValueTL = 20000 }
+                [pscustomobject]@{ Symbol = 'CCC'; Company = 'C Co'; CurrentValueTL = 40000 }
+            ) }
+    ) }
+$cc = @(Get-CrossPortfolioConcentration -PortfolioSet $ccSet -WarnPct 12)
+$aaa = $cc | Where-Object { $_.Symbol -eq 'AAA' }
+# AAA toplam 50000 / defter 100000 = %50, 2 portföyde, eşiği aşmalı
+if ([Math]::Abs([double]$aaa.BookPct - 50.0) -gt 0.01) { throw "Çapraz yoğunlaşma %: $($aaa.BookPct) (beklenen 50)" }
+if ([int]$aaa.PortfolioCount -ne 2) { throw "AAA portföy sayısı yanlış: $($aaa.PortfolioCount)" }
+if (-not $aaa.Warn) { throw "AAA eşiği aşmasına rağmen işaretlenmedi." }
+if ($cc[0].Symbol -ne 'AAA' -and $cc[0].Symbol -ne 'CCC') { throw "Sıralama BookPct azalan değil." }
+Write-Host "Portföyler-arası yoğunlaşma testi başarılı (AAA defterin %$($aaa.BookPct)'i, 2 portföy, uyarı=$($aaa.Warn))."
+
+# --- Veri kalitesi özeti (Get-DataQualitySummary) ---
+$dqOk = Get-DataQualitySummary -Inputs ([ordered]@{ 'USD/TRY' = 34.2; 'BIST100' = 11000; 'TR10Y' = 30.5 }) -StocksMissingFundamentals 5 -TotalStocks 100
+if ($dqOk.Degraded) { throw "Tam veri + düşük eksik oranı 'bozuk' işaretlendi." }
+$dqBad = Get-DataQualitySummary -Inputs ([ordered]@{ 'USD/TRY' = 34.2; 'BIST100' = $null; 'TR10Y' = 'Veri Yok' }) -StocksMissingFundamentals 40 -TotalStocks 100
+if (-not $dqBad.Degraded) { throw "Eksik kaynak olmasına rağmen 'bozuk' değil." }
+if (@($dqBad.MissingInputs) -notcontains 'BIST100') { throw "Eksik BIST100 raporlanmadı: $($dqBad.MissingInputs -join ',')" }
+if (@($dqBad.MissingInputs) -notcontains 'TR10Y') { throw "Sayısal olmayan TR10Y eksik sayılmadı." }
+# Negatif/sıfır değer GEÇERLİ olmalı (eksik sayılmamalı)
+$dqNeg = Get-DataQualitySummary -Inputs ([ordered]@{ 'CDS değişim' = -3.5; 'Banka RS' = 0 }) -StocksMissingFundamentals 0 -TotalStocks 100
+if ($dqNeg.Degraded) { throw "Negatif/sıfır geçerli değerler eksik sayıldı." }
+Write-Host "Veri kalitesi özeti testi başarılı (eksik kaynak yakalandı, negatif/sıfır geçerli)."
+
 # --- Faz A gözlem modu: Piyasa genişliği (Get-MarketBreadth) ---
 $breadthStocks = @(
     [pscustomobject]@{ Symbol = 'A'; Price = 110; SMA50 = 100; SMA200 = 90; PerfMonth = 5 }

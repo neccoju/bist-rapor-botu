@@ -182,14 +182,10 @@ jobs:
             'data/paper_broker.json',
             'data/latest_point_in_time_snapshot.json'
           ) | Where-Object { Test-Path -LiteralPath $_ }
-          # PIT anlik goruntu arsivi (tarihli dosyalar): gunluk birikir, hepsini ekle.
-          # Iki ayri arsiv coexist eder: backtest motorunun data/pit'i ve raporun
-          # data/point_in_time_snapshots'i. Ikisini de persist et.
-          if (Test-Path -LiteralPath 'data/pit') {
-            $files += @(Get-ChildItem -LiteralPath 'data/pit' -Filter '*.json' -ErrorAction SilentlyContinue | ForEach-Object { "data/pit/$($_.Name)" })
-          }
-          $snapshotFiles = @(Get-ChildItem -Path 'data/point_in_time_snapshots' -Filter '*.json' -File -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })
-          $files = @($files) + $snapshotFiles
+          # NOT: Tarihli PIT arsivleri (data/pit + data/point_in_time_snapshots) ARTIK
+          # git'e commit EDILMEZ (repo sismesini onlemek icin .gitignore'da). Calisma
+          # aninda yalniz latest_point_in_time_snapshot.json okunur; tarihli arsiv
+          # birikimi gerekirse ayri bir depo/branch'e tasinmali.
           if ($files.Count -eq 0) {
             Write-Host 'Kaydedilecek state dosyasi bulunamadi.'
             exit 0
