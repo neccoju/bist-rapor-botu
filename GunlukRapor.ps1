@@ -1352,9 +1352,31 @@ function Invoke-ClaudeMessage {
         $headers['anthropic-beta'] = 'server-side-fallback-2026-06-01'
     }
     $json = $payload | ConvertTo-Json -Depth 6 -Compress
-    $bodyBytes = [System.Text.Encoding]::UTF8.GetBytes($json)
-    $resp = Invoke-RestMethod -Uri 'https://api.anthropic.com/v1/messages' -Method Post `
-        -Headers $headers -Body $bodyBytes -ContentType 'application/json; charset=utf-8' -TimeoutSec $TimeoutSec
+
+    # ONEMLI: Windows PowerShell 5.1'de Invoke-RestMethod, yanit govdesindeki UTF-8'i
+    # yanlis (Latin-1) cozup Turkce karakterleri bozar (or. "Portföy" -> "PortfÃ¶y").
+    # Bunu onlemek icin HttpClient ile ham bayt alip ACIKCA UTF-8 cozuyoruz.
+    Add-Type -AssemblyName System.Net.Http -ErrorAction SilentlyContinue
+    try { [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 } catch { }
+    $client = [System.Net.Http.HttpClient]::new()
+    $respText = $null
+    try {
+        $client.Timeout = [TimeSpan]::FromSeconds($TimeoutSec)
+        $req = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Post, 'https://api.anthropic.com/v1/messages')
+        foreach ($k in $headers.Keys) { [void]$req.Headers.TryAddWithoutValidation($k, [string]$headers[$k]) }
+        $req.Content = [System.Net.Http.StringContent]::new($json, [System.Text.Encoding]::UTF8, 'application/json')
+        $httpResp = $client.SendAsync($req).GetAwaiter().GetResult()
+        $bytes = $httpResp.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult()
+        $respText = [System.Text.Encoding]::UTF8.GetString($bytes)
+        if (-not $httpResp.IsSuccessStatusCode) {
+            $snippet = $respText.Substring(0, [Math]::Min(300, $respText.Length))
+            throw ("HTTP {0}: {1}" -f [int]$httpResp.StatusCode, $snippet)
+        }
+    }
+    finally {
+        $client.Dispose()
+    }
+    $resp = $respText | ConvertFrom-Json
     if ([string](Get-ObjectPropertyValue -Object $resp -Name 'stop_reason') -eq 'refusal') {
         return $null
     }
