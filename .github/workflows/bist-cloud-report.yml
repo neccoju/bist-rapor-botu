@@ -164,8 +164,10 @@ jobs:
       # performansi repoya commit edilir. Boylece state, cache'in kirilgan
       # versiyon/tahliye davranisina bagli kalmaz; gecmis git'te gorunur olur.
       # last_scan.json kasten haric (buyuk ve kosular arasi okunmuyor).
+      # YALNIZ basarili kosularda yazilir: yarim/basarisiz bir kosu bot
+      # hafizasini (portfoy/sinyal state'ini) ileri alamasin.
       - name: Persist state to repo
-        if: always()
+        if: success()
         shell: powershell
         run: |
           $ErrorActionPreference = 'Continue'
