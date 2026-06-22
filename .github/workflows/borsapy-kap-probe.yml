@@ -1,0 +1,28 @@
+name: borsapy KAP Probe (fizibilite)
+
+# borsapy ile KAP erisimi fizibilite testi. Ana gunluk raporu/state'i ETKILEMEZ;
+# yalniz borsapy'nin KAP cekip cekemedigini, suresini ve Chromium gerekip
+# gerekmedigini olcer. Python; ana bot PowerShell'den bagimsiz.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install borsapy
+        run: |
+          python -m pip install --upgrade pip
+          pip install borsapy
+      - name: Run KAP feasibility probe
+        run: python probe_borsapy_kap.py

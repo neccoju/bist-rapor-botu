@@ -1,20 +1,12 @@
 name: BIST Cloud Report
 
 on:
+  # Zamanlama harici bir tetikleyici (orn. cron-job.org) ile yapilir: tam 18:15
+  # Europe/Istanbul'da bu workflow'u GitHub API workflow_dispatch ile cagirir.
+  # GitHub'in kendi 'schedule' cron'u saatlerce gecikebildigi icin kaldirildi.
+  # 'push' tetikleyicisi de fazladan mail urettigi icin kaldirildi; gerekince
+  # asagidaki workflow_dispatch ile elle veya API'den tetiklenir.
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - .github/workflows/bist-cloud-report.yml
-      - "*.ps1"
-      - "*.psm1"
-      - patches/**
-      - config/**
-  schedule:
-    # 18:15 Europe/Istanbul, sadece BIST islem gunleri (Pzt-Cum).
-    # GitHub Actions cron UTC kullanir; Turkiye yil boyu UTC+3 oldugundan 15:15 UTC = 18:15 Istanbul.
-    - cron: "15 15 * * 1-5"
 
 # Bot state'i (model portfoyler, anlik firsat portfoyu, sinyal performansi)
 # repoya geri yazilir; bu yuzden contents: write gerekir.
@@ -158,11 +150,16 @@ jobs:
             data\signal_performance.json
             data\earnings_reactions.json
             data\signal_calibration.json
+            data\order_intents.json
+            data\paper_broker.json
+            data\latest_point_in_time_snapshot.json
+            data\point_in_time_snapshots\*.json
           if-no-files-found: warn
 
-      # Kalici state: model portfoyler, anlik firsat portfoyu ve sinyal
-      # performansi repoya commit edilir. Boylece state, cache'in kirilgan
-      # versiyon/tahliye davranisina bagli kalmaz; gecmis git'te gorunur olur.
+      # Kalici state yalnizca basarili rapor kosularindan sonra repoya commit edilir.
+      # Boylece basarisiz veya yarim kalan kosular bot hafizasini ileri alamaz.
+      # Model portfoyler, anlik firsat portfoyu ve sinyal performansi git'te izlenir;
+      # bu state'i cache'in kirilgan versiyon/tahliye davranisina bagli birakmaz.
       # last_scan.json kasten haric (buyuk ve kosular arasi okunmuyor).
       # YALNIZ basarili kosularda yazilir: yarim/basarisiz bir kosu bot
       # hafizasini (portfoy/sinyal state'ini) ileri alamasin.
@@ -178,12 +175,19 @@ jobs:
             'data/instant_entry_portfolio.json',
             'data/signal_performance.json',
             'data/earnings_reactions.json',
-            'data/signal_calibration.json'
+            'data/signal_calibration.json',
+            'data/order_intents.json',
+            'data/paper_broker.json',
+            'data/latest_point_in_time_snapshot.json'
           ) | Where-Object { Test-Path -LiteralPath $_ }
           # PIT anlik goruntu arsivi (tarihli dosyalar): gunluk birikir, hepsini ekle.
+          # Iki ayri arsiv coexist eder: backtest motorunun data/pit'i ve raporun
+          # data/point_in_time_snapshots'i. Ikisini de persist et.
           if (Test-Path -LiteralPath 'data/pit') {
             $files += @(Get-ChildItem -LiteralPath 'data/pit' -Filter '*.json' -ErrorAction SilentlyContinue | ForEach-Object { "data/pit/$($_.Name)" })
           }
+          $snapshotFiles = @(Get-ChildItem -Path 'data/point_in_time_snapshots' -Filter '*.json' -File -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })
+          $files = @($files) + $snapshotFiles
           if ($files.Count -eq 0) {
             Write-Host 'Kaydedilecek state dosyasi bulunamadi.'
             exit 0

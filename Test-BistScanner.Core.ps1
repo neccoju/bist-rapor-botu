@@ -407,16 +407,158 @@ $costStocks = @(0..6 | ForEach-Object {
         $c.Symbol = "CST$_"
         $c.Company = "Cost $_"
         $c.Price = 100.0 + $_
+        $c.VolatilityD = 1.0 + $_
         $c
     })
 $costSet0 = New-ModelPortfolioSet -Stocks $costStocks -AsOf ([datetime]'2026-05-26T18:30:00') -InitialCapital 100000 -BenchmarkLevel 10000 -CostBps 50
 $cp0 = $costSet0.Portfolios[0]
 if (-not ([double]$cp0.CurrentValueTL -lt 100000)) { throw "Giris maliyeti uygulanmadi: $($cp0.CurrentValueTL)" }
 if (-not ([double]$cp0.CumulativeModelCostsTL -gt 0)) { throw "Kumulatif maliyet 0 (giris): $($cp0.CumulativeModelCostsTL)" }
+$riskBalanced = @($costSet0.Portfolios | Where-Object Id -eq 'RiskDengeli')[0]
+if ($null -eq $riskBalanced) { throw 'RiskDengeli portföy oluşturulamadı.' }
+$normalWeightIssues = @(
+    $costSet0.Portfolios |
+        Where-Object { $_.Id -ne 'RiskDengeli' } |
+        ForEach-Object { $_.Holdings } |
+        Where-Object { [Math]::Abs([double]$_.WeightPct - 20.0) -gt 0.01 }
+)
+if ($normalWeightIssues.Count -gt 0) { throw 'Normal model portföylerde eşit ağırlık bozuldu.' }
+$riskWeightSum = ($riskBalanced.Holdings | Measure-Object -Property WeightPct -Sum).Sum
+if ([Math]::Abs([double]$riskWeightSum - 100.0) -gt 0.05) { throw "RiskDengeli ağırlık toplamı 100 değil: $riskWeightSum" }
+$riskNonEqual = @($riskBalanced.Holdings | Where-Object { [Math]::Abs([double]$_.WeightPct - 20.0) -gt 0.01 }).Count
+if ($riskNonEqual -eq 0) { throw 'RiskDengeli portföy eşit ağırlıktan ayrışmadı.' }
 $costSet1 = Update-ModelPortfolioSet -PortfolioSet $costSet0 -Stocks $costStocks -AsOf ([datetime]'2026-06-30T18:30:00') -AllowRebalance -BenchmarkLevel 10500 -CostBps 50
 $cp1 = $costSet1.Portfolios[0]
 if (-not ([double]$cp1.CumulativeModelCostsTL -ge [double]$cp0.CumulativeModelCostsTL)) { throw "Rebalance maliyeti birikmedi: $($cp1.CumulativeModelCostsTL)" }
-Write-Host "İşlem maliyeti testi başarılı (giriş maliyeti $($cp0.CumulativeModelCostsTL) TL, rebalance sonrası $($cp1.CumulativeModelCostsTL) TL)."
+Write-Host "İşlem maliyeti ve RiskDengeli portföy testi başarılı (giriş maliyeti $($cp0.CumulativeModelCostsTL) TL, rebalance sonrası $($cp1.CumulativeModelCostsTL) TL)."
+
+# --- Strateji-spesifik portföy ayrışması: Momentum vs Değer aynı havuzdan farklı seçmeli ---
+# Tam-donanımlı $sample'dan momentum-güçlü ve değer-güçlü sentetik hisseler türet.
+function New-StratTestStock {
+    param([string]$Symbol, [string]$Sector, [double]$EvEbitda, [double]$PE, [double]$PB,
+        [double]$PerfWeek, [double]$PerfMonth, [double]$RSI, [double]$MacdHist)
+    $s = $sample | Select-Object *
+    $s.Symbol = $Symbol
+    $s.Sector = $Sector
+    $s.SectorTR = $Sector
+    $s.EvEbitda = $EvEbitda
+    $s.PE = $PE
+    $s.PB = $PB
+    $s.PerfWeek = $PerfWeek
+    $s.PerfMonth = $PerfMonth
+    $s.RSI = $RSI
+    $s.MacdHistogram = $MacdHist
+    $s.MacdLine = $(if ($MacdHist -ge 0) { 1.2 } else { -0.5 })
+    $s.MacdSignal = 0.8
+    return $s
+}
+$stratStocks = @(
+    # Momentum-güçlü: yüksek perf/RSI/MACD, zayıf (ama uygun) değer (EvEbitda ~11)
+    (New-StratTestStock 'MOM1' 'Sektör A' 11 14 1.4 8 26 63 0.6)
+    (New-StratTestStock 'MOM2' 'Sektör B' 11 14 1.4 7 23 62 0.6)
+    (New-StratTestStock 'MOM3' 'Sektör C' 11 14 1.4 7 21 61 0.5)
+    (New-StratTestStock 'MOM4' 'Sektör D' 11 14 1.4 6 19 60 0.5)
+    (New-StratTestStock 'MOM5' 'Sektör E' 11 14 1.4 6 17 59 0.4)
+    # Değer-güçlü: güçlü değer (düşük EvEbitda/PE/PB), zayıf momentum (düşük perf/RSI/MACD-)
+    (New-StratTestStock 'VAL1' 'Sektör F' 3.0 6 0.8 1 2 45 -0.3)
+    (New-StratTestStock 'VAL2' 'Sektör G' 3.2 6 0.8 1 2 45 -0.3)
+    (New-StratTestStock 'VAL3' 'Sektör H' 3.5 7 0.9 2 3 46 -0.2)
+    (New-StratTestStock 'VAL4' 'Sektör I' 3.8 7 0.9 2 3 47 -0.2)
+    (New-StratTestStock 'VAL5' 'Sektör J' 4.0 8 0.9 2 3 48 -0.2)
+)
+$momTop = @(Get-ModelPortfolioSelection -Stocks $stratStocks -Strategy 'Momentum' -Count 5 | ForEach-Object { [string]$_.Symbol })
+$valTop = @(Get-ModelPortfolioSelection -Stocks $stratStocks -Strategy 'Değer' -Count 5 | ForEach-Object { [string]$_.Symbol })
+$momHits = @($momTop | Where-Object { $_ -like 'MOM*' }).Count
+$valHits = @($valTop | Where-Object { $_ -like 'VAL*' }).Count
+$overlap = @($momTop | Where-Object { $valTop -contains $_ }).Count
+if ($momHits -lt 4) { throw "Momentum portföyü momentum hisselerini öne çıkarmadı: $($momTop -join ', ')" }
+if ($valHits -lt 4) { throw "Değer portföyü değer hisselerini öne çıkarmadı: $($valTop -join ', ')" }
+if ($overlap -ge 3) { throw "Momentum ve Değer portföyleri hâlâ büyük ölçüde örtüşüyor (kesişim=$overlap): $($momTop -join ', ') vs $($valTop -join ', ')" }
+Write-Host "Strateji ayrışma testi başarılı (Momentum=$($momTop -join ','); Değer=$($valTop -join ','); kesişim=$overlap)."
+
+# --- Faz A gözlem modu: Piyasa genişliği (Get-MarketBreadth) ---
+$breadthStocks = @(
+    [pscustomobject]@{ Symbol = 'A'; Price = 110; SMA50 = 100; SMA200 = 90; PerfMonth = 5 }
+    [pscustomobject]@{ Symbol = 'B'; Price = 80; SMA50 = 90; SMA200 = 100; PerfMonth = -3 }
+    [pscustomobject]@{ Symbol = 'C'; Price = 105; SMA50 = 100; SMA200 = 95; PerfMonth = 2 }
+    [pscustomobject]@{ Symbol = 'D'; Price = 70; SMA50 = 85; SMA200 = 95; PerfMonth = -1 }
+)
+$breadth = Get-MarketBreadth -Stocks $breadthStocks
+if ([Math]::Abs([double]$breadth.AboveSMA200Pct - 50) -gt 0.01) { throw "Piyasa genişliği SMA200 üstü oranı yanlış: $($breadth.AboveSMA200Pct)" }
+if ([Math]::Abs([double]$breadth.PositiveMonthPct - 50) -gt 0.01) { throw "Piyasa genişliği pozitif ay oranı yanlış: $($breadth.PositiveMonthPct)" }
+Write-Host "Piyasa genişliği testi başarılı (SMA200 üstü %$($breadth.AboveSMA200Pct), etiket=$($breadth.Label))."
+
+# --- Faz A gözlem modu: Hisse-bazlı RS rank (Add-RelativeStrengthRank) ---
+$rsStocks = @(
+    [pscustomobject]@{ Symbol = 'STRONG'; PerfMonth = 20; Perf3Month = 40; PerfYear = 60; Bist100PerfMonth = 5; Bist100Perf3Month = 10; Bist100PerfYear = 25 }
+    [pscustomobject]@{ Symbol = 'MID1'; PerfMonth = 8; Perf3Month = 12; PerfYear = 28; Bist100PerfMonth = 5; Bist100Perf3Month = 10; Bist100PerfYear = 25 }
+    [pscustomobject]@{ Symbol = 'MID2'; PerfMonth = 5; Perf3Month = 9; PerfYear = 22; Bist100PerfMonth = 5; Bist100Perf3Month = 10; Bist100PerfYear = 25 }
+    [pscustomobject]@{ Symbol = 'WEAK'; PerfMonth = -10; Perf3Month = -20; PerfYear = -5; Bist100PerfMonth = 5; Bist100Perf3Month = 10; Bist100PerfYear = 25 }
+)
+$rsRanked = @(Add-RelativeStrengthRank -Stocks $rsStocks)
+$rsMap = @{}; foreach ($r in $rsRanked) { $rsMap[[string]$r.Symbol] = $r.RelativeStrengthRank }
+if ([double]$rsMap['STRONG'] -ne 100) { throw "RS rank: en güçlü hisse 100 olmalı, $($rsMap['STRONG'])" }
+if ([double]$rsMap['WEAK'] -ne 0) { throw "RS rank: en zayıf hisse 0 olmalı, $($rsMap['WEAK'])" }
+if (-not ([double]$rsMap['STRONG'] -gt [double]$rsMap['MID1'] -and [double]$rsMap['MID1'] -gt [double]$rsMap['MID2'] -and [double]$rsMap['MID2'] -gt [double]$rsMap['WEAK'])) {
+    throw "RS rank sıralaması monoton değil: $($rsMap['STRONG']),$($rsMap['MID1']),$($rsMap['MID2']),$($rsMap['WEAK'])"
+}
+Write-Host "RS rank testi başarılı (STRONG=$($rsMap['STRONG']), WEAK=$($rsMap['WEAK']))."
+
+# --- Depolanmış KAP okuyucu (Get-StoredKapDisclosures) ---
+$kapTmp = Join-Path ([System.IO.Path]::GetTempPath()) ("kap_test_" + [guid]::NewGuid().ToString('N') + ".json")
+# borsapy 'dd.MM.yyyy HH:mm:ss' formati verir; tarihleri buna gore kur ki
+# dd.MM ayristirmasi (TryParseExact typed string[]) ve MaxAgeDays filtresi
+# regresyona karsi test edilsin. Tarihler bugune gore goreli uretilir.
+$today = Get-Date
+$dRecent = $today.AddDays(-1).ToString('dd.MM.yyyy HH:mm:ss')   # son 7 gun ICINDE
+$dOld = $today.AddDays(-40).ToString('dd.MM.yyyy HH:mm:ss')     # 40 gun ONCE
+$kapSample = [ordered]@{
+    generatedAt = '2026-06-18T12:00:00Z'
+    source      = 'test'
+    stocks      = [ordered]@{
+        AAA = @(
+            [ordered]@{ date = $dRecent; title = 'İhale Süreci'; category = 'Ihale/Sozlesme'; importance = 'high'; direction = '+'; disclosureId = '111'; url = 'https://x/Bildirim/111' }
+            [ordered]@{ date = $dOld; title = 'Devre Kesici'; category = 'Piyasa/Teknik'; importance = 'noise'; direction = '0'; disclosureId = '112'; url = 'https://x/Bildirim/112' }
+        )
+        BBB = @(
+            [ordered]@{ date = $today.ToString('dd.MM.yyyy HH:mm:ss'); title = 'Kar Payı Dağıtımı'; category = 'Temettu'; importance = 'high'; direction = '+'; disclosureId = '113'; url = 'https://x/Bildirim/113' }
+        )
+    }
+}
+($kapSample | ConvertTo-Json -Depth 6) | Set-Content -LiteralPath $kapTmp -Encoding UTF8
+try {
+    $kapAll = @(Get-StoredKapDisclosures -Path $kapTmp)
+    if ($kapAll.Count -ne 3) { throw "KAP okuyucu: 3 kayıt beklenirken $($kapAll.Count) döndü." }
+    # En yeni kayit (BBB, bugun) basta olmali; dd.MM.yyyy ayristirmasi calismali.
+    if ([string]$kapAll[0].Symbol -ne 'BBB') {
+        throw "KAP okuyucu: tarihe göre azalan sıralama hatalı (ilk=$($kapAll[0].Symbol))."
+    }
+    if (@($kapAll | Where-Object { -not $_.DateParsed }).Count -ne 0) {
+        throw 'KAP okuyucu: dd.MM.yyyy tarihleri ayrıştırılamadı (DateParsed boş).'
+    }
+    # MaxAgeDays 7: 40 gün önceki AAA/Devre Kesici elenmeli -> 2 kayıt kalmalı.
+    $kapRecent = @(Get-StoredKapDisclosures -Path $kapTmp -MaxAgeDays 7)
+    if ($kapRecent.Count -ne 2) { throw "KAP okuyucu: MaxAgeDays 7 ile 2 kayıt beklenirken $($kapRecent.Count) döndü (tarih filtresi/ayrıştırma bozuk)." }
+    if (@($kapRecent | Where-Object { $_.Title -eq 'Devre Kesici' }).Count -ne 0) {
+        throw 'KAP okuyucu: MaxAgeDays 40 günlük eski kaydı elememiş.'
+    }
+    $kapImp = @(Get-StoredKapDisclosures -Path $kapTmp -OnlyImportant)
+    if ($kapImp.Count -ne 2) { throw "KAP okuyucu: gürültü hariç 2 önemli kayıt beklenirken $($kapImp.Count) döndü." }
+    if (@($kapImp | Where-Object { $_.Importance -eq 'noise' }).Count -ne 0) {
+        throw 'KAP okuyucu: OnlyImportant gürültüyü (noise) elememiş.'
+    }
+    $kapSym = @(Get-StoredKapDisclosures -Path $kapTmp -Symbols 'BBB')
+    if ($kapSym.Count -ne 1 -or [string]$kapSym[0].Symbol -ne 'BBB') {
+        throw "KAP okuyucu: sembol filtresi hatalı ($($kapSym.Count) kayıt)."
+    }
+    if (@(Get-StoredKapDisclosures -Path (Join-Path ([System.IO.Path]::GetTempPath()) 'yok_olmayan.json')).Count -ne 0) {
+        throw 'KAP okuyucu: olmayan dosyada boş dizi dönmedi.'
+    }
+    Write-Host "Depolanmış KAP okuyucu testi başarılı (toplam=$($kapAll.Count), son7gün=$($kapRecent.Count), önemli=$($kapImp.Count), sembol=$($kapSym.Count))."
+}
+finally {
+    Remove-Item -LiteralPath $kapTmp -ErrorAction SilentlyContinue
+}
 
 # --- Point-in-time (PIT) anlik goruntu deposu: kaydet/oku, exact + on-or-before ---
 $pitDir = Join-Path ([System.IO.Path]::GetTempPath()) ("pit_test_" + [guid]::NewGuid())
@@ -505,15 +647,15 @@ if ($Live) {
 
     $strongUsdCount = @($stocks | Where-Object StrongUsdEarnings).Count
     $portfolioSet = New-ModelPortfolioSet -Stocks $stocks -AsOf ([datetime]'2026-06-04T18:30:00') -InitialCapital 100000
-    if ($portfolioSet.Portfolios.Count -ne 4) {
-        throw "Dört model portföy oluşturulamadı: $($portfolioSet.Portfolios.Count)"
+    if ($portfolioSet.Portfolios.Count -ne 6) {
+        throw "Altı model portföy oluşturulamadı: $($portfolioSet.Portfolios.Count)"
     }
 
     foreach ($portfolio in $portfolioSet.Portfolios) {
         if ($portfolio.Holdings.Count -ne 5) {
             throw "$($portfolio.Name) için 5 hisse oluşturulamadı."
         }
-        if (@($portfolio.Holdings | Where-Object { [Math]::Abs($_.WeightPct - 20) -gt 0.001 }).Count -gt 0) {
+        if ($portfolio.Id -ne 'RiskDengeli' -and @($portfolio.Holdings | Where-Object { [Math]::Abs($_.WeightPct - 20) -gt 0.001 }).Count -gt 0) {
             throw "$($portfolio.Name) başlangıçta eşit ağırlıklı değil."
         }
         if ([Math]::Abs($portfolio.CurrentValueTL - 100000) -gt 0.01) {

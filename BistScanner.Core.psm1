@@ -3587,6 +3587,16 @@ function Get-ModelPortfolioDefinitions {
             Strategy = 'Dengeli'
             RankBy = 'RawFactorScore100'
             Description = 'Backtest bulgusuna dayanır: temel/likidite uygunluk filtresini geçen hisseleri, Get-BistScore eşik puanlaması yerine ham teknik faktörlerin (RSI, MACD, SMA mesafeleri, momentum, hacim, oynaklık) kesitsel z-skor karışımı olan RawFactorScore100 ile sıralar. Walk-forward testlerde bu sıralama botun skorunun ~2 katı bilgi katsayısı (IC) verdi.'
+        },
+        [pscustomobject][ordered]@{
+            Id = 'RiskDengeli'
+            Name = 'Risk Dengeli Model Portföyü'
+            Strategy = 'Dengeli'
+            RankBy = 'Score'
+            WeightingMethod = 'InverseVolatility'
+            MinWeightPct = 8.0
+            MaxWeightPct = 28.0
+            Description = 'Normal model portföyleri bozmadan ayrı izlenen risk dengeli portföydür. Seçim Dengeli skorla yapılır; ağırlıklar günlük oynaklık tersine göre dağıtılır ve tek hisse riski için min/max ağırlık sınırları uygulanır.'
         }
     )
 }
@@ -3724,6 +3734,38 @@ function Test-ModelPortfolioEligibleStock {
         $technicalOk
 }
 
+function Get-StrategySelectionScore {
+    <#
+        Portfoy SECIMI icin strateji-spesifik siralama anahtari. Rapordaki genel
+        Score'a DOKUNMAZ; yalnizca her stratejiyi KENDI bileseni etrafinda ayristirir.
+
+        Sorun: onceden tum stratejiler dogrudan Score ile siralaniyordu. Score,
+        strateji-bagimsiz ve her stratejide yuksek-agirlikli MacroSector + Earnings
+        bilesenlerince dominate edildigi icin Dengeli=Momentum ve Deger=Kalite
+        portfoyleri ayni hisseleri seciyordu. Bu fonksiyon stratejinin kendi
+        eksenine ~%85 agirlik vererek secimi gercekten ayristirir; %15 genel Score
+        kalite tabani olarak korunur.
+    #>
+    param($Stock, [string]$Strategy)
+    $get = {
+        param($Name)
+        $v = Get-ObjectPropertyValue -Object $Stock -Name $Name
+        if ($null -eq $v) { 0.0 } else { [double]$v }
+    }
+    $score = & $get 'Score'
+    $trend = & $get 'TrendScore'
+    $value = & $get 'ValueScore'
+    $quality = & $get 'QualityScore'
+    $earnings = & $get 'EarningsScore'
+    $momentum = & $get 'MomentumScore'
+    switch ($Strategy) {
+        'Momentum' { return (0.55 * $momentum) + (0.30 * $trend) + (0.15 * $score) }
+        'Değer' { return (0.60 * $value) + (0.25 * $earnings) + (0.15 * $score) }
+        'Kalite' { return (0.55 * $quality) + (0.30 * $earnings) + (0.15 * $score) }
+        default { return $score }   # Dengeli: dengeli genel skor
+    }
+}
+
 function Get-ModelPortfolioSelection {
     [CmdletBinding()]
     param(
@@ -3752,10 +3794,12 @@ function Get-ModelPortfolioSelection {
         )
     }
     else {
+        # Strateji-spesifik siralama: her portfoy kendi ekseninde ayrisir
+        # (Dengeli=genel Score; Momentum/Deger/Kalite kendi bilesenine agirlikli).
         $candidates = @(
             $scoredAll |
                 Where-Object { Test-ModelPortfolioEligibleStock -Stock $_ } |
-                Sort-Object Score -Descending
+                Sort-Object @{ Expression = { Get-StrategySelectionScore -Stock $_ -Strategy $Strategy }; Descending = $true }
         )
     }
 
@@ -3909,12 +3953,153 @@ function New-ModelPortfolioTransaction {
     }
 }
 
+function Get-ModelPortfolioWeightingMethod {
+    param($Object)
+
+    $method = [string](Get-ObjectPropertyValue -Object $Object -Name 'WeightingMethod')
+    if ([string]::IsNullOrWhiteSpace($method)) {
+        return 'Equal'
+    }
+
+    return $method
+}
+
+function Get-ModelPortfolioWeightLimit {
+    param(
+        $Object,
+        [string]$Name,
+        [double]$Default
+    )
+
+    $value = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Object -Name $Name)
+    if ($null -eq $value -or $value -le 0) {
+        return $Default
+    }
+
+    return [double]$value
+}
+
+function Get-ModelPortfolioTargetWeights {
+    param(
+        [Parameter(Mandatory)]
+        [object[]]$Selection,
+
+        [string]$WeightingMethod = 'Equal',
+
+        [double]$MinWeightPct = 8.0,
+
+        [double]$MaxWeightPct = 28.0
+    )
+
+    $count = @($Selection).Count
+    if ($count -le 0) {
+        throw 'Model portföy ağırlığı için seçim listesi boş.'
+    }
+
+    $weights = @{}
+    if ($WeightingMethod -ne 'InverseVolatility') {
+        $equalWeight = 1.0 / $count
+        foreach ($stock in $Selection) {
+            $weights[[string]$stock.Symbol] = $equalWeight
+        }
+        return $weights
+    }
+
+    $minWeight = [Math]::Max(0.0, [double]$MinWeightPct / 100.0)
+    $maxWeight = [Math]::Min(1.0, [double]$MaxWeightPct / 100.0)
+    if ($minWeight * $count -gt 1.0) { $minWeight = 0.0 }
+    if ($maxWeight * $count -lt 1.0) { $maxWeight = 1.0 }
+
+    $raw = @{}
+    $rawTotal = 0.0
+    foreach ($stock in $Selection) {
+        $symbol = [string]$stock.Symbol
+        $vol = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $stock -Name 'VolatilityD')
+        if ($null -eq $vol -or $vol -le 0) { $vol = 4.0 }
+        $score = 1.0 / [Math]::Max([double]$vol, 0.75)
+        $raw[$symbol] = $score
+        $rawTotal += $score
+    }
+
+    foreach ($symbol in $raw.Keys) {
+        $weights[$symbol] = if ($rawTotal -gt 0) { [double]$raw[$symbol] / $rawTotal } else { 1.0 / $count }
+    }
+
+    for ($pass = 0; $pass -lt 5; $pass++) {
+        $fixedTotal = 0.0
+        $freeRawTotal = 0.0
+        $freeSymbols = [System.Collections.Generic.List[string]]::new()
+
+        foreach ($symbol in $raw.Keys) {
+            $w = [double]$weights[$symbol]
+            if ($w -lt $minWeight) {
+                $weights[$symbol] = $minWeight
+                $fixedTotal += $minWeight
+            }
+            elseif ($w -gt $maxWeight) {
+                $weights[$symbol] = $maxWeight
+                $fixedTotal += $maxWeight
+            }
+            else {
+                [void]$freeSymbols.Add($symbol)
+                $freeRawTotal += [double]$raw[$symbol]
+            }
+        }
+
+        if ($freeSymbols.Count -eq 0) { break }
+        $remaining = [Math]::Max(0.0, 1.0 - $fixedTotal)
+        foreach ($symbol in $freeSymbols) {
+            $weights[$symbol] = if ($freeRawTotal -gt 0) { $remaining * ([double]$raw[$symbol] / $freeRawTotal) } else { $remaining / $freeSymbols.Count }
+        }
+    }
+
+    $sum = 0.0
+    foreach ($symbol in $weights.Keys) { $sum += [double]$weights[$symbol] }
+    if ($sum -gt 0) {
+        foreach ($symbol in @($weights.Keys)) {
+            $weights[$symbol] = [double]$weights[$symbol] / $sum
+        }
+    }
+
+    return $weights
+}
+
+function Get-ModelPortfolioTargetValues {
+    param(
+        [Parameter(Mandatory)]
+        [object[]]$Selection,
+
+        [double]$TotalValue,
+
+        [string]$WeightingMethod = 'Equal',
+
+        [double]$MinWeightPct = 8.0,
+
+        [double]$MaxWeightPct = 28.0
+    )
+
+    $weights = Get-ModelPortfolioTargetWeights -Selection $Selection -WeightingMethod $WeightingMethod -MinWeightPct $MinWeightPct -MaxWeightPct $MaxWeightPct
+    $targets = @{}
+    foreach ($stock in $Selection) {
+        $symbol = [string]$stock.Symbol
+        $weight = [double]$weights[$symbol]
+        $targets[$symbol] = [pscustomobject][ordered]@{
+            Weight = $weight
+            WeightPct = [Math]::Round($weight * 100.0, 2)
+            TargetValue = [Math]::Round($TotalValue * $weight, 2)
+        }
+    }
+
+    return $targets
+}
+
 function New-ModelPortfolioHolding {
     param(
         $Stock,
         [double]$TargetValue,
         [ValidateSet('Dengeli', 'Değer', 'Momentum', 'Kalite')]
-        [string]$Strategy
+        [string]$Strategy,
+        [double]$TargetWeightPct = 20.0
     )
 
     $quantity = $TargetValue / [double]$Stock.Price
@@ -3926,13 +4111,14 @@ function New-ModelPortfolioHolding {
         RawFactorScore100 = Get-ObjectPropertyValue -Object $Stock -Name 'RawFactorScore100'
         MacroSectorScore = Get-ObjectPropertyValue -Object $Stock -Name 'MacroSectorScore'
         EvEbitda = Get-ObjectPropertyValue -Object $Stock -Name 'EvEbitda'
+        VolatilityD = Get-ObjectPropertyValue -Object $Stock -Name 'VolatilityD'
         SelectionReason = Get-ModelPortfolioSelectionReason -Stock $Stock -Strategy $Strategy
         Quantity = [Math]::Round($quantity, 6)
         RebalancePrice = [Math]::Round([double]$Stock.Price, 4)
         CostBasisTL = [Math]::Round($TargetValue, 2)
         CurrentPrice = [Math]::Round([double]$Stock.Price, 4)
         CurrentValueTL = [Math]::Round($TargetValue, 2)
-        WeightPct = 20.0
+        WeightPct = [Math]::Round($TargetWeightPct, 2)
         GainSinceRebalanceTL = 0.0
         GainSinceRebalancePct = 0.0
         PriceIsFresh = $true
@@ -3951,27 +4137,40 @@ function New-SingleModelPortfolio {
 
     $rankBy = Get-ObjectPropertyValue -Object $Definition -Name 'RankBy'
     if ([string]::IsNullOrWhiteSpace([string]$rankBy)) { $rankBy = 'Score' }
+    $weightingMethod = Get-ModelPortfolioWeightingMethod -Object $Definition
+    $minWeightPct = Get-ModelPortfolioWeightLimit -Object $Definition -Name 'MinWeightPct' -Default 8.0
+    $maxWeightPct = Get-ModelPortfolioWeightLimit -Object $Definition -Name 'MaxWeightPct' -Default 28.0
     $selection = @(Get-ModelPortfolioSelection -Stocks $Stocks -Strategy $Definition.Strategy -RankBy $rankBy)
     # Giris maliyeti: tum sermaye alindigi icin sermaye * maliyet orani.
     $entryCost = [Math]::Round($InitialCapital * ([double]$CostBps / 10000.0), 2)
     $investable = $InitialCapital - $entryCost
-    $targetValue = $investable / $selection.Count
+    $targetValues = Get-ModelPortfolioTargetValues -Selection $selection -TotalValue $investable -WeightingMethod $weightingMethod -MinWeightPct $minWeightPct -MaxWeightPct $maxWeightPct
     $holdings = [System.Collections.Generic.List[object]]::new()
     $transactions = [System.Collections.Generic.List[object]]::new()
+    $allocationNote = if ($weightingMethod -eq 'InverseVolatility') {
+        'Başlangıç sermayesi günlük oynaklık tersine göre risk dengeli hedef ağırlıklara bölündü.'
+    }
+    else {
+        'Başlangıç sermayesi eşit ağırlıklı hedeflere bölündü.'
+    }
 
     [void]$transactions.Add((New-ModelPortfolioTransaction `
                 -Sequence 1 -ExecutionDate $AsOf -Action 'İLK KURULUM' -Symbol 'PORTFÖY' `
                 -Company $Definition.Name -Price $null -Quantity $null -AmountTL $InitialCapital `
-                -Note ('Başlangıç sermayesi {0} eşit parçaya bölündü; hisse başına hedef {1:N2} TL.' -f $selection.Count, $targetValue)))
+                -Note ('{0} Hisse sayısı {1}; yatırım tutarı {2:N2} TL.' -f $allocationNote, $selection.Count, $investable)))
 
     $sequence = 2
     foreach ($stock in $selection) {
-        $holding = New-ModelPortfolioHolding -Stock $stock -TargetValue $targetValue -Strategy $Definition.Strategy
+        $symbol = [string]$stock.Symbol
+        $target = $targetValues[$symbol]
+        $targetValue = [double]$target.TargetValue
+        $targetWeightPct = [double]$target.WeightPct
+        $holding = New-ModelPortfolioHolding -Stock $stock -TargetValue $targetValue -Strategy $Definition.Strategy -TargetWeightPct $targetWeightPct
         [void]$holdings.Add($holding)
         [void]$transactions.Add((New-ModelPortfolioTransaction `
                     -Sequence $sequence -ExecutionDate $AsOf -Action 'AL' -Symbol $holding.Symbol `
                     -Company $holding.Company -Price $holding.CurrentPrice -Quantity $holding.Quantity -AmountTL $targetValue `
-                    -Note ('İlk kurulum: portföyün eşit ağırlığı. {0}' -f $holding.SelectionReason)))
+                    -Note ('İlk kurulum: hedef ağırlık %{0}. {1}' -f $targetWeightPct, $holding.SelectionReason)))
         $sequence++
     }
 
@@ -3988,6 +4187,9 @@ function New-SingleModelPortfolio {
         Name = $Definition.Name
         Strategy = $Definition.Strategy
         RankBy = $rankBy
+        WeightingMethod = $weightingMethod
+        MinWeightPct = if ($weightingMethod -eq 'InverseVolatility') { [Math]::Round($minWeightPct, 2) } else { $null }
+        MaxWeightPct = if ($weightingMethod -eq 'InverseVolatility') { [Math]::Round($maxWeightPct, 2) } else { $null }
         Description = $Definition.Description
         StartDate = $AsOf.ToString('o')
         StartDateText = $AsOf.ToString('dd.MM.yyyy HH:mm')
@@ -4092,8 +4294,10 @@ function Update-ModelPortfolioValuation {
                 Company = [string](Get-ObjectPropertyValue -Object $holding -Name 'Company')
                 SectorTR = [string](Get-ObjectPropertyValue -Object $holding -Name 'SectorTR')
                 StrategyScore = Get-ObjectPropertyValue -Object $holding -Name 'StrategyScore'
+                RawFactorScore100 = Get-ObjectPropertyValue -Object $holding -Name 'RawFactorScore100'
                 MacroSectorScore = Get-ObjectPropertyValue -Object $holding -Name 'MacroSectorScore'
                 EvEbitda = Get-ObjectPropertyValue -Object $holding -Name 'EvEbitda'
+                VolatilityD = Get-ObjectPropertyValue -Object $holding -Name 'VolatilityD'
                 SelectionReason = [string](Get-ObjectPropertyValue -Object $holding -Name 'SelectionReason')
                 Quantity = [Math]::Round($quantity, 6)
                 RebalancePrice = Get-ObjectPropertyValue -Object $holding -Name 'RebalancePrice'
@@ -4196,9 +4400,12 @@ function Invoke-ModelPortfolioRebalance {
 
     $rebalanceRankBy = Get-ObjectPropertyValue -Object $valuedPortfolio -Name 'RankBy'
     if ([string]::IsNullOrWhiteSpace([string]$rebalanceRankBy)) { $rebalanceRankBy = 'Score' }
+    $weightingMethod = Get-ModelPortfolioWeightingMethod -Object $valuedPortfolio
+    $minWeightPct = Get-ModelPortfolioWeightLimit -Object $valuedPortfolio -Name 'MinWeightPct' -Default 8.0
+    $maxWeightPct = Get-ModelPortfolioWeightLimit -Object $valuedPortfolio -Name 'MaxWeightPct' -Default 28.0
     $selection = @(Get-ModelPortfolioSelection -Stocks $Stocks -Strategy $valuedPortfolio.Strategy -RankBy $rebalanceRankBy)
     $totalValue = [double]$valuedPortfolio.CurrentValueTL
-    $targetValue = $totalValue / $selection.Count
+    $targetValuesPreCost = Get-ModelPortfolioTargetValues -Selection $selection -TotalValue $totalValue -WeightingMethod $weightingMethod -MinWeightPct $minWeightPct -MaxWeightPct $maxWeightPct
     $oldHoldings = @{}
     foreach ($holding in @($valuedPortfolio.Holdings)) {
         $oldHoldings[[string]$holding.Symbol] = $holding
@@ -4214,13 +4421,13 @@ function Invoke-ModelPortfolioRebalance {
     $costRate = [double]$CostBps / 10000.0
     $turnover = 0.0
     foreach ($s in $removedSymbols) { $turnover += [double]$oldHoldings[$s].CurrentValueTL }
-    $turnover += $addedSymbols.Count * $targetValue
-    foreach ($s in $keptSymbols) { $turnover += [Math]::Abs($targetValue - [double]$oldHoldings[$s].CurrentValueTL) }
+    foreach ($s in $addedSymbols) { $turnover += [double]$targetValuesPreCost[$s].TargetValue }
+    foreach ($s in $keptSymbols) { $turnover += [Math]::Abs([double]$targetValuesPreCost[$s].TargetValue - [double]$oldHoldings[$s].CurrentValueTL) }
     $rebalanceCost = [Math]::Round($turnover * $costRate, 2)
     if ($rebalanceCost -lt 0) { $rebalanceCost = 0 }
-    # Maliyeti dus: net deger ve esit hedef yeniden hesaplanir.
+    # Maliyeti dus: net deger ve hedef agirliklar yeniden hesaplanir.
     $totalValue = $totalValue - $rebalanceCost
-    $targetValue = $totalValue / $selection.Count
+    $targetValues = Get-ModelPortfolioTargetValues -Selection $selection -TotalValue $totalValue -WeightingMethod $weightingMethod -MinWeightPct $minWeightPct -MaxWeightPct $maxWeightPct
 
     $actionLabel = if ($removedSymbols.Count -gt 0 -or $addedSymbols.Count -gt 0) {
         'AY SONU DEĞİŞİM + EŞİTLEME'
@@ -4234,9 +4441,15 @@ function Invoke-ModelPortfolioRebalance {
     else {
         ''
     }
-    $summaryNote = 'Portföy {0:N2} TL olarak 5 eşit parçaya bölündü; hisse başına hedef {1:N2} TL. Çıkan: {2}. Giren: {3}. Kalan: {4}.{5}' -f `
+    $targetSummary = (@($selection | ForEach-Object {
+                $s = [string]$_.Symbol
+                '{0} %{1:N1}' -f $s, ([double]$targetValues[$s].WeightPct)
+            }) -join ', ')
+    $allocationText = if ($weightingMethod -eq 'InverseVolatility') { 'risk dengeli hedef ağırlıklara' } else { 'eşit ağırlıklı hedeflere' }
+    $summaryNote = 'Portföy {0:N2} TL olarak {1} bölündü. Hedefler: {2}. Çıkan: {3}. Giren: {4}. Kalan: {5}.{6}' -f `
         $totalValue, `
-        $targetValue, `
+        $allocationText, `
+        $targetSummary, `
         $(if ($removedSymbols.Count -gt 0) { $removedSymbols -join ', ' } else { 'yok' }), `
         $(if ($addedSymbols.Count -gt 0) { $addedSymbols -join ', ' } else { 'yok' }), `
         $(if ($keptSymbols.Count -gt 0) { $keptSymbols -join ', ' } else { 'yok' }), `
@@ -4277,7 +4490,10 @@ function Invoke-ModelPortfolioRebalance {
     $newHoldings = [System.Collections.Generic.List[object]]::new()
     foreach ($stock in $selection) {
         $symbol = [string]$stock.Symbol
-        $newHolding = New-ModelPortfolioHolding -Stock $stock -TargetValue $targetValue -Strategy $valuedPortfolio.Strategy
+        $target = $targetValues[$symbol]
+        $targetValue = [double]$target.TargetValue
+        $targetWeightPct = [double]$target.WeightPct
+        $newHolding = New-ModelPortfolioHolding -Stock $stock -TargetValue $targetValue -Strategy $valuedPortfolio.Strategy -TargetWeightPct $targetWeightPct
         [void]$newHoldings.Add($newHolding)
 
         if ($oldHoldings.ContainsKey($symbol)) {
@@ -4293,7 +4509,7 @@ function Invoke-ModelPortfolioRebalance {
                             -Price $newHolding.CurrentPrice `
                             -Quantity ([Math]::Abs($delta) / $newHolding.CurrentPrice) `
                             -AmountTL ([Math]::Abs($delta)) `
-                            -Note ('Ay sonu %20 eşit ağırlık hedefi; işlem öncesi değer {0:N2} TL, işlem sonrası hedef {1:N2} TL.' -f $oldHolding.CurrentValueTL, $targetValue)))
+                            -Note ('Ay sonu hedef ağırlık %{0}; işlem öncesi değer {1:N2} TL, işlem sonrası hedef {2:N2} TL.' -f $targetWeightPct, $oldHolding.CurrentValueTL, $targetValue)))
                 $sequence++
             }
         }
@@ -4307,7 +4523,7 @@ function Invoke-ModelPortfolioRebalance {
                         -Price $newHolding.CurrentPrice `
                         -Quantity $newHolding.Quantity `
                         -AmountTL $targetValue `
-                        -Note ("$PeriodEnd ay sonu strateji sıralamasında portföye girdi. $($newHolding.SelectionReason)")))
+                        -Note ("$PeriodEnd ay sonu strateji sıralamasında portföye girdi; hedef ağırlık %$targetWeightPct. $($newHolding.SelectionReason)")))
             $sequence++
         }
     }
@@ -5120,6 +5336,131 @@ function Get-KapDisclosures {
     return $out.ToArray()
 }
 
+function Get-StoredKapDisclosures {
+    <#
+        data/kap_disclosures.json dosyasini BEST-EFFORT okur. Bu dosyayi ayri bir
+        is (kap-collector.yml, borsapy/Python) uretip repoya commit eder; ana
+        PowerShell rapor sadece OKUR. Dosya yoksa/bozuksa BOS dizi doner ve rapor
+        akisi bozulmaz (gozlem modu — karar etkisi YOK).
+
+        Doner: her kayit { Symbol, Date, Title, Category, Importance, Direction,
+        DisclosureId, Url }. -Symbols verilirse yalniz o hisseler; -OnlyImportant
+        ile yalniz onem='high'/'insider'/'earnings' (gurultu haric) dondurulur.
+        Sonuc tarihe gore (yeni -> eski) siralanir.
+    #>
+    [CmdletBinding()]
+    param(
+        [string]$Path,
+        [string[]]$Symbols,
+        [switch]$OnlyImportant,
+        [int]$MaxAgeDays = 0,        # 0 = yas filtresi yok
+        [int]$Limit = 0,            # 0 = sinirsiz
+        [string]$EnrichmentPath     # kap_enrichment.json (LLM yorumlari); bos = otomatik yan dosya
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        $Path = Join-Path $PSScriptRoot 'data/kap_disclosures.json'
+    }
+    if (-not (Test-Path -LiteralPath $Path)) { return @() }
+
+    # LLM icerik yorumlari (varsa) disclosureId ile baglanir (best-effort).
+    if ([string]::IsNullOrWhiteSpace($EnrichmentPath)) {
+        $EnrichmentPath = Join-Path (Split-Path -Parent $Path) 'kap_enrichment.json'
+    }
+    $enrichItems = $null
+    if (Test-Path -LiteralPath $EnrichmentPath) {
+        try {
+            $enrichData = (Get-Content -LiteralPath $EnrichmentPath -Raw -Encoding UTF8 -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop)
+            $enrichItems = Get-ObjectPropertyValue -Object $enrichData -Name 'items'
+        }
+        catch { $enrichItems = $null }
+    }
+
+    try {
+        $json = Get-Content -LiteralPath $Path -Raw -Encoding UTF8 -ErrorAction Stop
+        $data = $json | ConvertFrom-Json -ErrorAction Stop
+    }
+    catch { return @() }
+
+    $stocksObj = Get-ObjectPropertyValue -Object $data -Name 'stocks'
+    if ($null -eq $stocksObj) { return @() }
+
+    $wanted = $null
+    if ($Symbols -and $Symbols.Count -gt 0) {
+        $wanted = [System.Collections.Generic.HashSet[string]]::new(
+            [string[]]@($Symbols | ForEach-Object { ([string]$_).Trim().ToUpperInvariant() }),
+            [System.StringComparer]::OrdinalIgnoreCase)
+    }
+    $importantSet = @('high', 'insider', 'earnings')
+    $cutoff = $null
+    if ($MaxAgeDays -gt 0) { $cutoff = (Get-Date).AddDays(-$MaxAgeDays) }
+
+    $out = [System.Collections.Generic.List[object]]::new()
+    foreach ($prop in $stocksObj.PSObject.Properties) {
+        $sym = [string]$prop.Name
+        if ($wanted -and -not $wanted.Contains($sym)) { continue }
+        foreach ($rec in @($prop.Value)) {
+            if ($null -eq $rec) { continue }
+            $imp = [string](Get-ObjectPropertyValue -Object $rec -Name 'importance')
+            if ($OnlyImportant -and ($importantSet -notcontains $imp)) { continue }
+            $dateStr = [string](Get-ObjectPropertyValue -Object $rec -Name 'date')
+            $dt = $null
+            if (-not [string]::IsNullOrWhiteSpace($dateStr)) {
+                # borsapy 'dd.MM.yyyy' (ops. saat) verir. Runner kulturune bagli
+                # yanlis ayristirmayi onlemek icin once InvariantCulture ParseExact;
+                # sonra genel TryParse. Cozulemezse $dt=$null (yas filtresinde tutulur).
+                $parsed = [datetime]::MinValue
+                [string[]]$kapFormats = @('dd.MM.yyyy HH:mm:ss', 'dd.MM.yyyy HH:mm', 'dd.MM.yyyy',
+                    'yyyy-MM-ddTHH:mm:ss', 'yyyy-MM-dd HH:mm:ss', 'yyyy-MM-dd')
+                if ([datetime]::TryParseExact($dateStr.Trim(), $kapFormats,
+                        [System.Globalization.CultureInfo]::InvariantCulture,
+                        [System.Globalization.DateTimeStyles]::None, [ref]$parsed)) {
+                    $dt = $parsed
+                }
+                elseif ([datetime]::TryParse($dateStr, [System.Globalization.CultureInfo]::InvariantCulture,
+                        [System.Globalization.DateTimeStyles]::None, [ref]$parsed)) {
+                    $dt = $parsed
+                }
+            }
+            if ($cutoff -and $dt -and $dt -lt $cutoff) { continue }
+            $did = [string](Get-ObjectPropertyValue -Object $rec -Name 'disclosureId')
+            $direction = [string](Get-ObjectPropertyValue -Object $rec -Name 'direction')
+            $summary = ''
+            $impact = $null
+            $rationale = ''
+            if ($null -ne $enrichItems -and -not [string]::IsNullOrWhiteSpace($did)) {
+                $en = Get-ObjectPropertyValue -Object $enrichItems -Name $did
+                if ($null -ne $en) {
+                    $summary = [string](Get-ObjectPropertyValue -Object $en -Name 'summary')
+                    $impact = Get-ObjectPropertyValue -Object $en -Name 'impact'
+                    $rationale = [string](Get-ObjectPropertyValue -Object $en -Name 'rationale')
+                    $enDir = [string](Get-ObjectPropertyValue -Object $en -Name 'directionRefined')
+                    if (-not [string]::IsNullOrWhiteSpace($enDir)) { $direction = $enDir }
+                }
+            }
+            [void]$out.Add([pscustomobject][ordered]@{
+                Symbol       = $sym
+                Date         = $dateStr
+                DateParsed   = $dt
+                Title        = [string](Get-ObjectPropertyValue -Object $rec -Name 'title')
+                Category     = [string](Get-ObjectPropertyValue -Object $rec -Name 'category')
+                Importance   = $imp
+                Direction    = $direction
+                DisclosureId = $did
+                Url          = [string](Get-ObjectPropertyValue -Object $rec -Name 'url')
+                Summary      = $summary
+                Impact       = $impact
+                Rationale    = $rationale
+            })
+        }
+    }
+
+    $sorted = $out | Sort-Object -Property @{ Expression = { if ($_.DateParsed) { $_.DateParsed } else { [datetime]::MinValue } }; Descending = $true }
+    $arr = @($sorted)
+    if ($Limit -gt 0 -and $arr.Count -gt $Limit) { $arr = $arr[0..($Limit - 1)] }
+    return $arr
+}
+
 # ============================================================================
 # TCMB EVDS (Elektronik Veri Dagitim Sistemi) entegrasyonu.
 # API anahtari ASLA kodda saklanmaz; $env:BIST_EVDS_API_KEY'den okunur
@@ -5561,6 +5902,381 @@ function Get-PitSnapshot {
     return (Get-Content -LiteralPath $candidate[-1].FullName -Raw | ConvertFrom-Json)
 }
 
+# ===========================================================================
+#  Performans karsilastirma grafigi: model portfoyler + benchmark'lar (TRY %)
+# ===========================================================================
+
+function Get-PerfPointOnOrBefore {
+    # Artan tarihli {Date, ...} dizisinde, verilen tarihe esit/onceki son noktayi dondurur.
+    param([object[]]$Points, [datetime]$Date)
+    $found = $null
+    foreach ($pt in $Points) {
+        if ([datetime]$pt.Date -le $Date) { $found = $pt } else { break }
+    }
+    return $found
+}
+
+function Get-StrategyPerformanceSeries {
+    <#
+        Her model portfoyun kurulustan bugune gun gun TRY % getiri serisini, islem
+        gecmisi (Transactions) + Yahoo gunluk kapanis ile YENIDEN KURAR (point-in-time).
+        deger(t) = Σ holding_qty(t) × kapanis(symbol, t)  (tam yatirim, nakit ~0).
+        Rebalance'lar Transactions'tan turetildigi icin ileride de dogru kalir.
+        Donus: [{ Name, Points: [{Date, ReturnPct}] }]
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]$PortfolioSet,
+        [int]$TimeoutSec = 10,
+        [hashtable]$PriceCache = $null
+    )
+
+    $portfolios = @(Get-ObjectPropertyValue -Object $PortfolioSet -Name 'Portfolios')
+    if ($portfolios.Count -eq 0) { return @() }
+    if ($null -eq $PriceCache) { $PriceCache = @{} }
+
+    # Benzersiz semboller -> Yahoo gunluk kapanis (bir kez cek, cache'le)
+    $symbols = [System.Collections.Generic.HashSet[string]]::new()
+    foreach ($p in $portfolios) {
+        foreach ($tx in @(Get-ObjectPropertyValue -Object $p -Name 'Transactions')) {
+            $s = [string](Get-ObjectPropertyValue -Object $tx -Name 'Symbol')
+            if (-not [string]::IsNullOrWhiteSpace($s)) { [void]$symbols.Add($s) }
+        }
+    }
+    foreach ($sym in $symbols) {
+        if (-not $PriceCache.ContainsKey($sym)) {
+            $PriceCache[$sym] = @(Get-YahooDailyCloseSeries -Symbol $sym -Range '1y' -TimeoutSec $TimeoutSec)
+        }
+    }
+
+    $result = [System.Collections.Generic.List[object]]::new()
+    foreach ($p in $portfolios) {
+        $name = [string](Get-ObjectPropertyValue -Object $p -Name 'Name')
+        $initial = [double](Get-ObjectPropertyValue -Object $p -Name 'InitialCapitalTL')
+        if ($initial -le 0) { $initial = 100000.0 }
+        $startRaw = Get-ObjectPropertyValue -Object $p -Name 'StartDate'
+        $start = if ($startRaw) { [datetime]$startRaw } else { (Get-Date).AddMonths(-1) }
+
+        $txList = @(Get-ObjectPropertyValue -Object $p -Name 'Transactions' |
+                Sort-Object @{ Expression = { [datetime](Get-ObjectPropertyValue -Object $_ -Name 'ExecutionDate') } })
+        if ($txList.Count -eq 0) { continue }
+
+        # Bu portfoyun sembollerinin tarih birlesimi (StartDate sonrasi) -> ortak eksen
+        $dateSet = @{}
+        foreach ($tx in $txList) {
+            $s = [string](Get-ObjectPropertyValue -Object $tx -Name 'Symbol')
+            foreach ($pt in @($PriceCache[$s])) {
+                $d = ([datetime]$pt.Date).Date
+                if ($d -ge $start.Date) { $dateSet[$d] = $true }
+            }
+        }
+        $axis = @($dateSet.Keys | Sort-Object)
+        if ($axis.Count -eq 0) { continue }
+
+        $points = [System.Collections.Generic.List[object]]::new()
+        foreach ($day in $axis) {
+            # O gune kadar gerceklesen islemlerden holding seti
+            $holdings = @{}
+            foreach ($tx in $txList) {
+                $txDate = [datetime](Get-ObjectPropertyValue -Object $tx -Name 'ExecutionDate')
+                if ($txDate.Date -gt $day) { break }
+                $s = [string](Get-ObjectPropertyValue -Object $tx -Name 'Symbol')
+                $qty = [double](Get-ObjectPropertyValue -Object $tx -Name 'Quantity')
+                $act = [string](Get-ObjectPropertyValue -Object $tx -Name 'Action')
+                $delta = if ($act -match 'SAT') { - $qty } else { $qty }
+                if ($holdings.ContainsKey($s)) { $holdings[$s] += $delta } else { $holdings[$s] = $delta }
+            }
+            $value = 0.0; $priced = $true
+            foreach ($s in @($holdings.Keys)) {
+                $q = [double]$holdings[$s]
+                if ([Math]::Abs($q) -lt 1e-9) { continue }
+                $pt = Get-PerfPointOnOrBefore -Points @($PriceCache[$s]) -Date $day
+                if ($null -eq $pt) { $priced = $false; break }
+                $value += $q * [double]$pt.Close
+            }
+            if ($priced -and $value -gt 0) {
+                [void]$points.Add([pscustomobject]@{ Date = $day; ReturnPct = [Math]::Round((($value / $initial) - 1.0) * 100.0, 2) })
+            }
+        }
+        if ($points.Count -gt 0) {
+            [void]$result.Add([pscustomobject]@{ Name = $name; Points = $points.ToArray() })
+        }
+    }
+    return @($result.ToArray())
+}
+
+function Get-BenchmarkPerformanceSeries {
+    <#
+        BIST100, Altin, Mevduat, Nasdaq, S&P500'un StartDate'ten bugune TRY bazinda
+        gun gun % getiri serisi. Yabanci varliklar (altin/Nasdaq/S&P500) USD/TRY ile
+        TRY'ye cevrilir. Mevduat EVDS APIFON serisinden bilesik birikimle yaklasiktir.
+        Tum seriler StartDate'te %0'dan baslar. Erisilemeyen kaynak atlanir.
+        Donus: [{ Name, Points: [{Date, ReturnPct}] }]
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][datetime]$StartDate,
+        [int]$TimeoutSec = 10
+    )
+
+    $start = $StartDate.Date
+    $usdtry = @(Get-YahooDailyCloseSeries -Symbol 'USDTRY=X' -Range '1y' -TimeoutSec $TimeoutSec -AsRawTicker)
+    $bist = @(Get-YahooDailyCloseSeries -Symbol 'XU100' -Range '1y' -TimeoutSec $TimeoutSec)
+    $gold = @(Get-YahooDailyCloseSeries -Symbol 'GC=F' -Range '1y' -TimeoutSec $TimeoutSec -AsRawTicker)
+    $nasdaq = @(Get-YahooDailyCloseSeries -Symbol '^IXIC' -Range '1y' -TimeoutSec $TimeoutSec -AsRawTicker)
+    $sp500 = @(Get-YahooDailyCloseSeries -Symbol '^GSPC' -Range '1y' -TimeoutSec $TimeoutSec -AsRawTicker)
+
+    # Ortak tarih ekseni: BIST islem gunleri (StartDate sonrasi)
+    $axis = @($bist | Where-Object { ([datetime]$_.Date).Date -ge $start } | ForEach-Object { ([datetime]$_.Date).Date } | Sort-Object -Unique)
+    if ($axis.Count -lt 2) { return @() }
+
+    # TRY seviyesi ureten yardimci (yabanci varlik × USD/TRY)
+    $tryLevel = {
+        param($Series, $Day, $Fx)
+        $p = Get-PerfPointOnOrBefore -Points @($Series) -Date $Day
+        if ($null -eq $p) { return $null }
+        if ($Fx) {
+            $f = Get-PerfPointOnOrBefore -Points @($Fx) -Date $Day
+            if ($null -eq $f) { return $null }
+            return [double]$p.Close * [double]$f.Close
+        }
+        return [double]$p.Close
+    }
+
+    $defs = @(
+        @{ Name = 'BIST100'; Series = $bist; Fx = $null }
+        @{ Name = 'Altın (TRY)'; Series = $gold; Fx = $usdtry }
+        @{ Name = 'Nasdaq (TRY)'; Series = $nasdaq; Fx = $usdtry }
+        @{ Name = 'S&P 500 (TRY)'; Series = $sp500; Fx = $usdtry }
+    )
+
+    $result = [System.Collections.Generic.List[object]]::new()
+    foreach ($d in $defs) {
+        if (@($d.Series).Count -lt 2) { continue }
+        $base = & $tryLevel $d.Series $axis[0] $d.Fx
+        if ($null -eq $base -or $base -le 0) { continue }
+        $pts = [System.Collections.Generic.List[object]]::new()
+        foreach ($day in $axis) {
+            $lvl = & $tryLevel $d.Series $day $d.Fx
+            if ($null -ne $lvl -and $lvl -gt 0) {
+                [void]$pts.Add([pscustomobject]@{ Date = $day; ReturnPct = [Math]::Round((($lvl / $base) - 1.0) * 100.0, 2) })
+            }
+        }
+        if ($pts.Count -gt 0) { [void]$result.Add([pscustomobject]@{ Name = $d.Name; Points = $pts.ToArray() }) }
+    }
+
+    # Mevduat (EVDS APIFON gunluk oran -> bilesik birikim). Anahtar yoksa atlanir.
+    $rateSeries = Get-EvdsSeries -Series 'TP.APIFON4' -Frequency 1 -StartDate $start.AddDays(-10) -EndDate (Get-Date) -TimeoutSec $TimeoutSec
+    if ($null -ne $rateSeries) {
+        $ratePts = @(Get-ObjectPropertyValue -Object $rateSeries -Name 'Points' | ForEach-Object {
+                $dt = $null
+                $ok = [datetime]::TryParseExact([string]$_.Date, 'dd-MM-yyyy', [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::None, [ref]$dt)
+                if ($ok) { [pscustomobject]@{ Date = $dt.Date; Value = [double]$_.Value } }
+            } | Where-Object { $_ } | Sort-Object Date)
+        if ($ratePts.Count -gt 0) {
+            $pts = [System.Collections.Generic.List[object]]::new()
+            $acc = 1.0; $prevDay = $axis[0]
+            foreach ($day in $axis) {
+                $rp = Get-PerfPointOnOrBefore -Points $ratePts -Date $day
+                $annual = if ($null -ne $rp) { [double]$rp.Value } else { 0.0 }
+                $days = ($day - $prevDay).TotalDays
+                if ($days -gt 0) { $acc *= [Math]::Pow(1.0 + ($annual / 100.0), $days / 365.0) }
+                $prevDay = $day
+                [void]$pts.Add([pscustomobject]@{ Date = $day; ReturnPct = [Math]::Round(($acc - 1.0) * 100.0, 2) })
+            }
+            [void]$result.Add([pscustomobject]@{ Name = 'Mevduat (yaklaşık)'; Points = $pts.ToArray() })
+        }
+    }
+
+    return @($result.ToArray())
+}
+
+function New-PerformanceComparisonChart {
+    <#
+        Strateji + benchmark serilerini tek bir cizgi grafige (QuickChart.io;
+        X=tarih, Y=% getiri) cevirir ve QuickChart'in KALICI gorsel URL'sini dondurur
+        (/chart/create). Bu URL e-postada <img src> olarak kullanilir; Gmail dis
+        gorseli CID'den daha tutarli gosterir. Basari: URL; aksi halde $null.
+        Best-effort: QuickChart erisilemezse cagiran grafigi atlar.
+    #>
+    [CmdletBinding()]
+    param(
+        [object[]]$StrategySeries = @(),
+        [object[]]$BenchmarkSeries = @(),
+        [int]$TimeoutSec = 25
+    )
+
+    $all = @(@($StrategySeries) + @($BenchmarkSeries) | Where-Object { $_ -and @($_.Points).Count -gt 0 })
+    if ($all.Count -eq 0) { return $null }
+
+    # Ortak etiketler: tum tarihlerin birlesimi (sirali)
+    $labelSet = @{}
+    foreach ($s in $all) { foreach ($pt in @($s.Points)) { $labelSet[([datetime]$pt.Date).Date] = $true } }
+    $labels = @($labelSet.Keys | Sort-Object)
+    if ($labels.Count -lt 2) { return $null }
+    $labelText = @($labels | ForEach-Object { $_.ToString('dd.MM') })
+
+    # Renk paleti (strateji=canli, benchmark=daha notr/kesik)
+    $stratColors = @('#2563eb', '#16a34a', '#9333ea', '#0891b2', '#ea580c', '#db2777')
+    $benchColors = @('#dc2626', '#ca8a04', '#6b7280', '#0d9488', '#1e3a8a')
+
+    $datasets = [System.Collections.Generic.List[object]]::new()
+    $ci = 0
+    foreach ($s in @($StrategySeries | Where-Object { $_ -and @($_.Points).Count -gt 0 })) {
+        $map = @{}; foreach ($pt in @($s.Points)) { $map[([datetime]$pt.Date).Date] = [double]$pt.ReturnPct }
+        $data = @($labels | ForEach-Object { if ($map.ContainsKey($_)) { $map[$_] } else { $null } })
+        [void]$datasets.Add([ordered]@{ label = [string]$s.Name; data = $data; borderColor = $stratColors[$ci % $stratColors.Count]; backgroundColor = $stratColors[$ci % $stratColors.Count]; fill = $false; borderWidth = 2; pointRadius = 0; spanGaps = $true; tension = 0.2 })
+        $ci++
+    }
+    $ci = 0
+    foreach ($s in @($BenchmarkSeries | Where-Object { $_ -and @($_.Points).Count -gt 0 })) {
+        $map = @{}; foreach ($pt in @($s.Points)) { $map[([datetime]$pt.Date).Date] = [double]$pt.ReturnPct }
+        $data = @($labels | ForEach-Object { if ($map.ContainsKey($_)) { $map[$_] } else { $null } })
+        [void]$datasets.Add([ordered]@{ label = [string]$s.Name; data = $data; borderColor = $benchColors[$ci % $benchColors.Count]; backgroundColor = $benchColors[$ci % $benchColors.Count]; fill = $false; borderWidth = 2; borderDash = @(6, 4); pointRadius = 0; spanGaps = $true; tension = 0.2 })
+        $ci++
+    }
+
+    $config = [ordered]@{
+        type = 'line'
+        data = [ordered]@{ labels = $labelText; datasets = $datasets.ToArray() }
+        options = [ordered]@{
+            plugins = [ordered]@{
+                title  = [ordered]@{ display = $true; text = '100.000 TL ile getiri karşılaştırması (%)' }
+                legend = [ordered]@{ position = 'bottom'; labels = [ordered]@{ boxWidth = 12; font = [ordered]@{ size = 10 } } }
+            }
+            scales = [ordered]@{
+                x = [ordered]@{ title = [ordered]@{ display = $true; text = 'Tarih' } }
+                y = [ordered]@{ title = [ordered]@{ display = $true; text = '% getiri' } }
+            }
+        }
+    }
+
+    $payload = [ordered]@{ width = 860; height = 480; backgroundColor = 'white'; chart = $config }
+    $json = $payload | ConvertTo-Json -Depth 20 -Compress
+    # Windows PowerShell 5.1 string govdeyi UTF-8 gondermez -> Turkce karakterler
+    # bozulur (Portf�y�). Govdeyi UTF-8 byte dizisi olarak yolla + charset belirt.
+    $bodyBytes = [System.Text.Encoding]::UTF8.GetBytes($json)
+    try {
+        $resp = Invoke-WithRetry -OperationName 'QuickChart' -MaxAttempts 2 -BaseDelaySec 1 -ScriptBlock {
+            Invoke-RestMethod -Uri 'https://quickchart.io/chart/create' -Method Post -Body $bodyBytes -ContentType 'application/json; charset=utf-8' -TimeoutSec $TimeoutSec -ErrorAction Stop
+        }
+    }
+    catch { return $null }
+    $url = Get-ObjectPropertyValue -Object $resp -Name 'url'
+    if (-not [string]::IsNullOrWhiteSpace($url)) { return [string]$url } else { return $null }
+}
+
+# ===========================================================================
+#  FAZ A — Gozlem modu gostergeleri (skoru/portfoyu ETKILEMEZ; yalniz raporda)
+# ===========================================================================
+
+function Get-MarketBreadth {
+    <#
+        Piyasa genisligi: taranan tum evrende "kaç hisse trendde?" sorusunu olcer.
+        Endeks birkac dev hisseyle yukseliyor olabilir; genislik bunu yakalar.
+        Ekstra veri GEREKMEZ — mevcut tarama ($Stocks) uzerinde sayim yapar.
+        Donus: oranlar (%) + ozet etiket. Skoru/secimi DEGISTIRMEZ (gozlem modu).
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][object[]]$Stocks)
+
+    $aboveSma200 = 0; $sma200Total = 0
+    $aboveSma50 = 0; $sma50Total = 0
+    $posMonth = 0; $monthTotal = 0
+    $stackedUp = 0; $stackedTotal = 0   # 50 > 200 dizilim (yukseli trend yapisi)
+
+    foreach ($s in $Stocks) {
+        $price = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'Price')
+        $sma50 = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'SMA50')
+        $sma200 = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'SMA200')
+        $perfM = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'PerfMonth')
+
+        if ($null -ne $price -and $null -ne $sma200 -and $sma200 -gt 0) { $sma200Total++; if ($price -ge $sma200) { $aboveSma200++ } }
+        if ($null -ne $price -and $null -ne $sma50 -and $sma50 -gt 0) { $sma50Total++; if ($price -ge $sma50) { $aboveSma50++ } }
+        if ($null -ne $perfM) { $monthTotal++; if ($perfM -gt 0) { $posMonth++ } }
+        if ($null -ne $sma50 -and $null -ne $sma200 -and $sma200 -gt 0) { $stackedTotal++; if ($sma50 -ge $sma200) { $stackedUp++ } }
+    }
+
+    $pct = { param($n, $d) if ($d -gt 0) { [Math]::Round(($n / [double]$d) * 100.0, 1) } else { $null } }
+    $aboveSma200Pct = & $pct $aboveSma200 $sma200Total
+
+    # Ozet etiket: SMA200 ustu orani genel rejim gostergesidir.
+    $label = 'Veri Yok'
+    if ($null -ne $aboveSma200Pct) {
+        $label = if ($aboveSma200Pct -ge 60) { 'Genis (güçlü katılım)' }
+        elseif ($aboveSma200Pct -ge 40) { 'Orta' }
+        else { 'Dar (zayıf katılım)' }
+    }
+
+    return [pscustomobject][ordered]@{
+        AboveSMA200Pct = $aboveSma200Pct
+        AboveSMA50Pct  = & $pct $aboveSma50 $sma50Total
+        PositiveMonthPct = & $pct $posMonth $monthTotal
+        StackedUpPct   = & $pct $stackedUp $stackedTotal   # 50 >= 200 dizilimi
+        SampleCount    = $sma200Total
+        Label          = $label
+        Note           = 'Gözlem modu: piyasa genişliği yalnız bağlam içindir; skoru/seçimi etkilemez.'
+    }
+}
+
+function Add-RelativeStrengthRank {
+    <#
+        Hisse-bazli goreli guc (RS) sirasi: her hissenin getirisini BIST100'e gore
+        kesitsel persentile (0-100) cevirir. "Mutlak yukseldi mi" degil "endeksten
+        daha mi iyi" olcer. Skorlanmis hisseler Bist100Perf* alanlarini icerir.
+        Her hisseye RelativeStrengthRank (0-100) ekler. Skoru DEGISTIRMEZ (gozlem).
+        Bilesik fazla getiri = 0.5*3A + 0.3*1Y + 0.2*1A (endekse gore).
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][object[]]$Stocks)
+
+    $excessOf = {
+        param($s)
+        $g = { param($n) ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name $n) }
+        $m = & $g 'PerfMonth'; $q = & $g 'Perf3Month'; $y = & $g 'PerfYear'
+        $bm = & $g 'Bist100PerfMonth'; $bq = & $g 'Bist100Perf3Month'; $by = & $g 'Bist100PerfYear'
+        # Eksik endeks getirisi 0 kabul edilir (mutlak getiriye duser).
+        $bmv = if ($null -ne $bm) { [double]$bm } else { 0.0 }
+        $bqv = if ($null -ne $bq) { [double]$bq } else { 0.0 }
+        $byv = if ($null -ne $by) { [double]$by } else { 0.0 }
+        $em = if ($null -ne $m) { [double]$m - $bmv } else { $null }
+        $eq = if ($null -ne $q) { [double]$q - $bqv } else { $null }
+        $ey = if ($null -ne $y) { [double]$y - $byv } else { $null }
+        $parts = @(); $w = 0.0; $acc = 0.0
+        if ($null -ne $eq) { $acc += 0.5 * $eq; $w += 0.5 }
+        if ($null -ne $ey) { $acc += 0.3 * $ey; $w += 0.3 }
+        if ($null -ne $em) { $acc += 0.2 * $em; $w += 0.2 }
+        if ($w -le 0) { return $null }
+        return $acc / $w
+    }
+
+    $stocksArr = @($Stocks)
+    $scoresList = [System.Collections.Generic.List[double]]::new()
+    $excessVals = @{}
+    for ($i = 0; $i -lt $stocksArr.Count; $i++) {
+        $e = & $excessOf $stocksArr[$i]
+        $excessVals[$i] = $e
+        if ($null -ne $e) { [void]$scoresList.Add([double]$e) }
+    }
+    $sorted = @($scoresList.ToArray() | Sort-Object)
+    $n = $sorted.Count
+
+    for ($i = 0; $i -lt $stocksArr.Count; $i++) {
+        $rank = $null
+        $e = $excessVals[$i]
+        if ($null -ne $e -and $n -gt 1) {
+            # persentil: kendisinden kucuk/esit olanlarin orani
+            $below = 0
+            foreach ($v in $sorted) { if ($v -le $e) { $below++ } }
+            $rank = [Math]::Round((($below - 1) / [double]($n - 1)) * 100.0, 0)
+            if ($rank -lt 0) { $rank = 0 }
+        }
+        elseif ($null -ne $e -and $n -eq 1) { $rank = 50 }
+        $stocksArr[$i] | Add-Member -NotePropertyName 'RelativeStrengthRank' -NotePropertyValue $rank -Force
+    }
+    return $stocksArr
+}
+
 Export-ModuleMember -Function `
     Invoke-WithRetry, `
     Update-SignalPerformance, `
@@ -5577,6 +6293,7 @@ Export-ModuleMember -Function `
     Add-DataQualityAssessment, `
     Update-EarningsReactions, `
     Get-KapDisclosures, `
+    Get-StoredKapDisclosures, `
     Get-YahooDailyCloseSeries, `
     Get-YahooDailyOhlcSeries, `
     Invoke-BistStockScan, `
@@ -5595,4 +6312,10 @@ Export-ModuleMember -Function `
     New-ModelPortfolioSet, `
     Update-ModelPortfolioSet, `
     Save-PitSnapshot, `
-    Get-PitSnapshot
+    Get-PitSnapshot, `
+    Get-StrategyPerformanceSeries, `
+    Get-BenchmarkPerformanceSeries, `
+    New-PerformanceComparisonChart, `
+    Get-MarketBreadth, `
+    Add-RelativeStrengthRank, `
+    Get-StrategySelectionScore
