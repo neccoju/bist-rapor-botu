@@ -476,6 +476,52 @@ if ($valHits -lt 4) { throw "Değer portföyü değer hisselerini öne çıkarma
 if ($overlap -ge 3) { throw "Momentum ve Değer portföyleri hâlâ büyük ölçüde örtüşüyor (kesişim=$overlap): $($momTop -join ', ') vs $($valTop -join ', ')" }
 Write-Host "Strateji ayrışma testi başarılı (Momentum=$($momTop -join ','); Değer=$($valTop -join ','); kesişim=$overlap)."
 
+# --- Sektör yoğunlaşma tavanı (Get-SectorCappedWeights) ---
+# 5 isim eşit ağırlık (%20); ikisi aynı sektör (%40). Tavan %35 -> o sektör %35'e
+# inmeli, serbest kalan %5 diğer isimlere dağılmalı, toplam %100 korunmalı.
+$capW = @{ S1 = 0.2; S2 = 0.2; S3 = 0.2; S4 = 0.2; S5 = 0.2 }
+$capM = @{ S1 = 'Banka'; S2 = 'Banka'; S3 = 'Demir-Çelik'; S4 = 'Gıda'; S5 = 'Enerji' }
+$capped = & (Get-Module 'BistScanner.Core') {
+    param($w, $m) Get-SectorCappedWeights -Weights $w -SectorMap $m -SectorMaxWeight 0.35
+} $capW $capM
+$bankaTotal = [double]$capped['S1'] + [double]$capped['S2']
+$capSum = 0.0; foreach ($k in $capped.Keys) { $capSum += [double]$capped[$k] }
+if ($bankaTotal -gt 0.3501) { throw "Sektör tavanı uygulanmadı: Banka ağırlığı %$([Math]::Round($bankaTotal*100,2)) > %35" }
+if ([Math]::Abs($capSum - 1.0) -gt 1e-6) { throw "Sektör tavanı sonrası ağırlık toplamı 1 değil: $capSum" }
+if ([double]$capped['S3'] -le 0.2 -or [double]$capped['S4'] -le 0.2) { throw "Serbest kalan ağırlık tavan-altı isimlere dağıtılmadı." }
+# Tek sektör tavanı aşmıyorsa ağırlıklar değişmemeli (idempotent / no-op).
+$noopW = @{ A = 0.34; B = 0.33; C = 0.33 }
+$noopM = @{ A = 'X'; B = 'Y'; C = 'Z' }
+$noop = & (Get-Module 'BistScanner.Core') {
+    param($w, $m) Get-SectorCappedWeights -Weights $w -SectorMap $m -SectorMaxWeight 0.35
+} $noopW $noopM
+if ([Math]::Abs([double]$noop['A'] - 0.34) -gt 1e-9) { throw "Tavan altı portföy gereksiz yere değişti." }
+Write-Host "Sektör yoğunlaşma tavanı testi başarılı (Banka %$([Math]::Round($bankaTotal*100,2)) ≤ %35, toplam=%$([Math]::Round($capSum*100,2)))."
+
+# --- Anlık fırsat portföyü risk çıkışı (Get-InstantEntryExitDecision) ---
+$exitRules = [pscustomobject]@{ StopLossPct = -8.0; TakeProfitPct = 18.0; TrailingStopPct = 7.0 }
+# 1) Tut: küçük kazanç, tepe yakın -> çıkış yok.
+$hHold = [pscustomobject]@{ UnrealizedGainPct = 4.0; CurrentPrice = 104; PeakPrice = 105; PeakGainPct = 5.0 }
+if ($null -ne (Get-InstantEntryExitDecision -Holding $hHold -Rules $exitRules)) { throw "Risk çıkışı: tutulması gereken pozisyon satıldı." }
+# 2) Zarar kes: -9% <= -8 stop.
+$hStop = [pscustomobject]@{ UnrealizedGainPct = -9.0; CurrentPrice = 91; PeakPrice = 100; PeakGainPct = 0.0 }
+$dStop = Get-InstantEntryExitDecision -Holding $hStop -Rules $exitRules
+if ($null -eq $dStop -or $dStop.Kind -ne 'Stop') { throw "Risk çıkışı: stop-loss tetiklenmedi (Kind=$($dStop.Kind))." }
+# 3) Kâr al: +20% >= 18 hedef.
+$hTake = [pscustomobject]@{ UnrealizedGainPct = 20.0; CurrentPrice = 120; PeakPrice = 122; PeakGainPct = 22.0 }
+$dTake = Get-InstantEntryExitDecision -Holding $hTake -Rules $exitRules
+if ($null -eq $dTake -or $dTake.Kind -ne 'TakeProfit') { throw "Risk çıkışı: take-profit tetiklenmedi (Kind=$($dTake.Kind))." }
+# 4) İz-süren stop: tepe kazanç %25 (≥7), tepeden %8 geri (≤ -7), genel getiri %10 (<18).
+$hTrail = [pscustomobject]@{ UnrealizedGainPct = 10.0; CurrentPrice = 115; PeakPrice = 125; PeakGainPct = 25.0 }
+$dTrail = Get-InstantEntryExitDecision -Holding $hTrail -Rules $exitRules
+if ($null -eq $dTrail -or $dTrail.Kind -ne 'Trailing') { throw "Risk çıkışı: trailing stop tetiklenmedi (Kind=$($dTrail.Kind))." }
+# 5) İz-süren stop devrede değil: tepe kazanç %5 (<7) -> düşüş olsa da satma.
+$hNoTrail = [pscustomobject]@{ UnrealizedGainPct = -2.0; CurrentPrice = 95; PeakPrice = 103; PeakGainPct = 5.0 }
+if ($null -ne (Get-InstantEntryExitDecision -Holding $hNoTrail -Rules $exitRules)) { throw "Risk çıkışı: armlanmamış trailing yanlışlıkla tetiklendi." }
+# 6) Kural yoksa hiçbir çıkış olmaz.
+if ($null -ne (Get-InstantEntryExitDecision -Holding $hStop -Rules $null)) { throw "Risk çıkışı: kural yokken çıkış üretildi." }
+Write-Host "Anlık fırsat risk çıkışı testi başarılı (stop/kar-al/iz-süren stop ayrışıyor)."
+
 # --- Faz A gözlem modu: Piyasa genişliği (Get-MarketBreadth) ---
 $breadthStocks = @(
     [pscustomobject]@{ Symbol = 'A'; Price = 110; SMA50 = 100; SMA200 = 90; PerfMonth = 5 }
@@ -558,6 +604,28 @@ try {
 }
 finally {
     Remove-Item -LiteralPath $kapTmp -ErrorAction SilentlyContinue
+}
+
+# --- Point-in-time (PIT) anlik goruntu deposu: kaydet/oku, exact + on-or-before ---
+$pitDir = Join-Path ([System.IO.Path]::GetTempPath()) ("pit_test_" + [guid]::NewGuid())
+try {
+    $pitStocks = @(
+        ($sample | Select-Object *),
+        ([pscustomobject]@{ Symbol = 'TEST2'; Price = 50.0; MarketCap = 5e9; PE = 7.0; PB = 1.0; ROE = 18.0; DebtToEquity = 30.0; DividendYield = 1.0; Sector = 'Finance'; VolatilityD = 3.0; AverageVolume10D = 1e6; LatestReportDate = $null; NextEarningsDate = $null; FiscalPeriodEnd = $null })
+    )
+    $savedPath = Save-PitSnapshot -Stocks $pitStocks -Directory $pitDir -AsOf ([datetime]'2026-06-16')
+    if (-not (Test-Path -LiteralPath $savedPath)) { throw 'PIT anlik goruntu dosyasi yazilmadi.' }
+    $pitRead = Get-PitSnapshot -Date ([datetime]'2026-06-16') -Directory $pitDir
+    if ($pitRead.UniverseCount -ne 2) { throw "PIT evren sayisi yanlis: $($pitRead.UniverseCount)" }
+    if (@($pitRead.Constituents | Where-Object { $_.Symbol -eq 'TEST' }).Count -ne 1) { throw 'PIT bilesen kaybi.' }
+    $pitMissing = Get-PitSnapshot -Date ([datetime]'2026-06-10') -Directory $pitDir
+    if ($null -ne $pitMissing) { throw 'PIT exact-eslesme yoksa null donmeliydi.' }
+    $pitBefore = Get-PitSnapshot -Date ([datetime]'2026-06-20') -Directory $pitDir -OnOrBefore
+    if ($null -eq $pitBefore) { throw 'PIT on-or-before en yakin onceki kaydi dondurmedi.' }
+    Write-Host "PIT anlik goruntu deposu testi başarılı (evren $($pitRead.UniverseCount), on-or-before OK)."
+}
+finally {
+    if (Test-Path -LiteralPath $pitDir) { Remove-Item -LiteralPath $pitDir -Recurse -Force -ErrorAction SilentlyContinue }
 }
 
 if ($Live) {

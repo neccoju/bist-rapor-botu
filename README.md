@@ -496,6 +496,8 @@ sütununda gösterir. **Gözlem modu — karar etkisi yok.**
   `latest_point_in_time_snapshot.json` ve `point_in_time_snapshots/*.json`.
   Ayrıca KAP hattı: `kap_disclosures.json` (collector) ve `kap_enrichment.json`
   (enrich/LLM yorumları).
+- `data/pit/` — point-in-time anlık görüntü arşivi (tarihli `YYYY-MM-DD.json`;
+  her gün gözlenen evren + temel veri, ileri-bakış olmadan biriker).
 
 ### Analiz / araştırma araçları (elle tetiklenir; günlük raporu etkilemez)
 
@@ -521,6 +523,8 @@ sütununda gösterir. **Gözlem modu — karar etkisi yok.**
 > rakamları **iyimser üst sınırdır**. Yanlılıksız ölçüm için bot **ileriye dönük
 > canlı alfa**yı izler.
 
+## Kurumsal-Seviye Altyapı
+
 ### Gerçek Event-Driven Backtest Motoru (`BacktestEngine.psm1`)
 
 Eski "aylık döngü" yaklaşımının aksine motor **günlük olay ekseninde** ilerler:
@@ -535,6 +539,9 @@ eşitlik eğrisi. Çekirdek **ağsızdır ve deterministik test edilir**:
 `Test-BacktestEngine.ps1` elle hesaplanmış "golden" değerlerle defter korunumu,
 maliyet, ADV sınırı, alım/satım geçişi ve metrikleri doğrular; backtest
 workflow'unda **kapı** görevi görür.
+
+Çalıştırma: `Actions → Model Portfolio Backtest (Event-Driven) → Run workflow`.
+Komisyon/kayma/likidite parametreleri girişten ayarlanır.
 
 #### Örnek canlı koşu (Eylül 2024 → Haziran 2026)
 
@@ -561,6 +568,24 @@ komisyon 15 + kayma 10 bps + karekök piyasa-etkisi + ADV likidite sınırı (`%
 > as-reported temel veri yoktur. Sayılar uydurulmaz; gerçek/yanlılıksız ölçüm için
 > bot **ileriye dönük canlı alfa**yı izler. Parametreler `Run workflow` ile
 > değiştirilebildiği için sonuç değişir.
+
+### Point-in-Time (PIT) Anlık Görüntü Arşivi (`data/pit/`)
+
+Geçmiş **as-reported** temel veri ve delist-dahil bileşen listesi ücretsiz
+kaynaklarda yoktur; bu yüzden geçmişe dönük PIT **üretilemez**. Bunun yerine bot,
+her çalışmada **o gün gözlenen** evreni + temel/teknik alanları tarihli JSON olarak
+(`data/pit/YYYY-MM-DD.json`) biriktirir ve git'e commit'ler. Zamanla, ileri-bakış
+içeremeyen **gerçek bir as-observed PIT arşivi** oluşur; ileride backtest'ler bu
+arşivden gerçek temel veriyle beslenebilir hale gelir.
+
+- Yazan: `Save-PitSnapshot` (günde tek dosya, idempotent), günlük raporda best-effort.
+- Okuyan: `Get-PitSnapshot -Date <gün> [-OnOrBefore]` (tam eşleşme ya da en yakın
+  önceki gün).
+
+> Dürüst kısıt: bu motor ve PIT arşivi mimariyi **kurumsal seviyeye** taşır, ancak
+> *gerçek tick verisi, broker emir-defteri dolumu ve geçmiş as-reported PIT temel
+> veri* hâlâ ücretsiz değildir. Survivorship arşiv biriktikçe ileriye dönük olarak
+> azalır; rakamlar uydurulmaz, kısıtlar açıkça belirtilir.
 
 ## Gerekli GitHub Secrets
 

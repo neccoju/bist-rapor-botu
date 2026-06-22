@@ -875,6 +875,16 @@ function Update-InstantEntryPortfolioValuation {
         $totalInvested += [double]$costBasis
         $totalValue += $currentValue
 
+        # Iz-suren stop icin tepe fiyat (high-water mark): gozlenen en yuksek fiyat.
+        $storedPeak = Get-NumberValue -Object $holding -Name 'PeakPrice'
+        $peakPrice = [double]$currentPrice
+        if ($null -ne $averageBuyPrice -and [double]$averageBuyPrice -gt $peakPrice) { $peakPrice = [double]$averageBuyPrice }
+        if ($null -ne $storedPeak -and [double]$storedPeak -gt $peakPrice) { $peakPrice = [double]$storedPeak }
+        $peakGainPct = if ($null -ne $averageBuyPrice -and [double]$averageBuyPrice -gt 0) {
+            (($peakPrice - [double]$averageBuyPrice) / [double]$averageBuyPrice) * 100.0
+        }
+        else { 0.0 }
+
         [void]$holdings.Add([pscustomobject][ordered]@{
                 Symbol = $symbol
                 Company = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $holding -Name 'Company')
@@ -887,6 +897,8 @@ function Update-InstantEntryPortfolioValuation {
                 WeightPct = 0.0
                 UnrealizedGainTL = [Math]::Round($gain, 2)
                 UnrealizedGainPct = [Math]::Round($gainPct, 2)
+                PeakPrice = [Math]::Round([double]$peakPrice, 4)
+                PeakGainPct = [Math]::Round([double]$peakGainPct, 2)
                 FirstBuyAt = Get-ObjectPropertyValue -Object $holding -Name 'FirstBuyAt'
                 FirstBuyAtText = Get-ObjectPropertyValue -Object $holding -Name 'FirstBuyAtText'
                 LastBuyAt = Get-ObjectPropertyValue -Object $holding -Name 'LastBuyAt'
@@ -920,6 +932,11 @@ function Update-InstantEntryPortfolioValuation {
     $transactions = @(Get-ObjectPropertyValue -Object $Portfolio -Name 'Transactions')
     $gain = $totalValue - $totalInvested
     $returnPct = if ($totalInvested -gt 0) { ($gain / $totalInvested) * 100.0 } else { 0.0 }
+    # Gerceklesen (kapatilmis pozisyon) K/Z kumulatif tasinir (stop/kar-al cikislari).
+    $realizedGain = Get-NumberValue -Object $Portfolio -Name 'RealizedGainTL'
+    $realizedCost = Get-NumberValue -Object $Portfolio -Name 'RealizedCostTL'
+    if ($null -eq $realizedGain) { $realizedGain = 0.0 }
+    if ($null -eq $realizedCost) { $realizedCost = 0.0 }
 
     return [pscustomobject][ordered]@{
         Version = 1
@@ -934,6 +951,8 @@ function Update-InstantEntryPortfolioValuation {
         CurrentValueTL = [Math]::Round($totalValue, 2)
         TotalGainTL = [Math]::Round($gain, 2)
         TotalReturnPct = [Math]::Round($returnPct, 2)
+        RealizedGainTL = [Math]::Round([double]$realizedGain, 2)
+        RealizedCostTL = [Math]::Round([double]$realizedCost, 2)
         LastBuyDate = $lastBuyDate
         LastBuyDateText = $lastBuyDateText
         StatusNote = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $Portfolio -Name 'StatusNote')
@@ -951,7 +970,8 @@ function Update-InstantEntrySignalPortfolio {
         [datetime]$AsOf,
         [double]$DailyBudgetTL = 5000,
         [double]$MinBuyScore = 90,
-        [int]$MaxBuysPerDay = 3
+        [int]$MaxBuysPerDay = 3,
+        $RiskRules = $null
     )
 
     if ($null -eq $Portfolio -or $null -eq (Get-ObjectPropertyValue -Object $Portfolio -Name 'Holdings')) {
@@ -989,6 +1009,52 @@ function Update-InstantEntrySignalPortfolio {
         $symbol = [string](Get-ObjectPropertyValue -Object $holding -Name 'Symbol')
         if (-not [string]::IsNullOrWhiteSpace($symbol)) {
             $holdingsBySymbol[$symbol] = $holding
+        }
+    }
+
+    # --- Risk cikislari (YALNIZ bu portfoy): stop-loss / kar-al / iz-suren stop ---
+    # Model portfoyler aylik kalir; anlik firsat portfoyu gunluk kapanista risk
+    # kurallariyla pozisyon kapatir (teorik; gercek emir gonderilmez). Kapatilan
+    # pozisyonun K/Z'si RealizedGainTL'de kumulatif birikir (survivorship olmasin).
+    $realizedGain = Get-NumberValue -Object $valuedPortfolio -Name 'RealizedGainTL'
+    $realizedCost = Get-NumberValue -Object $valuedPortfolio -Name 'RealizedCostTL'
+    if ($null -eq $realizedGain) { $realizedGain = 0.0 }
+    if ($null -eq $realizedCost) { $realizedCost = 0.0 }
+    $soldSymbols = [System.Collections.Generic.List[string]]::new()
+    if ($null -ne $RiskRules) {
+        $sellSequence = $transactions.Count + 1
+        foreach ($symbol in @($holdingsBySymbol.Keys)) {
+            $holding = $holdingsBySymbol[$symbol]
+            # Bayat fiyatla (canli fiyat yok) cikis kararini verme.
+            if (-not (Get-ObjectPropertyValue -Object $holding -Name 'PriceIsFresh')) { continue }
+            $exit = Get-InstantEntryExitDecision -Holding $holding -Rules $RiskRules
+            if ($null -eq $exit) { continue }
+
+            $sellQuantity = Get-NumberValue -Object $holding -Name 'Quantity'
+            $sellPrice = Get-NumberValue -Object $holding -Name 'CurrentPrice'
+            $sellValue = Get-NumberValue -Object $holding -Name 'CurrentValueTL'
+            $sellCost = Get-NumberValue -Object $holding -Name 'CostBasisTL'
+            $sellGain = Get-NumberValue -Object $holding -Name 'UnrealizedGainTL'
+            if ($null -eq $sellGain) { $sellGain = 0.0 }
+            if ($null -eq $sellCost) { $sellCost = 0.0 }
+            $realizedGain = [double]$realizedGain + [double]$sellGain
+            $realizedCost = [double]$realizedCost + [double]$sellCost
+
+            [void]$transactions.Add((New-InstantEntryPortfolioTransaction `
+                        -Sequence $sellSequence `
+                        -ExecutionDate $AsOf `
+                        -Action 'SAT' `
+                        -Symbol $symbol `
+                        -Company (ConvertTo-PlainText (Get-ObjectPropertyValue -Object $holding -Name 'Company')) `
+                        -Price $sellPrice `
+                        -Quantity $sellQuantity `
+                        -AmountTL $sellValue `
+                        -SignalScore $null `
+                        -SignalLabel $exit.Kind `
+                        -Note ('{0} Gerçekleşen K/Z {1:N2} TL.' -f $exit.Reason, [double]$sellGain)))
+            $sellSequence++
+            [void]$soldSymbols.Add(('{0} ({1})' -f $symbol, $exit.Kind))
+            [void]$holdingsBySymbol.Remove($symbol)
         }
     }
 
@@ -1071,6 +1137,15 @@ function Update-InstantEntrySignalPortfolio {
                 $score = Get-NumberValue -Object $candidate -Name 'EntryOpportunityScore'
                 $label = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $candidate -Name 'WeeklyHistogramLabel')
                 $reason = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $candidate -Name 'Reason')
+                # Tepe fiyati (iz-suren stop icin) koru: eski tepe / yeni fiyat / ort. maliyet en yuksegi.
+                $oldPeak = Get-NumberValue -Object $existing -Name 'PeakPrice'
+                $peakPrice = [double]$price
+                if ($null -ne $oldPeak -and [double]$oldPeak -gt $peakPrice) { $peakPrice = [double]$oldPeak }
+                if ($null -ne $averageBuyPrice -and [double]$averageBuyPrice -gt $peakPrice) { $peakPrice = [double]$averageBuyPrice }
+                $peakGainPct = if ($null -ne $averageBuyPrice -and [double]$averageBuyPrice -gt 0) {
+                    (($peakPrice - [double]$averageBuyPrice) / [double]$averageBuyPrice) * 100.0
+                }
+                else { 0.0 }
                 $holdingsBySymbol[$symbol] = [pscustomobject][ordered]@{
                     Symbol = $symbol
                     Company = $company
@@ -1083,6 +1158,8 @@ function Update-InstantEntrySignalPortfolio {
                     WeightPct = 0.0
                     UnrealizedGainTL = [Math]::Round($gain, 2)
                     UnrealizedGainPct = [Math]::Round($gainPct, 2)
+                    PeakPrice = [Math]::Round([double]$peakPrice, 4)
+                    PeakGainPct = [Math]::Round([double]$peakGainPct, 2)
                     FirstBuyAt = $firstBuyAt
                     FirstBuyAtText = $firstBuyAtText
                     LastBuyAt = $AsOf.ToString('o')
@@ -1144,6 +1221,13 @@ function Update-InstantEntrySignalPortfolio {
     $lastBuyDate = Get-ObjectPropertyValue -Object $valuedPortfolio -Name 'LastBuyDate'
     $lastBuyDateText = Get-ObjectPropertyValue -Object $valuedPortfolio -Name 'LastBuyDateText'
 
+    # Risk cikislari olduysa durum notuna ekle (en one).
+    if ($soldSymbols.Count -gt 0) {
+        $statusNote = ('Risk çıkışı (sat): ' + ($soldSymbols -join ', ') + '. ' + $statusNote).Trim()
+    }
+    # Gerceklesen getiri: kapatilmis pozisyonlarin maliyetine gore.
+    $realizedReturnPct = if ([double]$realizedCost -gt 0) { ([double]$realizedGain / [double]$realizedCost) * 100.0 } else { 0.0 }
+
     return [pscustomobject][ordered]@{
         Version = 1
         CreatedAt = Get-ObjectPropertyValue -Object $valuedPortfolio -Name 'CreatedAt'
@@ -1157,6 +1241,9 @@ function Update-InstantEntrySignalPortfolio {
         CurrentValueTL = [Math]::Round($totalValue, 2)
         TotalGainTL = [Math]::Round($totalGain, 2)
         TotalReturnPct = [Math]::Round($totalReturnPct, 2)
+        RealizedGainTL = [Math]::Round([double]$realizedGain, 2)
+        RealizedCostTL = [Math]::Round([double]$realizedCost, 2)
+        RealizedReturnPct = [Math]::Round([double]$realizedReturnPct, 2)
         LastBuyDate = $lastBuyDate
         LastBuyDateText = $lastBuyDateText
         StatusNote = $statusNote
@@ -1177,6 +1264,7 @@ function Get-InstantEntryPortfolioSummaryRows {
             'Güncel Değer' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $Portfolio -Name 'CurrentValueTL') -Format 'N2' -Suffix ' TL'
             'Açık Kar/Zarar' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $Portfolio -Name 'TotalGainTL') -Format 'N2' -Suffix ' TL'
             'Getiri' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $Portfolio -Name 'TotalReturnPct') -Format 'N2' -Suffix '%'
+            'Gerçekleşen K/Z' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $Portfolio -Name 'RealizedGainTL') -Format 'N2' -Suffix ' TL'
             'Son Alım' = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $Portfolio -Name 'LastBuyDateText')
             Durum = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $Portfolio -Name 'StatusNote')
         }
@@ -1771,6 +1859,17 @@ try {
         }) -Depth 8
     Write-TimingLog -Step 'Son tarama state kaydi' -StartedAt $stageStartedAt
 
+    # Point-in-time (PIT) anlik goruntu arsivi: o gun gozlenen evren + temel veriyi
+    # tarihli olarak biriktirir (ileri-bakis yok). Zamanla gercek bir as-observed PIT
+    # arsivi olusur ve backtest'ler temel veriyle beslenebilir hale gelir. Best-effort.
+    $stageStartedAt = Get-Date
+    try {
+        $pitPath = Save-PitSnapshot -Stocks $stocks -Directory (Join-Path $PSScriptRoot 'data\pit') -AsOf $runAt
+        Write-Host "PIT anlik goruntu kaydedildi: $pitPath"
+    }
+    catch { Write-Warning "PIT anlik goruntu kaydedilemedi: $($_.Exception.Message)" }
+    Write-TimingLog -Step 'PIT anlik goruntu kaydi' -StartedAt $stageStartedAt
+
     # Kendi kendini degerlendiren geri-besleme: onceki kosunun yuksek-skorlu
     # secilerinin gerceklesen getirisi, skorun isabet oranini (hit-rate) olcer.
     $stageStartedAt = Get-Date
@@ -1893,7 +1992,8 @@ try {
         -AsOf $runAt `
         -DailyBudgetTL $instantEntryPortfolioDailyBudgetTL `
         -MinBuyScore $instantEntryPortfolioMinBuyScore `
-        -MaxBuysPerDay $instantEntryPortfolioMaxBuysPerDay
+        -MaxBuysPerDay $instantEntryPortfolioMaxBuysPerDay `
+        -RiskRules $riskRules
     Save-JsonFile -Path $instantEntryPortfolioPath -Value $updatedInstantEntryPortfolio -Depth 10
     Write-TimingLog -Step 'Anlik firsat portfoyu' -StartedAt $stageStartedAt
 

@@ -25,6 +25,12 @@ import time
 from datetime import datetime, timezone
 
 
+class RateLimitError(RuntimeError):
+    """Saglayici kota/hiz limiti (HTTP 429). Fallback zinciri bu hatada bir
+    sonraki saglayiciya gecer; diger hatalar (icerik filtresi, parse) gecmez."""
+    pass
+
+
 # --- Turkce-guvenli kucuk harf (collect_kap._norm ile ayni mantik) ---
 def _norm(s: str) -> str:
     s = (s or "").replace("İ", "i").replace("I", "ı")
@@ -359,6 +365,8 @@ def interpret_openai_compatible(base_url, token, model, sym, title, cat, text, m
                     b2 = e2.read().decode("utf-8", "replace")[:300]
                 except Exception:
                     pass
+                if e2.code == 429:
+                    raise RateLimitError(f"HTTP 429 (Retry-After sonrasi hala limitli): {b2}") from None
                 raise RuntimeError(f"HTTP {e2.code} (429 sonrasi): {b2}") from None
         else:
             raise RuntimeError(f"HTTP {e.code}: {body}") from None
@@ -433,6 +441,77 @@ PROVIDER_PRESETS = {
         "cap": 80000, "min_sleep": 1},
 }
 
+# Otomatik fallback zinciri: birincil motor gunluk kotaya/hiz limitine (429)
+# takilirsa siradaki UCRETSIZ saglayiciya gecilir. Yalniz anahtari MEVCUT olanlar
+# kullanilir. github (gpt-4.1) ~gunluk 40-75 cagri sonrasi 429 verdiginden zincir
+# kosunun yarida kalmasini onler.
+DEFAULT_FALLBACK_ORDER = ["github", "groq", "cerebras", "openrouter", "opencode", "nvidia"]
+
+
+def resolve_token(token_env):
+    """Saglayicinin anahtarini ortamdan okur (GITHUB_TOKEN icin GH_TOKEN da gecer)."""
+    tok = os.environ.get(token_env)
+    if not tok and token_env == "GITHUB_TOKEN":
+        tok = os.environ.get("GH_TOKEN")
+    return tok
+
+
+def build_provider_chain(primary, fallback_spec, model_override=""):
+    """Birincil + fallback motorlari icin (anahtari mevcut) saglayici listesi kurar.
+    fallback_spec: 'auto' -> varsayilan sira; 'none'/'' -> sadece birincil; aksi
+    halde virgulle motor listesi. Doner: ordered list of provider dict'leri."""
+    if primary not in PROVIDER_PRESETS:
+        return []
+    spec = (fallback_spec or "").strip().lower()
+    if spec in ("none", "off", "false"):
+        order = [primary]
+    elif spec in ("", "auto"):
+        order = [primary] + [e for e in DEFAULT_FALLBACK_ORDER if e != primary]
+    else:
+        order = [primary] + [e.strip() for e in fallback_spec.split(",") if e.strip()]
+    seen = set()
+    chain = []
+    for eng in order:
+        if eng in seen or eng not in PROVIDER_PRESETS:
+            continue
+        seen.add(eng)
+        preset = PROVIDER_PRESETS[eng]
+        token = resolve_token(preset["token_env"])
+        if not token:
+            continue
+        chain.append({
+            "engine": eng,
+            "base": preset["base"],
+            "token": token,
+            # Model override yalniz BIRINCIL motora uygulanir; fallback'ler kendi
+            # varsayilan modelini kullanir.
+            "model": model_override if (eng == primary and model_override) else preset["model"],
+            "cap": preset["cap"],
+            "min_sleep": preset.get("min_sleep", 0),
+        })
+    return chain
+
+
+def interpret_with_fallback(chain, start_idx, sym, title, cat, llm_body):
+    """Zincirdeki start_idx'ten baslayarak yorumlar; RateLimitError'da bir sonraki
+    saglayiciya gecer (diger hatalar hemen yukari atilir). Doner:
+    (result, used_idx, focused_text). Hicbiri tutmazsa son RateLimitError'i atar."""
+    last_err = None
+    idx = start_idx
+    while idx < len(chain):
+        p = chain[idx]
+        focused = _focus_content(llm_body, p["cap"])
+        try:
+            res = interpret_openai_compatible(p["base"], p["token"], p["model"],
+                                              sym, title, cat, focused, p["cap"])
+            return res, idx, focused
+        except RateLimitError as e:
+            last_err = e
+            nxt = chain[idx + 1]["engine"] if idx + 1 < len(chain) else "(yok)"
+            print(f"    [fallback] {p['engine']} 429; -> {nxt}")
+            idx += 1
+    raise last_err if last_err else RuntimeError("kullanilabilir saglayici yok")
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -450,7 +529,11 @@ def main():
                     help="UCRETSIZ: github (OpenAI gpt-4.1, onerilen) | groq (Llama-3.3-70B) | "
                          "opencode (Zen ucretsiz modeller) | openrouter | cerebras. Ucretli: llm. LLM'siz: rules")
     ap.add_argument("--model", default="", help="model id (bos = saglayici varsayilani)")
-    ap.add_argument("--base-url", default="", help="OpenAI-uyumlu endpoint (bos = preset)")
+    ap.add_argument("--fallback", default="auto",
+                    help="birincil motor 429'a takilirsa otomatik gecilecek motorlar: "
+                         "'auto' (varsayilan sira) | 'none' (kapali) | virgulle liste "
+                         "(or. groq,cerebras). Yalniz anahtari mevcut olanlar kullanilir.")
+    ap.add_argument("--base-url", default="", help="OpenAI-uyumlu endpoint (bos = preset; fallback'i devre disi birakir)")
     ap.add_argument("--max-content-chars", type=int, default=60000,
                     help="LLM'e gonderilecek en fazla icerik karakteri (maliyet siniri)")
     ap.add_argument("--force", action="store_true",
@@ -495,28 +578,22 @@ def main():
 
     # Motor kurulumu.
     llm_client = None
-    api_token = None
-    base_url = args.base_url
     model = args.model
+    chain = []          # OpenAI-uyumlu saglayici zinciri (birincil + fallback)
+    provider_idx = 0    # zincirde su an kullanilan saglayicinin indeksi
     if args.engine in PROVIDER_PRESETS:
         preset = PROVIDER_PRESETS[args.engine]
-        api_token = os.environ.get(preset["token_env"]) or (
-            os.environ.get("GH_TOKEN") if preset["token_env"] == "GITHUB_TOKEN" else None)
-        if not api_token:
-            print(f"!! {preset['token_env']} yok; '{args.engine}' yorumlama atlandi. "
-                  f"Cikiliyor (akis bozulmaz). Ucretsiz anahtar ekleyip tekrar deneyin.")
-            sys.exit(0)
-        if not base_url:
-            base_url = preset["base"]
-        if not model:
-            model = preset["model"]
         # Tesis/kesif: model='list' verilirse saglayicinin /models ucunu listele ve cik.
-        if model in ("list", "?", "models"):
+        if args.model in ("list", "?", "models"):
+            disc_token = resolve_token(preset["token_env"])
+            if not disc_token:
+                print(f"!! {preset['token_env']} yok; /models listelenemiyor.")
+                sys.exit(0)
             import urllib.request
             import urllib.error
-            murl = base_url.replace("/chat/completions", "/models")
+            murl = preset["base"].replace("/chat/completions", "/models")
             req = urllib.request.Request(murl, headers={
-                "Authorization": f"Bearer {api_token}", "Accept": "application/json",
+                "Authorization": f"Bearer {disc_token}", "Accept": "application/json",
                 "User-Agent": "bist-rapor-botu/1.0"})
             try:
                 with urllib.request.urlopen(req, timeout=30) as r:
@@ -528,13 +605,33 @@ def main():
             except Exception as e:
                 print(f"[{args.engine}] /models listelenemedi: {type(e).__name__}: {e}")
             sys.exit(0)
-        if args.max_content_chars > preset["cap"]:
-            args.max_content_chars = preset["cap"]
+        # --base-url verildiyse ozel tek endpoint (fallback kapali); aksi halde
+        # otomatik fallback zinciri kurulur.
+        if args.base_url:
+            tok = resolve_token(preset["token_env"])
+            if not tok:
+                print(f"!! {preset['token_env']} yok; cikiliyor (akis bozulmaz).")
+                sys.exit(0)
+            chain = [{"engine": args.engine, "base": args.base_url, "token": tok,
+                      "model": (args.model or preset["model"]), "cap": preset["cap"],
+                      "min_sleep": preset.get("min_sleep", 0)}]
+        else:
+            chain = build_provider_chain(args.engine, args.fallback, args.model)
+        if not chain:
+            print(f"!! '{args.engine}' ve fallback motorlari icin anahtar yok; yorumlama "
+                  f"atlandi. Cikiliyor (akis bozulmaz). Ucretsiz anahtar ekleyip tekrar deneyin.")
+            sys.exit(0)
+        cur = chain[0]
+        model = cur["model"]
+        if args.max_content_chars > cur["cap"]:
+            args.max_content_chars = cur["cap"]
         # Bazi ucretsiz katmanlarda dakika-basi-token (TPM) limiti dusuk; istekler
         # arasi minimum bekleme ile 429 azaltilir.
-        if preset.get("min_sleep") and args.sleep < preset["min_sleep"]:
-            args.sleep = preset["min_sleep"]
-        print(f"Motor: {args.engine} (ucretsiz) / {model} @ {base_url} "
+        if cur["min_sleep"] and args.sleep < cur["min_sleep"]:
+            args.sleep = cur["min_sleep"]
+        chain_desc = " -> ".join(f"{p['engine']}({p['model']})" for p in chain)
+        print(f"Motor zinciri (ucretsiz): {chain_desc}")
+        print(f"Birincil: {cur['engine']} / {cur['model']} @ {cur['base']} "
               f"(icerik<= {args.max_content_chars} kar., bekleme {args.sleep}s)")
     elif args.engine == "llm":
         if not os.environ.get("ANTHROPIC_API_KEY"):
@@ -560,6 +657,9 @@ def main():
     if args.priority_only and not priority:
         print("UYARI: oncelikli hisse listesi bos (state dosyalari yok); tum hisseler yorumlanacak.")
 
+    # Idempotent atlama: birincil motor VEYA zincirdeki herhangi bir fallback motoru
+    # tarafindan zaten yorumlanmis kayitlari yeniden yorumlama (--force haric).
+    done_engines = {args.engine} | {p["engine"] for p in chain}
     # Hedefleri sec: onemli + son N gun + disclosureId var + henuz yorumlanmamis
     # (+ priority_only ise yalniz izlenen hisseler).
     targets = []
@@ -570,8 +670,7 @@ def main():
             did = r.get("disclosureId")
             if not did:
                 continue
-            # Idempotent: ayni motorla zaten yorumlanmissa atla (--force haric).
-            if not args.force and did in items and items[did].get("engine") == args.engine:
+            if not args.force and did in items and items[did].get("engine") in done_engines:
                 continue
             if r.get("importance") not in want_imp:
                 continue
@@ -663,9 +762,23 @@ def main():
         if args.engine in PROVIDER_PRESETS or args.engine == "llm":
             try:
                 if args.engine in PROVIDER_PRESETS:
-                    res = interpret_openai_compatible(base_url, api_token, model, sym,
-                                                      r.get("title", ""), r.get("category", ""),
-                                                      focused, args.max_content_chars)
+                    res, used_idx, used_focused = interpret_with_fallback(
+                        chain, provider_idx, sym, r.get("title", ""), r.get("category", ""), llm_body)
+                    # Fallback ile saglayici degistiyse: kalan kayitlar icin yeni
+                    # saglayicida kal, cap/bekleme'yi ona gore guncelle, denetim
+                    # alanlarini (engine/snippet) GERCEK kullanilan motora gore yaz.
+                    if used_idx != provider_idx:
+                        provider_idx = used_idx
+                        cur = chain[provider_idx]
+                        model = cur["model"]
+                        if args.max_content_chars > cur["cap"]:
+                            args.max_content_chars = cur["cap"]
+                        if cur["min_sleep"] and args.sleep < cur["min_sleep"]:
+                            args.sleep = cur["min_sleep"]
+                        print(f"    [fallback] artik {cur['engine']} / {cur['model']} kullaniliyor.")
+                    rec["engine"] = chain[provider_idx]["engine"]
+                    rec["inputChars"] = len(used_focused)
+                    rec["inputSnippet"] = used_focused[:500]
                 else:
                     res = interpret_llm(llm_client, model, sym, r.get("title", ""),
                                         r.get("category", ""), focused, args.max_content_chars)

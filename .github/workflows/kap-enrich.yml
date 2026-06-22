@@ -19,6 +19,10 @@ on:
         description: "UCRETSIZ: github (OpenAI gpt-4.1, onerilen) | groq (Llama-3.3-70B) | openrouter | cerebras. Ucretli: llm. LLM'siz: rules"
         required: false
         default: "github"
+      fallback:
+        description: "Birincil motor 429'a takilirsa otomatik gecis: auto (varsayilan sira) | none (kapali) | virgulle liste (or. groq,cerebras)"
+        required: false
+        default: "auto"
       model:
         description: "Model id (bos=otomatik). github icin or. openai/gpt-4o-mini veya meta/Llama-3.3-70B-Instruct"
         required: false
@@ -67,6 +71,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install borsapy anthropic
+      # Agsiz birim test kapisi: saf yardimcilar + fallback zinciri bozuksa enrich
+      # calismadan once dur (kotu kayit yazilmasin).
+      - name: Unit tests (agsiz)
+        run: python test_enrich_kap.py
       - name: Enrich KAP disclosures
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -83,6 +91,7 @@ jobs:
           if [ "${{ github.event.inputs.scope }}" = "all" ]; then SCOPE="--all-stocks"; fi
           python enrich_kap.py \
             --engine "${{ github.event.inputs.engine || 'github' }}" \
+            --fallback "${{ github.event.inputs.fallback || 'auto' }}" \
             --model "${{ github.event.inputs.model || '' }}" \
             --max-items "${{ github.event.inputs.max_items || '25' }}" \
             --max-age-days "${{ github.event.inputs.max_age_days || '1' }}" \

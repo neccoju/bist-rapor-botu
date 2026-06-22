@@ -2,4 +2,7 @@ config/report_settings.json
 config/smtp_credential.xml
 reports/
 data/
+
+# Python bytecode cache (enrich_kap.py / collect_kap.py)
 __pycache__/
+*.pyc
