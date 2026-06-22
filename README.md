@@ -636,15 +636,31 @@ Detaylı eleştirel inceleme (kod tabanı kanıtıyla) sonrası uygulananlar:
 - **Dürüst etiketleme:** "earnings surprise" raporda artık **trend-temelli vekil** olarak
   açıkça belirtilir (gerçek analist konsensüsü ücretsiz veride yok).
 
-**Bilinçli ertelenenler (sahte düzeltme shiplenmedi — gerekçeli karar):**
-- *Free-float filtresi:* ücretsiz kaynaklarda fiili dolaşım verisi olmadığından eklenmedi;
-  yerine mevcut likidite (10g hacim/relatif hacim) eşikleri kullanılır.
-- *Sabit cross-portfolio TAVAN (yalnız izleme değil):* 6 bağımsız portföyün seçimini
-  koordine etmek track record'u baştan değiştirir; önce izleme/uyarı eklendi.
-- *Tam lot / tavan-taban / T+2:* gün-içi/mikroyapı verisi gerektirir; teorik model
-  bunları modellemez (kesirli adet kullanılır) — kısıt açıkça belgelenir.
-- *Skorlamanın OOS yeniden kalibrasyonu:* ayrı bir araştırma işidir; mevcut eşikler
-  "elle seçilmiş" olarak dürüstçe işaretlendi.
+### Strateji/Gerçekçilik Değişiklikleri (ikinci tur)
+
+- **Tam lot (whole-lot) — UYGULANDI:** BIST tam adet işlediğinden, ay sonu yeniden
+  dengelemede her pozisyonun adedi **tam sayıya yuvarlanır** (`Optimize-ModelPortfolioSetRisk`);
+  değer = adet × fiyat, küçük artık nakit gerçekçi şekilde düşülür, portföy değeri/ağırlık/getiri
+  yeniden hesaplanır. Ayar `Report.ModelPortfolioMaxBookPct` (>0 ise pas aktif). Kesirli adet
+  kaynaklı ~%0,1-0,3 sahte getiri kaldırıldı.
+- **Portföyler-arası sabit TAVAN — bilinçli olarak UYGULANMADI (matematiksel + ürün gerekçesi):**
+  Ağırlık-yeniden-dağıtımıyla, *seçimi koruyan* bir tavan bu botta **yakınsamıyor**: 6 portföy
+  büyük ölçüde aynı isimleri tuttuğundan, aşan ismin ağırlığını paylaşılan diğer isimlere dağıtmak
+  yoğunlaşmayı tekrar üretiyor (salınım) ya da ağır nakit bırakıyor — ikisi de sağlıklı bir fon
+  sonucu değil. Sağlıklı tek hard-cap **seçimi değiştirmektir** (her stratejiyi aşırı-kullanılan
+  ismi atlamaya zorlamak), ki bu her stratejinin saflığını bozar ve track record'u baştan değiştirir.
+  Ayrıca bu risk yalnız 6 portföyü **tek defter** olarak işletirsen vardır (çoğu kullanıcı tek
+  strateji seçer). Bu yüzden **hard-cap yerine görünür İZLEME** (rapordaki "Portföyler-Arası
+  Yoğunlaşma" tablosu, %12 üstü ⚠️) eklendi. Seçim-temelli hard-cap istenirse ayrı, bilinçli bir
+  strateji kararı olarak uygulanabilir.
+
+**Veri/araştırma kısıtı nedeniyle uygulanamayanlar (dürüstçe):**
+- *Free-float filtresi:* ücretsiz kaynaklarda fiili dolaşım verisi yok → likidite (10g hacim/
+  relatif hacim) eşikleri kullanılır.
+- *Tavan-taban (devre kesici) / T+2 takas:* gün-içi/mikroyapı verisi gerektirir; teorik model
+  bunları modellemez — kısıt açıkça belgelenir.
+- *Skorlamanın OOS yeniden kalibrasyonu:* ayrı bir araştırma işidir; mevcut eşikler "elle
+  seçilmiş" olarak dürüstçe işaretlendi.
 
 ### Ay Sonu Portföy Yorumu (Claude) — `MonthlyCommentary`
 Model portföyler **ay sonunda yeniden dengelendiğinde**, o ayki değişiklikler (çıkan/giren

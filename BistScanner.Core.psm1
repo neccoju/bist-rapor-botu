@@ -4690,6 +4690,57 @@ function Invoke-ModelPortfolioRebalance {
     return [pscustomobject]$properties
 }
 
+function Optimize-ModelPortfolioSetRisk {
+    <#
+        Ay sonu yeniden dengelemede tum SET'e uygulanan GERCEKCILIK kisiti: TAM LOT.
+        BIST tam adet isler; her holding'in adedi tam sayiya (asagi) yuvarlanir,
+        deger = adet * fiyat; kucuk artik nakit (gercekci) portfoy degerinden dusulur.
+        Portfoy toplam degeri, agirliklar ve getiri yeniden hesaplanir.
+
+        NOT — portfoyler-arasi sabit TAVAN burada UYGULANMAZ: 6 portfoy buyuk olcude
+        ayni isimleri tuttugundan, secimi koruyan bir agirlik-dagitimi matematiksel
+        olarak yakinsamiyor (asan ismin agirligi yine paylasilan diger isimlere gidip
+        yogunlasmayi tekrar uretiyor) ya da agir nakit birakiyor. Gercek/saglikli tek
+        cozum SECIMI degistirmektir (ayri bir karar). Bu yuzden burada yalniz IZLEME
+        yapilir (rapordaki 'Portfoyler-Arasi Yogunlasma' tablosu); bkz. README.
+        MaxBookPct simdilik yalniz bu pasin calisip calismayacagini ACAR (>0).
+    #>
+    param([object[]]$Portfolios, [double]$MaxBookPct = 15.0)
+
+    if ($null -eq $Portfolios -or @($Portfolios).Count -eq 0) { return $Portfolios }
+    if ($MaxBookPct -le 0) { return $Portfolios }
+
+    # --- Tam lot + portfoy toplam/agirlik/getiri yeniden hesabi ---
+    foreach ($p in $Portfolios) {
+        $holds = @(Get-ObjectPropertyValue -Object $p -Name 'Holdings')
+        $portVal = 0.0
+        foreach ($h in $holds) {
+            $price = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $h -Name 'CurrentPrice')
+            if ($null -eq $price) { $price = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $h -Name 'RebalancePrice') }
+            $val = [double](ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $h -Name 'CurrentValueTL'))
+            if ($null -ne $price -and $price -gt 0) {
+                $qty = [Math]::Floor($val / $price)
+                if ($qty -lt 0) { $qty = 0 }
+                $val = $qty * $price
+                $h.Quantity = $qty
+                $h.CostBasisTL = [Math]::Round($val, 2)
+                $h.CurrentValueTL = [Math]::Round($val, 2)
+            }
+            $portVal += $val
+        }
+        foreach ($h in $holds) {
+            $h.WeightPct = if ($portVal -gt 0) { [Math]::Round(([double]$h.CurrentValueTL / $portVal) * 100.0, 2) } else { 0.0 }
+        }
+        $initial = [double](ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $p -Name 'InitialCapitalTL'))
+        $p | Add-Member -NotePropertyName 'CurrentValueTL' -NotePropertyValue ([Math]::Round($portVal, 2)) -Force
+        if ($null -ne $initial -and $initial -gt 0) {
+            $p | Add-Member -NotePropertyName 'TotalGainTL' -NotePropertyValue ([Math]::Round($portVal - $initial, 2)) -Force
+            $p | Add-Member -NotePropertyName 'TotalReturnPct' -NotePropertyValue ([Math]::Round((($portVal - $initial) / $initial) * 100.0, 2)) -Force
+        }
+    }
+    return $Portfolios
+}
+
 function Update-ModelPortfolioSet {
     [CmdletBinding()]
     param(
@@ -4704,18 +4755,25 @@ function Update-ModelPortfolioSet {
 
         [double]$BenchmarkLevel = 0,
 
-        [double]$CostBps = 0
+        [double]$CostBps = 0,
+
+        [double]$MaxBookPct = 0
     )
 
     if ($null -eq $PortfolioSet -or $null -eq (Get-ObjectPropertyValue -Object $PortfolioSet -Name 'Portfolios')) {
         if ($AllowRebalance) {
-            return New-ModelPortfolioSet -Stocks $Stocks -AsOf $AsOf -BenchmarkLevel $BenchmarkLevel -CostBps $CostBps
+            $fresh = New-ModelPortfolioSet -Stocks $Stocks -AsOf $AsOf -BenchmarkLevel $BenchmarkLevel -CostBps $CostBps
+            if ($MaxBookPct -gt 0 -and $null -ne $fresh) {
+                $fresh.Portfolios = Optimize-ModelPortfolioSetRisk -Portfolios @($fresh.Portfolios) -MaxBookPct $MaxBookPct
+            }
+            return $fresh
         }
         return $null
     }
 
     $stockMap = Get-ModelPortfolioStockMap -Stocks $Stocks
     $latestCompletedPeriodEnd = Get-LatestCompletedModelPortfolioPeriodEnd -AsOf $AsOf
+    $rebalancedAny = $false
     $portfolios = [System.Collections.Generic.List[object]]::new()
     foreach ($portfolio in @(Get-ObjectPropertyValue -Object $PortfolioSet -Name 'Portfolios')) {
         $valuedPortfolio = Update-ModelPortfolioValuation -Portfolio $portfolio -StockMap $stockMap -AsOf $AsOf -BenchmarkLevel $BenchmarkLevel
@@ -4728,6 +4786,7 @@ function Update-ModelPortfolioSet {
         }
 
         if ($AllowRebalance -and $lastPeriodEnd.Date -lt $latestCompletedPeriodEnd.Date) {
+            $rebalancedAny = $true
             [void]$portfolios.Add((Invoke-ModelPortfolioRebalance `
                         -Portfolio $valuedPortfolio `
                         -Stocks $Stocks `
@@ -4751,12 +4810,19 @@ function Update-ModelPortfolioSet {
             if ([string]$definition.Id -notin $existingIds) {
                 try {
                     [void]$portfolios.Add((New-SingleModelPortfolio -Definition $definition -Stocks $Stocks -AsOf $AsOf -InitialCapital $initCap -BenchmarkLevel $BenchmarkLevel -CostBps $CostBps))
+                    $rebalancedAny = $true
                 }
                 catch {
                     # Uygun hisse yetersizse sessizce atla; sonraki çalışmada tekrar denenir.
                 }
             }
         }
+    }
+
+    # Yeniden dengeleme olduysa SET'e portfoyler-arasi tavan + tam-lot uygula (aylik).
+    $portfolioArray = $portfolios.ToArray()
+    if ($AllowRebalance -and $rebalancedAny -and $MaxBookPct -gt 0) {
+        $portfolioArray = Optimize-ModelPortfolioSetRisk -Portfolios $portfolioArray -MaxBookPct $MaxBookPct
     }
 
     $properties = [ordered]@{}
@@ -4766,7 +4832,7 @@ function Update-ModelPortfolioSet {
         }
     }
     $properties.UpdatedAt = $AsOf.ToString('o')
-    $properties.Portfolios = $portfolios.ToArray()
+    $properties.Portfolios = $portfolioArray
 
     return [pscustomobject]$properties
 }
@@ -6526,4 +6592,5 @@ Export-ModuleMember -Function `
     Add-RelativeStrengthRank, `
     Get-StrategySelectionScore, `
     Get-CrossPortfolioConcentration, `
-    Get-DataQualitySummary
+    Get-DataQualitySummary, `
+    Optimize-ModelPortfolioSetRisk

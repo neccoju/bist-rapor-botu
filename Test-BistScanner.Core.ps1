@@ -563,6 +563,29 @@ $dqNeg = Get-DataQualitySummary -Inputs ([ordered]@{ 'CDS değişim' = -3.5; 'Ba
 if ($dqNeg.Degraded) { throw "Negatif/sıfır geçerli değerler eksik sayıldı." }
 Write-Host "Veri kalitesi özeti testi başarılı (eksik kaynak yakalandı, negatif/sıfır geçerli)."
 
+# --- Tam lot yuvarlama (Optimize-ModelPortfolioSetRisk) ---
+$lotPorts = @(
+    [pscustomobject]@{
+        InitialCapitalTL = 40000
+        CurrentValueTL = 40000
+        Holdings = @(
+            [pscustomobject]@{ Symbol = 'AAA'; CurrentPrice = 333.0; CurrentValueTL = 20000; CostBasisTL = 20000; Quantity = 60.06006; WeightPct = 50 }
+            [pscustomobject]@{ Symbol = 'BBB'; CurrentPrice = 100.0; CurrentValueTL = 20000; CostBasisTL = 20000; Quantity = 200.0; WeightPct = 50 }
+        )
+    }
+)
+$lotOpt = @(Optimize-ModelPortfolioSetRisk -Portfolios $lotPorts -MaxBookPct 15)
+$aaaH = $lotOpt[0].Holdings | Where-Object { $_.Symbol -eq 'AAA' }
+if ([double]$aaaH.Quantity -ne [Math]::Floor([double]$aaaH.Quantity)) { throw "AAA adedi tam sayı değil: $($aaaH.Quantity)" }
+if ([int]$aaaH.Quantity -ne 60) { throw "AAA tam lot yanlış: $($aaaH.Quantity) (beklenen 60)" }
+if ([Math]::Abs([double]$aaaH.CurrentValueTL - 19980) -gt 0.5) { throw "AAA değer = adet*fiyat değil: $($aaaH.CurrentValueTL)" }
+if ([Math]::Abs([double]$lotOpt[0].CurrentValueTL - 39980) -gt 0.5) { throw "Portföy değeri tam-lot sonrası yanlış: $($lotOpt[0].CurrentValueTL)" }
+# MaxBookPct=0 -> hiç dokunma (no-op)
+$noopPorts = @([pscustomobject]@{ InitialCapitalTL = 40000; CurrentValueTL = 40000; Holdings = @([pscustomobject]@{ Symbol = 'AAA'; CurrentPrice = 333.0; CurrentValueTL = 20000; Quantity = 60.06; WeightPct = 50 }) })
+$noopOpt = @(Optimize-ModelPortfolioSetRisk -Portfolios $noopPorts -MaxBookPct 0)
+if ([double]($noopOpt[0].Holdings[0].Quantity) -ne 60.06) { throw "MaxBookPct=0 iken adet değişti (no-op bozuk)." }
+Write-Host "Tam lot yuvarlama testi başarılı (AAA 60.06 -> 60 adet, değer 19980; MaxBookPct=0 no-op)."
+
 # --- Faz A gözlem modu: Piyasa genişliği (Get-MarketBreadth) ---
 $breadthStocks = @(
     [pscustomobject]@{ Symbol = 'A'; Price = 110; SMA50 = 100; SMA200 = 90; PerfMonth = 5 }

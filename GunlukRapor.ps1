@@ -2182,9 +2182,11 @@ try {
     if (Test-Path $portfolioPath) {
         $portfolioSet = Get-Content -Path $portfolioPath -Raw -Encoding UTF8 | ConvertFrom-Json
     }
-    $updatedPortfolioSet = Update-ModelPortfolioSet -PortfolioSet $portfolioSet -Stocks $stocks -AsOf $runAt -AllowRebalance -BenchmarkLevel $bist100Level -CostBps $modelCostBps
+    $modelMaxBookPct = [double](Get-ConfigValue -Object $settings.Report -Name 'ModelPortfolioMaxBookPct' -Default 15)
+    $updatedPortfolioSet = Update-ModelPortfolioSet -PortfolioSet $portfolioSet -Stocks $stocks -AsOf $runAt -AllowRebalance -BenchmarkLevel $bist100Level -CostBps $modelCostBps -MaxBookPct $modelMaxBookPct
     if ($null -eq $updatedPortfolioSet) {
         $updatedPortfolioSet = New-ModelPortfolioSet -Stocks $stocks -AsOf $runAt -BenchmarkLevel $bist100Level -CostBps $modelCostBps
+        $updatedPortfolioSet.Portfolios = Optimize-ModelPortfolioSetRisk -Portfolios @($updatedPortfolioSet.Portfolios) -MaxBookPct $modelMaxBookPct
     }
     # Ay sonu Claude yorumu (best-effort): yalniz portfoy bu donem yeniden
     # dengelendiyse uretilir; aksi halde onceki donemin yorumu korunup gosterilir.
