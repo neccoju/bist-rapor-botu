@@ -1398,18 +1398,36 @@ function Build-ModelPortfolioCommentaryPrompt {
         Ay sonu yeniden dengeleme degisikliklerini (cikan/giren/kalan + secim
         gerekceleri + agirliklar) LLM'e verilecek kompakt Turkce metne cevirir.
     #>
-    param($PortfolioSet, [string]$PeriodEnd)
+    param($PortfolioSet, [string]$PeriodEnd, $StockMap = $null)
+
+    function Format-Metric {
+        param($Value, [string]$Prefix, [string]$Suffix, [switch]$AllowNegative)
+        if ($null -eq $Value -or [string]$Value -eq '') { return $null }
+        $d = $null
+        try { $d = [double]$Value } catch { return $null }
+        if (-not $AllowNegative -and $d -eq 0) { return $null }
+        return ('{0}{1:N1}{2}' -f $Prefix, $d, $Suffix)
+    }
 
     $lines = [System.Collections.Generic.List[string]]::new()
-    [void]$lines.Add("Ay sonu donem: $PeriodEnd")
+    [void]$lines.Add("Ay sonu yeniden dengeleme donemi: $PeriodEnd")
+    [void]$lines.Add('Asagida 6 model portfoyun bu donemki degisiklikleri, secim gerekceleri ve guncel pozisyonlarinin temel/teknik verileri var.')
     foreach ($p in @(Get-ObjectPropertyValue -Object $PortfolioSet -Name 'Portfolios')) {
         $name = [string](Get-ObjectPropertyValue -Object $p -Name 'Name')
         $strategy = [string](Get-ObjectPropertyValue -Object $p -Name 'Strategy')
         $ret = Get-ObjectPropertyValue -Object $p -Name 'TotalReturnPct'
         $alpha = Get-ObjectPropertyValue -Object $p -Name 'AlphaPct'
+        $mdd = Get-ObjectPropertyValue -Object $p -Name 'MaxDrawdownPct'
+        $mddNum = $null
+        if ($null -ne $mdd -and [string]$mdd -ne '') { try { $mddNum = [double]$mdd } catch { $mddNum = $null } }
+        $weighting = [string](Get-ObjectPropertyValue -Object $p -Name 'WeightingMethod')
         [void]$lines.Add('')
-        [void]$lines.Add(("### {0} (strateji: {1}) — kurulustan getiri %{2}, alfa %{3}" -f `
-                    $name, $strategy, $ret, $(if ($null -ne $alpha) { $alpha } else { 'yok' })))
+        [void]$lines.Add(("### {0} (strateji: {1}{2})" -f $name, $strategy,
+                $(if ($weighting -eq 'InverseVolatility') { ', agirlik: ters-oynaklik' } else { ', agirlik: esit' })))
+        [void]$lines.Add(("Kurulustan getiri %{0}, BIST100'e karsi alfa %{1}{2}." -f `
+                    $ret, $(if ($null -ne $alpha) { $alpha } else { 'yok' }),
+                $(if ($null -ne $mddNum) { ", maks dusus %$mdd" } else { '' })))
+
         # Bu donemin islemleri (cikan/giren/esitleme) — secim gerekceleri Note'ta.
         $periodTx = @(Get-ObjectPropertyValue -Object $p -Name 'Transactions') | Where-Object {
             $pe = Get-ObjectPropertyValue -Object $_ -Name 'ExecutionDate'
@@ -1419,9 +1437,10 @@ function Build-ModelPortfolioCommentaryPrompt {
             $matchPeriod -and ($act -ne 'PORTFÖY') -and ($act -ne 'KOMİSYON')
         }
         if (@($periodTx).Count -eq 0) {
-            [void]$lines.Add('Bu donem islem kaydi yok (degisiklik olmadi).')
+            [void]$lines.Add('Bu donem alim/satim yok; yalniz mevcut pozisyonlar korundu/esitlendi.')
         }
         else {
+            [void]$lines.Add('Bu donemki islemler ve secim gerekceleri:')
             foreach ($t in @($periodTx | Select-Object -First 12)) {
                 $act = [string](Get-ObjectPropertyValue -Object $t -Name 'Action')
                 $sym = [string](Get-ObjectPropertyValue -Object $t -Name 'Symbol')
@@ -1429,15 +1448,28 @@ function Build-ModelPortfolioCommentaryPrompt {
                 [void]$lines.Add(("- {0} {1}: {2}" -f $act, $sym, $note))
             }
         }
-        # Guncel holdingler + agirlik + skor.
-        $hold = @(Get-ObjectPropertyValue -Object $p -Name 'Holdings') | ForEach-Object {
-            '{0} %{1} (skor {2})' -f `
-                [string](Get-ObjectPropertyValue -Object $_ -Name 'Symbol'),
-            (Get-ObjectPropertyValue -Object $_ -Name 'WeightPct'),
-            (Get-ObjectPropertyValue -Object $_ -Name 'StrategyScore')
-        }
-        if (@($hold).Count -gt 0) {
-            [void]$lines.Add('Guncel dagilim: ' + (@($hold) -join ', '))
+
+        # Guncel pozisyonlar — GERCEK temel/teknik veriyle (StockMap'ten zenginlestirilir).
+        [void]$lines.Add('Guncel pozisyonlar (temel/teknik):')
+        foreach ($h in @(Get-ObjectPropertyValue -Object $p -Name 'Holdings')) {
+            $sym = [string](Get-ObjectPropertyValue -Object $h -Name 'Symbol')
+            $weight = Get-ObjectPropertyValue -Object $h -Name 'WeightPct'
+            $stock = if ($null -ne $StockMap -and $StockMap.ContainsKey($sym)) { $StockMap[$sym] } else { $h }
+            $company = [string](Get-ObjectPropertyValue -Object $stock -Name 'Company')
+            $sector = [string](Get-ObjectPropertyValue -Object $stock -Name 'SectorTR')
+            $segs = New-Object System.Collections.Generic.List[string]
+            [void]$segs.Add("agirlik %$weight")
+            $m = Format-Metric (Get-ObjectPropertyValue -Object $stock -Name 'MarketCapBn') 'piyasa degeri ' ' mlr TL'; if ($m) { [void]$segs.Add($m) }
+            $m = Format-Metric (Get-ObjectPropertyValue -Object $stock -Name 'PE') 'F/K ' ''; if ($m) { [void]$segs.Add($m) }
+            $m = Format-Metric (Get-ObjectPropertyValue -Object $stock -Name 'PB') 'PD/DD ' ''; if ($m) { [void]$segs.Add($m) }
+            $m = Format-Metric (Get-ObjectPropertyValue -Object $stock -Name 'EvEbitda') 'FD/FAVOK ' ''; if ($m) { [void]$segs.Add($m) }
+            $m = Format-Metric (Get-ObjectPropertyValue -Object $stock -Name 'ROE') 'ROE %' '' -AllowNegative; if ($m) { [void]$segs.Add($m) }
+            $m = Format-Metric (Get-ObjectPropertyValue -Object $stock -Name 'DividendYield') 'temettu %' ''; if ($m) { [void]$segs.Add($m) }
+            $m = Format-Metric (Get-ObjectPropertyValue -Object $stock -Name 'PerfMonth') '1A getiri %' '' -AllowNegative; if ($m) { [void]$segs.Add($m) }
+            $m = Format-Metric (Get-ObjectPropertyValue -Object $stock -Name 'Perf3Month') '3A getiri %' '' -AllowNegative; if ($m) { [void]$segs.Add($m) }
+            $m = Format-Metric (Get-ObjectPropertyValue -Object $stock -Name 'RSI') 'RSI ' ''; if ($m) { [void]$segs.Add($m) }
+            $head = if ([string]::IsNullOrWhiteSpace($company)) { $sym } else { "$sym ($company" + $(if ($sector) { ", $sector" } else { '' }) + ')' }
+            [void]$lines.Add(('- {0}: {1}' -f $head, ($segs -join ', ')))
         }
     }
     return ($lines -join "`n")
@@ -1450,7 +1482,7 @@ function Update-ModelPortfolioCommentary {
         bu yorumu her gun gosterir. Yalniz donem degisince uretilir (ayda 1 cagri).
         Best-effort: anahtar yoksa / hata olursa yorum atlanir, set bozulmaz.
     #>
-    param($PortfolioSet, $Settings, [datetime]$AsOf, [switch]$Force)
+    param($PortfolioSet, $Settings, [datetime]$AsOf, [switch]$Force, $StockMap = $null)
 
     if ($null -eq $PortfolioSet) { return $PortfolioSet }
     $cfg = Get-ConfigValue -Object $Settings.Report -Name 'ModelPortfolioCommentary' -Default $null
@@ -1481,15 +1513,28 @@ function Update-ModelPortfolioCommentary {
     $maxTokens = [int](Get-ConfigValue -Object $cfg -Name 'MaxOutputTokens' -Default 2000)
 
     $system = (
-        'Sen BIST''te islem yapan deneyimli bir fon yoneticisisin. Sana bir kantitatif botun ' +
-        'AY SONU yeniden dengeledigi model portfoylerin degisiklikleri (cikan/giren hisseler, secim ' +
-        'gerekceleri, agirliklar, getiri/alfa) veriliyor. Gorevin: bu degisiklikleri YATIRIMCI gozuyle ' +
-        'kisa ve net yorumlamak. Her portfoy icin 2-4 cumle: neden bu degisiklikler mantikli/riskli, ' +
-        'sektor yogunlasmasi veya momentum/deger rotasyonu varsa belirt, dikkat edilecek riskler. ' +
-        'Abartma, uydurma rakam kullanma, sadece verilen veriye dayan. Turkce yaz. Sonunda 1 cumlelik ' +
-        'genel ozet ver. Bu bir yatirim tavsiyesi degildir; gozlem/yorumdur.'
+        "Kidemli bir BIST portfoy yoneticisisin ve yatirimcilarina AYLIK portfoy notu yaziyorsun. " +
+        "Sana, kantitatif bir botun ay sonu yeniden dengeledigi 6 model portfoyun bu donemki " +
+        "degisiklikleri, secim gerekceleri ve her pozisyonun GERCEK temel/teknik verileri (F/K, PD/DD, " +
+        "FD/FAVOK, ROE, temettu, momentum, RSI, sektor, getiri/alfa) veriliyor.`n`n" +
+        "YAZIM ILKELERI:`n" +
+        "- Her portfoy icin 3-5 cumlelik AKICI bir paragraf yaz. Once NET BIR TEZ/KARAR ver (bu portfoy " +
+        "bu ay neyi ifade ediyor, strateji kimligine uygun mu), sonra bunu 1-2 somut pozisyonla ve " +
+        "GERCEK rakamlarla (F/K, ROE, FD/FAVOK, momentum vb.) gerekcelendir, en sonda EN ONEMLI RISKI belirt.`n" +
+        "- Botun ic puanlarini (skor/kalite/makro puani gibi) ham sayi olarak SAYIP DOKME; bunlari " +
+        "yatirimci diline cevir (or. 'F/K 5.7 ile ucuz ama holding iskontosu olabilir', 'momentum zayif " +
+        "cunku 1 aylik getiri negatif ve RSI dusuk').`n" +
+        "- Su risklere ozellikle dikkat et: sektor/isim yogunlasmasi, asiri tek-hisse agirligi, degerleme " +
+        "(pahali/ucuz), momentum-strateji tutarsizligi (or. Momentum portfoyunde dususte olan hisse), " +
+        "likidite, negatif alfa.`n" +
+        "- En sonda '## Genel Degerlendirme' basligi altinda 2-3 cumle: hangi strateji one cikiyor, " +
+        "PORTFOYLER ARASI ortak riskler (ayni isimlerin/sektorun birden cok portfoyde tekrar etmesi gibi " +
+        "kurumsal bir gozlem cok degerlidir), ve bu ay sonu rotasyonunun ana temasi.`n" +
+        "- Profesyonel ama anlasilir Turkce. Madde madde degil, paragraf halinde yaz. Uydurma rakam KULLANMA, " +
+        "yalniz verilen veriye dayan. Markdown kullan: her portfoy icin '### Portfoy Adi' basligi.`n" +
+        "- En altta tek satir: 'Bu bir yatirim tavsiyesi degildir; verilen veriye dayali gozlem ve yorumdur.'"
     )
-    $userMessage = Build-ModelPortfolioCommentaryPrompt -PortfolioSet $PortfolioSet -PeriodEnd $latestPeriod
+    $userMessage = Build-ModelPortfolioCommentaryPrompt -PortfolioSet $PortfolioSet -PeriodEnd $latestPeriod -StockMap $StockMap
     # En ust model (Fable/Mythos) icin reddi Opus 4.8'e dusur (best-effort guvence).
     $fallbackModel = if ($model -like 'claude-fable*' -or $model -like 'claude-mythos*') { 'claude-opus-4-8' } else { '' }
 
@@ -1728,14 +1773,32 @@ function Update-PaperBrokerState {
     }
 }
 
+function ConvertTo-TurkishOrderSide {
+    param([string]$Side)
+    switch -Regex ($Side) {
+        'Buy'  { return 'AL' }
+        'Sell' { return 'SAT' }
+        default { return (ConvertTo-PlainText $Side) }
+    }
+}
+
+function ConvertTo-TurkishOrderSource {
+    param([string]$Source)
+    switch ($Source) {
+        'ModelPortfolio' { return 'Model Portföy' }
+        'InstantEntry'   { return 'Anlık Fırsat' }
+        default          { return (ConvertTo-PlainText $Source) }
+    }
+}
+
 function Get-OrderIntentRows {
     param([object[]]$OrderIntents)
 
     return @($OrderIntents | ForEach-Object {
             [pscustomobject][ordered]@{
-                Kaynak = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Source')
+                Kaynak = ConvertTo-TurkishOrderSource ([string](Get-ObjectPropertyValue -Object $_ -Name 'Source'))
                 Portfoy = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'PortfolioName')
-                Yon = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Side')
+                Yon = ConvertTo-TurkishOrderSide ([string](Get-ObjectPropertyValue -Object $_ -Name 'Side'))
                 Sembol = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Symbol')
                 Sirket = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Company')
                 Fiyat = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $_ -Name 'Price') -Format 'N2'
@@ -1751,7 +1814,7 @@ function Get-PaperBrokerPositionRows {
 
     return @(@(Get-ObjectPropertyValue -Object $PaperBroker -Name 'Positions') | ForEach-Object {
             [pscustomobject][ordered]@{
-                Kaynak = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Source')
+                Kaynak = ConvertTo-TurkishOrderSource ([string](Get-ObjectPropertyValue -Object $_ -Name 'Source'))
                 Portfoy = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'PortfolioName')
                 Sembol = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Symbol')
                 Sirket = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $_ -Name 'Company')
@@ -2126,7 +2189,7 @@ try {
     # Ay sonu Claude yorumu (best-effort): yalniz portfoy bu donem yeniden
     # dengelendiyse uretilir; aksi halde onceki donemin yorumu korunup gosterilir.
     try {
-        $updatedPortfolioSet = Update-ModelPortfolioCommentary -PortfolioSet $updatedPortfolioSet -Settings $settings -AsOf $runAt
+        $updatedPortfolioSet = Update-ModelPortfolioCommentary -PortfolioSet $updatedPortfolioSet -Settings $settings -AsOf $runAt -StockMap (Get-StockLookup -Stocks $stocks)
     }
     catch {
         Write-Warning "Ay sonu portfoy yorumu adimi atlandi: $($_.Exception.Message)"
@@ -2790,12 +2853,12 @@ $portfolioHoldingGroupsHtml
 <!--EMAIL-DROP-START--><h2>Model Portföy Son İşlemler</h2>
 <p class="muted">Her portföy için son 12 işlem gösterilir; ilk kurulum, AL, SAT ve ay sonu eşitleme kayıtları fiyat/adet/tutar/not alanlarıyla izlenir.</p>
 $(New-HtmlTable -Rows $portfolioTransactionRows)
-<h2>Paper Order Intents</h2>
-<p class="muted">Bu bölüm gerçek emir değildir. Model portföy ve anlık fırsat portföyünün bu koşuda ürettiği teorik AL/SAT niyetlerini ayrı bir PaperBroker defterine yazar; ileride aracı kurum entegrasyonu gerekirse execution katmanı bu intent formatından beslenebilir.</p>
-$(if ($orderIntentRows.Count -gt 0) { New-HtmlTable -Rows $orderIntentRows } else { '<p class="muted">Bu çalışmada yeni paper order intent oluşmadı.</p>' })
-<h2>PaperBroker Pozisyon Defteri</h2>
-<p class="muted">PaperBroker, intent kayıtlarını kağıt üzerinde doldurulmuş varsayan denetim defteridir; gerçek portföy veya emir sistemi değildir.</p>
-$(if ($paperBrokerPositionRows.Count -gt 0) { New-HtmlTable -Rows $paperBrokerPositionRows } else { '<p class="muted">PaperBroker defterinde açık pozisyon yok.</p>' })<!--EMAIL-DROP-END-->
+<h2>Emir Niyetleri (Kağıt — gerçek emir değildir)</h2>
+<p class="muted">Bu bölüm gerçek emir değildir. Model portföy ve anlık fırsat portföyünün bu koşuda ürettiği teorik AL/SAT niyetlerini ayrı bir kağıt-broker defterine yazar; ileride aracı kurum entegrasyonu gerekirse execution katmanı bu niyet formatından beslenebilir.</p>
+$(if ($orderIntentRows.Count -gt 0) { New-HtmlTable -Rows $orderIntentRows } else { '<p class="muted">Bu çalışmada yeni emir niyeti oluşmadı.</p>' })
+<h2>Kağıt Broker Pozisyon Defteri</h2>
+<p class="muted">Kağıt broker, emir niyeti kayıtlarını kağıt üzerinde doldurulmuş varsayan denetim defteridir; gerçek portföy veya emir sistemi değildir.</p>
+$(if ($paperBrokerPositionRows.Count -gt 0) { New-HtmlTable -Rows $paperBrokerPositionRows } else { '<p class="muted">Kağıt broker defterinde açık pozisyon yok.</p>' })<!--EMAIL-DROP-END-->
 </div>
 $perfChartSectionHtml
 $observationSectionHtml

@@ -591,18 +591,49 @@ arşivden gerçek temel veriyle beslenebilir hale gelir.
 
 ### Ay Sonu Portföy Yorumu (Claude) — `MonthlyCommentary`
 Model portföyler **ay sonunda yeniden dengelendiğinde**, o ayki değişiklikler (çıkan/giren
-hisseler, seçim gerekçeleri, ağırlıklar, getiri/alfa) bir **fon yöneticisi gözüyle** Claude'a
-yorumlatılır ve rapora **"🤖 Ay Sonu Portföy Yorumu"** bölümü olarak eklenir.
-- **Yalnızca dönem değiştiğinde** üretilir (ayda ~1 LLM çağrısı) — `Update-ModelPortfolioCommentary`
-  son rebalance dönemini izler; aynı dönem için yorum varsa yeniden üretmez (idempotent, token tasarrufu).
-- Üretilen yorum `data/model_portfolios.json` içinde `MonthlyCommentary` (Period/Model/GeneratedAt/Text)
-  olarak saklanır ve sonraki ay sonuna kadar **her gün raporda gösterilir**.
-- **Best-effort:** `ANTHROPIC_API_KEY` yoksa veya çağrı/içerik reddi olursa yorum atlanır, **rapor bozulmaz**.
-- Ayar: `config/report_settings.cloud.json → Report.ModelPortfolioCommentary`:
-  `Enabled` (vars. true), `Model` (vars. `claude-opus-4-8`; en yüksek kalite için `claude-fable-5`
-  yazılabilir — bu model 30 günlük veri saklama gerektirir), `MaxOutputTokens` (vars. 2000).
-- **Maliyet:** ayda ~1 çağrı, ~6K girdi + ~2-4K çıktı token. `claude-opus-4-8` ile ≈ **$0,13/ay (~$1,5/yıl)**;
-  `claude-fable-5` ile ≈ **$0,26/ay (~$3/yıl)**. Yorum sadece ay sonu üretildiği için günlük maliyet yok.
+hisseler, seçim gerekçeleri, ağırlıklar, getiri/alfa) + her pozisyonun **gerçek temel/teknik
+verisi** bir **fon yöneticisi gözüyle** Claude'a yorumlatılır ve rapora **"🤖 Ay Sonu Portföy
+Yorumu"** bölümü olarak eklenir.
+
+**Ne zaman çalışır?** **Yalnızca rebalance dönemi değiştiğinde** (yani ayda ~1 kez). Her gün
+çalışan `Update-ModelPortfolioCommentary` sadece "kayıtlı yorumun dönemi == güncel dönem mi?"
+diye bakar; aynı dönemse **API'ye hiç gitmez** (no-op, sıfır maliyet). Yeni dönemde 1 kez üretir,
+`data/model_portfolios.json → MonthlyCommentary` (Period/Model/GeneratedAt/Text) olarak saklar ve
+sonraki ay sonuna kadar **her gün raporda gösterir**.
+
+**Modele giden prompt.** İki parça:
+- **Sistem (rol):** "Kıdemli bir BIST portföy yöneticisisin, yatırımcılarına aylık not yazıyorsun."
+  Kurallar: her portföy için 3-5 cümle akıcı paragraf; önce **net tez/karar**, sonra 1-2 somut
+  pozisyonu **gerçek rakamlarla** (F/K, ROE, FD/FAVÖK, momentum) gerekçelendir, sonda **en önemli
+  risk**; botun iç skorlarını ham sayı olarak ezberleme, **yatırımcı diline çevir**; sektör/isim
+  yoğunlaşması, aşırı tek-hisse ağırlığı, değerleme, momentum-strateji tutarsızlığı, negatif alfa
+  gibi riskleri vurgula; sonda **"## Genel Değerlendirme"** (portföyler arası ortak isim/sektör
+  yoğunlaşması gibi kurumsal gözlemler dahil); profesyonel **Türkçe**, uydurma rakam yok.
+- **Veri (kullanıcı mesajı):** `Build-ModelPortfolioCommentaryPrompt` her portföy için dönem
+  işlemlerini (AL/SAT/EŞİTLEME + seçim gerekçeleri) ve **güncel pozisyonların gerçek verisini**
+  (sektör, piyasa değeri, F/K, PD/DD, FD/FAVÖK, ROE, temettü, 1A/3A getiri, RSI) taranan hisse
+  haritasından (`StockMap`) zenginleştirerek verir — böylece model içsel skorları tekrarlamak
+  yerine gerçek temel analiz yapar.
+
+**Best-effort:** `ANTHROPIC_API_KEY` yoksa veya çağrı/içerik reddi olursa yorum atlanır, **rapor
+bozulmaz**. Yanıt **HttpClient ile açık UTF-8** çözülür (PowerShell 5.1'in `Invoke-RestMethod`'u
+UTF-8'i bozduğu için); Fable/Mythos seçilirse reddi **Opus 4.8'e düşüren sunucu-tarafı fallback**
+eklenir.
+
+**Ayar:** `config/report_settings.cloud.json → Report.ModelPortfolioCommentary`: `Enabled`
+(vars. true), `Model` (vars. `claude-opus-4-8`), `MaxOutputTokens` (vars. 3000). En üst model
+`claude-fable-5`'tir ama Anthropic hesabında ayrı erişim ister; erişimin yoksa API **404** döner ve
+yorum atlanır (rapor yine üretilir). Erişim açılınca `Model`'i tek satırla `claude-fable-5` yap.
+
+**Maliyet (ölçülen):** girdi ~2,5-3K + çıktı ~1K token. `claude-opus-4-8` ile **çağrı başına ≈
+$0,04**; ayda 1 çağrı → **~$0,5/yıl**. `claude-fable-5` birim fiyatın 2 katı (~$0,08/çağrı, ~$1/yıl).
+Aynı dönemde tekrar çalışmadığı için günlük ek maliyet yoktur.
+
+### Raporda Türkçeleştirme — emir/işlem bölümleri
+Raporun ara-işlem bölümleri tamamen Türkçeleştirildi: **"Emir Niyetleri (Kağıt)"** ve **"Kağıt
+Broker Pozisyon Defteri"** başlıkları, ve içlerindeki değerler — yön `Buy/Sell` → **AL/SAT**, kaynak
+`ModelPortfolio/InstantEntry` → **Model Portföy / Anlık Fırsat**. Saklanan veri formatı (ileride
+aracı kurum entegrasyonu için) `Buy/Sell` olarak korunur; yalnızca **gösterim** Türkçedir.
 
 ### Sektör Yoğunlaşma Tavanı (model portföyler)
 Hisse başına `MaxWeightPct`'in yanına **sektör bazında ağırlık tavanı** eklendi
