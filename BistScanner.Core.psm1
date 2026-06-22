@@ -3287,6 +3287,44 @@ function Test-InstantEntryOpportunityFilter {
     return $false
 }
 
+function Get-InstantEntryExitDecision {
+    <#
+        Anlik firsat portfoyu pozisyonu icin cikis karari (YALNIZ bu portfoye ozel;
+        model portfoyler aylik kalir). Doner: $null = tut; aksi halde Kind/Reason.
+        Sira: once zarar-kes (stop), sonra kar-al (take-profit), sonra iz-suren stop
+        (trailing — yalniz tepe kazanc TrailingStopPct'i gectiyse devreye girer ve
+        tepeden o kadar geri verince satar).
+        Rules: StopLossPct (negatif), TakeProfitPct (pozitif), TrailingStopPct (pozitif).
+    #>
+    param($Holding, $Rules)
+
+    if ($null -eq $Rules) { return $null }
+    $gainPct = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Holding -Name 'UnrealizedGainPct')
+    if ($null -eq $gainPct) { return $null }
+    $stop = [double]$Rules.StopLossPct
+    $take = [double]$Rules.TakeProfitPct
+    $trail = [double]$Rules.TrailingStopPct
+
+    if ($gainPct -le $stop) {
+        return [pscustomobject]@{ Kind = 'Stop'; Reason = ('Zarar kes: getiri %{0:N1} <= stop %{1:N1}.' -f $gainPct, $stop) }
+    }
+    if ($gainPct -ge $take) {
+        return [pscustomobject]@{ Kind = 'TakeProfit'; Reason = ('Kar al: getiri %{0:N1} >= hedef %{1:N1}.' -f $gainPct, $take) }
+    }
+    if ($trail -gt 0) {
+        $peakGain = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Holding -Name 'PeakGainPct')
+        $currentPrice = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Holding -Name 'CurrentPrice')
+        $peakPrice = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Holding -Name 'PeakPrice')
+        if ($null -ne $peakGain -and $null -ne $currentPrice -and $null -ne $peakPrice -and $peakPrice -gt 0) {
+            $dropFromPeak = (($currentPrice - $peakPrice) / $peakPrice) * 100.0
+            if ($peakGain -ge $trail -and $dropFromPeak -le (-1.0 * $trail)) {
+                return [pscustomobject]@{ Kind = 'Trailing'; Reason = ('Iz-suren stop: tepe kazanc %{0:N1}, tepeden %{1:N1} geri verildi.' -f $peakGain, [Math]::Abs($dropFromPeak)) }
+            }
+        }
+    }
+    return $null
+}
+
 function New-InstantEntryOpportunity {
     param(
         $Stock,
@@ -3988,7 +4026,11 @@ function Get-ModelPortfolioTargetWeights {
 
         [double]$MinWeightPct = 8.0,
 
-        [double]$MaxWeightPct = 28.0
+        [double]$MaxWeightPct = 28.0,
+
+        # Sektor yogunlasma tavani (%). Hicbir sektorun toplam agirligi bunu
+        # gecemez (0 = kapali). Hem esit hem ters-oynaklik agirliklarina uygulanir.
+        [double]$SectorMaxWeightPct = 35.0
     )
 
     $count = @($Selection).Count
@@ -3996,13 +4038,24 @@ function Get-ModelPortfolioTargetWeights {
         throw 'Model portföy ağırlığı için seçim listesi boş.'
     }
 
+    # Sembol -> sektor haritasi (sektor tavani icin). Bilinmeyen/bos sektor her
+    # isim icin AYRI tutulur (yanlislikla gruplanip cezalandirilmasin).
+    $sectorMap = @{}
+    foreach ($stock in $Selection) {
+        $sym = [string]$stock.Symbol
+        $sec = [string](Get-ObjectPropertyValue -Object $stock -Name 'SectorTR')
+        if ([string]::IsNullOrWhiteSpace($sec)) { $sec = "__UNK__$sym" }
+        $sectorMap[$sym] = $sec
+    }
+    $sectorMaxWeight = [double]$SectorMaxWeightPct / 100.0
+
     $weights = @{}
     if ($WeightingMethod -ne 'InverseVolatility') {
         $equalWeight = 1.0 / $count
         foreach ($stock in $Selection) {
             $weights[[string]$stock.Symbol] = $equalWeight
         }
-        return $weights
+        return (Get-SectorCappedWeights -Weights $weights -SectorMap $sectorMap -SectorMaxWeight $sectorMaxWeight)
     }
 
     $minWeight = [Math]::Max(0.0, [double]$MinWeightPct / 100.0)
@@ -4061,7 +4114,67 @@ function Get-ModelPortfolioTargetWeights {
         }
     }
 
-    return $weights
+    return (Get-SectorCappedWeights -Weights $weights -SectorMap $sectorMap -SectorMaxWeight $sectorMaxWeight)
+}
+
+function Get-SectorCappedWeights {
+    <#
+        Sektor yogunlasma tavani: hicbir sektorun toplam agirligi SectorMaxWeight'i
+        (kesir, or. 0.35) gecemez. Asan sektorun isimleri oransal kuculur; serbest
+        kalan agirlik tavan-alti isimlere (mevcut agirliklariyla oranli) dagitilir.
+        Cok-gecisli (yeniden dagitim baska sektoru asabilir). Toplam agirlik korunur.
+    #>
+    param(
+        [hashtable]$Weights,
+        [hashtable]$SectorMap,
+        [double]$SectorMaxWeight
+    )
+
+    if ($null -eq $Weights -or $Weights.Count -eq 0) { return $Weights }
+    # Gecersiz/kapali tavan ya da tek isim varken yapacak bir sey yok.
+    if ($SectorMaxWeight -le 0 -or $SectorMaxWeight -ge 1) { return $Weights }
+
+    for ($pass = 0; $pass -lt 8; $pass++) {
+        $sectorTotals = @{}
+        foreach ($sym in @($Weights.Keys)) {
+            $sec = [string]$SectorMap[$sym]
+            $cur = if ($sectorTotals.ContainsKey($sec)) { [double]$sectorTotals[$sec] } else { 0.0 }
+            $sectorTotals[$sec] = $cur + [double]$Weights[$sym]
+        }
+        $over = @($sectorTotals.Keys | Where-Object { [double]$sectorTotals[$_] -gt $SectorMaxWeight + 1e-9 })
+        if ($over.Count -eq 0) { break }
+
+        $freed = 0.0
+        $capped = @{}
+        foreach ($sec in $over) {
+            $tot = [double]$sectorTotals[$sec]
+            $scale = if ($tot -gt 0) { $SectorMaxWeight / $tot } else { 1.0 }
+            foreach ($sym in @($Weights.Keys)) {
+                if ([string]$SectorMap[$sym] -eq $sec) {
+                    $newW = [double]$Weights[$sym] * $scale
+                    $freed += ([double]$Weights[$sym] - $newW)
+                    $Weights[$sym] = $newW
+                    $capped[$sym] = $true
+                }
+            }
+        }
+
+        $freeSyms = @($Weights.Keys | Where-Object { -not $capped.ContainsKey($_) })
+        $freeBase = 0.0
+        foreach ($sym in $freeSyms) { $freeBase += [double]$Weights[$sym] }
+        # Dagitacak tavan-alti isim yoksa (hepsi capli) dur; infeasible.
+        if ($freeSyms.Count -eq 0 -or $freeBase -le 0) { break }
+        foreach ($sym in $freeSyms) {
+            $Weights[$sym] = [double]$Weights[$sym] + $freed * ([double]$Weights[$sym] / $freeBase)
+        }
+    }
+
+    $sum = 0.0
+    foreach ($sym in @($Weights.Keys)) { $sum += [double]$Weights[$sym] }
+    if ($sum -gt 0) {
+        foreach ($sym in @($Weights.Keys)) { $Weights[$sym] = [double]$Weights[$sym] / $sum }
+    }
+    return $Weights
 }
 
 function Get-ModelPortfolioTargetValues {
@@ -4075,10 +4188,12 @@ function Get-ModelPortfolioTargetValues {
 
         [double]$MinWeightPct = 8.0,
 
-        [double]$MaxWeightPct = 28.0
+        [double]$MaxWeightPct = 28.0,
+
+        [double]$SectorMaxWeightPct = 35.0
     )
 
-    $weights = Get-ModelPortfolioTargetWeights -Selection $Selection -WeightingMethod $WeightingMethod -MinWeightPct $MinWeightPct -MaxWeightPct $MaxWeightPct
+    $weights = Get-ModelPortfolioTargetWeights -Selection $Selection -WeightingMethod $WeightingMethod -MinWeightPct $MinWeightPct -MaxWeightPct $MaxWeightPct -SectorMaxWeightPct $SectorMaxWeightPct
     $targets = @{}
     foreach ($stock in $Selection) {
         $symbol = [string]$stock.Symbol
@@ -4140,11 +4255,12 @@ function New-SingleModelPortfolio {
     $weightingMethod = Get-ModelPortfolioWeightingMethod -Object $Definition
     $minWeightPct = Get-ModelPortfolioWeightLimit -Object $Definition -Name 'MinWeightPct' -Default 8.0
     $maxWeightPct = Get-ModelPortfolioWeightLimit -Object $Definition -Name 'MaxWeightPct' -Default 28.0
+    $sectorMaxWeightPct = Get-ModelPortfolioWeightLimit -Object $Definition -Name 'SectorMaxWeightPct' -Default 35.0
     $selection = @(Get-ModelPortfolioSelection -Stocks $Stocks -Strategy $Definition.Strategy -RankBy $rankBy)
     # Giris maliyeti: tum sermaye alindigi icin sermaye * maliyet orani.
     $entryCost = [Math]::Round($InitialCapital * ([double]$CostBps / 10000.0), 2)
     $investable = $InitialCapital - $entryCost
-    $targetValues = Get-ModelPortfolioTargetValues -Selection $selection -TotalValue $investable -WeightingMethod $weightingMethod -MinWeightPct $minWeightPct -MaxWeightPct $maxWeightPct
+    $targetValues = Get-ModelPortfolioTargetValues -Selection $selection -TotalValue $investable -WeightingMethod $weightingMethod -MinWeightPct $minWeightPct -MaxWeightPct $maxWeightPct -SectorMaxWeightPct $sectorMaxWeightPct
     $holdings = [System.Collections.Generic.List[object]]::new()
     $transactions = [System.Collections.Generic.List[object]]::new()
     $allocationNote = if ($weightingMethod -eq 'InverseVolatility') {
@@ -4403,9 +4519,10 @@ function Invoke-ModelPortfolioRebalance {
     $weightingMethod = Get-ModelPortfolioWeightingMethod -Object $valuedPortfolio
     $minWeightPct = Get-ModelPortfolioWeightLimit -Object $valuedPortfolio -Name 'MinWeightPct' -Default 8.0
     $maxWeightPct = Get-ModelPortfolioWeightLimit -Object $valuedPortfolio -Name 'MaxWeightPct' -Default 28.0
+    $sectorMaxWeightPct = Get-ModelPortfolioWeightLimit -Object $valuedPortfolio -Name 'SectorMaxWeightPct' -Default 35.0
     $selection = @(Get-ModelPortfolioSelection -Stocks $Stocks -Strategy $valuedPortfolio.Strategy -RankBy $rebalanceRankBy)
     $totalValue = [double]$valuedPortfolio.CurrentValueTL
-    $targetValuesPreCost = Get-ModelPortfolioTargetValues -Selection $selection -TotalValue $totalValue -WeightingMethod $weightingMethod -MinWeightPct $minWeightPct -MaxWeightPct $maxWeightPct
+    $targetValuesPreCost = Get-ModelPortfolioTargetValues -Selection $selection -TotalValue $totalValue -WeightingMethod $weightingMethod -MinWeightPct $minWeightPct -MaxWeightPct $maxWeightPct -SectorMaxWeightPct $sectorMaxWeightPct
     $oldHoldings = @{}
     foreach ($holding in @($valuedPortfolio.Holdings)) {
         $oldHoldings[[string]$holding.Symbol] = $holding
@@ -4427,7 +4544,7 @@ function Invoke-ModelPortfolioRebalance {
     if ($rebalanceCost -lt 0) { $rebalanceCost = 0 }
     # Maliyeti dus: net deger ve hedef agirliklar yeniden hesaplanir.
     $totalValue = $totalValue - $rebalanceCost
-    $targetValues = Get-ModelPortfolioTargetValues -Selection $selection -TotalValue $totalValue -WeightingMethod $weightingMethod -MinWeightPct $minWeightPct -MaxWeightPct $maxWeightPct
+    $targetValues = Get-ModelPortfolioTargetValues -Selection $selection -TotalValue $totalValue -WeightingMethod $weightingMethod -MinWeightPct $minWeightPct -MaxWeightPct $maxWeightPct -SectorMaxWeightPct $sectorMaxWeightPct
 
     $actionLabel = if ($removedSymbols.Count -gt 0 -or $addedSymbols.Count -gt 0) {
         'AY SONU DEĞİŞİM + EŞİTLEME'
@@ -6309,6 +6426,7 @@ Export-ModuleMember -Function `
     Get-MacroSnapshot, `
     Get-BistIndexBenchmarks, `
     Get-InstantEntryOpportunities, `
+    Get-InstantEntryExitDecision, `
     New-ModelPortfolioSet, `
     Update-ModelPortfolioSet, `
     Save-PitSnapshot, `
