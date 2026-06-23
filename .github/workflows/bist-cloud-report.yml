@@ -209,3 +209,51 @@ jobs:
             throw 'State repoya push edilemedi. Branch korumasi push erisimini engelliyor olabilir.'
           }
           Write-Host 'State repoya kaydedildi.'
+
+      # Tarihli PIT anlik goruntulerini AYRI 'pit-archive' branch'ine arsivle (main'i
+      # sismez; normal clone/checkout bu branch'i cekmez). Ileride survivorship/look-
+      # ahead'siz backtest icin as-observed veri birikir. Best-effort: hata olursa
+      # rapor bozulmaz.
+      - name: Archive PIT snapshots to pit-archive branch
+        if: success()
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $pit = @(Get-ChildItem -Path 'data/pit' -Filter '*.json' -ErrorAction SilentlyContinue)
+          $snap = @(Get-ChildItem -Path 'data/point_in_time_snapshots' -Filter '*.json' -ErrorAction SilentlyContinue)
+          if ($pit.Count -eq 0 -and $snap.Count -eq 0) {
+            Write-Host 'Arsivlenecek PIT anlik goruntusu yok; atlandi.'
+            return
+          }
+          try {
+            git config user.name 'bist-report-bot'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git fetch origin pit-archive --depth=1
+            $wt = Join-Path $env:RUNNER_TEMP ('pitwt_' + $env:GITHUB_RUN_ID)
+            if (Test-Path $wt) { git worktree remove --force $wt 2>$null }
+            git worktree add -B pit-archive $wt origin/pit-archive
+            New-Item -ItemType Directory -Force -Path (Join-Path $wt 'pit'), (Join-Path $wt 'point_in_time_snapshots') | Out-Null
+            if ($pit.Count -gt 0)  { Copy-Item 'data/pit/*.json' (Join-Path $wt 'pit') -Force }
+            if ($snap.Count -gt 0) { Copy-Item 'data/point_in_time_snapshots/*.json' (Join-Path $wt 'point_in_time_snapshots') -Force }
+            Push-Location $wt
+            git add -A
+            git diff --cached --quiet
+            if ($LASTEXITCODE -ne 0) {
+              git commit -m ('pit: {0} anlik goruntu arsivi [skip ci]' -f (Get-Date -Format 'yyyy-MM-dd HH:mm')) | Out-Null
+              for ($i = 0; $i -lt 3; $i++) {
+                git push origin pit-archive
+                if ($LASTEXITCODE -eq 0) { Write-Host 'PIT arsivi pit-archive branch''ine yazildi.'; break }
+                Write-Warning "pit-archive push denemesi $($i + 1) basarisiz; rebase + tekrar."
+                git pull --rebase origin pit-archive
+                Start-Sleep -Seconds ([Math]::Pow(2, $i + 1))
+              }
+            }
+            else {
+              Write-Host 'pit-archive: degisiklik yok.'
+            }
+            Pop-Location
+            git worktree remove --force $wt 2>$null
+          }
+          catch {
+            Write-Warning "PIT arsivleme atlandi (rapor bozulmaz): $($_.Exception.Message)"
+          }

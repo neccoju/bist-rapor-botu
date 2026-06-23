@@ -626,10 +626,20 @@ Detaylı eleştirel inceleme (kod tabanı kanıtıyla) sonrası uygulananlar:
   **hafif cezalı (32)** puanlanır; düşük-açıklamalı/illikit hisseleri kayırma önyargısı azaltıldı.
 - **İşlem maliyeti gerçekçi:** model portföy maliyeti varsayılanı **20 → 50 bps** (BIST'te
   BSMV + komisyon + kayma); raporlanan getiriler daha gerçekçi (biraz daha düşük) olur.
-- **Repo şişmesi durduruldu:** tarihli PIT anlık görüntü arşivleri (`data/pit/`,
-  `data/point_in_time_snapshots/`) artık git'e commit **edilmez** (.gitignore + persist
-  adımından çıkarıldı, mevcut izlenenler untrack edildi). Çalışma anında yalnız
-  `latest_point_in_time_snapshot.json` okunur; arşiv birikimi gerekirse ayrı depo/branch'e.
+- **Repo şişmesi durduruldu + PIT arşivi korundu:** tarihli PIT anlık görüntüleri
+  (`data/pit/`, `data/point_in_time_snapshots/`) artık `main`'e commit **edilmez**
+  (.gitignore + persist'ten çıkarıldı, untrack edildi) — `main` ve normal clone'lar
+  hafif kalır. Çalışma anında yalnız `latest_point_in_time_snapshot.json` okunur.
+  **Ancak arşiv kaybolmaz:** her koşu, o günkü snapshot'ları **ayrı bir `pit-archive`
+  orphan branch'ine** push eder (`bist-cloud-report.yml` → "Archive PIT snapshots"
+  adımı, best-effort). Bu branch normal clone/checkout tarafından çekilmez, dolayısıyla
+  `main`'i şişirmez; ama zamanla **as-observed** veri biriktirerek ileride
+  survivorship/look-ahead'siz backtest'e zemin hazırlar.
+- **Dosya temizliği (yinelenen/ölü kod kaldırıldı):** `patches/` klasörü silindi —
+  içindeki fonksiyonlar (`Update-InstantEntrySignalPortfolio` vb.) zaten `GunlukRapor.ps1`'de
+  canlı tanımlı, hiçbir workflow onu çağırmıyor ve kopya **bayatlamıştı** (yeni risk-çıkış
+  mantığı yoktu) → iki ayrışan kaynak riski giderildi. `CLOUD-RUN.md` silindi (README'nin
+  "Gerekli GitHub Secrets" bölümünün eski/eksik bir kopyasıydı; "cache" iddiası da güncel değildi).
 - **Prompt-injection sertleştirme:** KAP başlığı/kategori/şirket metni LLM prompt'una
   girmeden önce temizlenir (`_safe_field`: tek satır, süslü parantez nötrlenir) — hem
   `.format` kırılmasını hem manipülasyonu engeller.
