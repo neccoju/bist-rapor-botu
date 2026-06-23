@@ -4,6 +4,8 @@ name: borsapy KAP Probe (fizibilite)
 # yalniz borsapy'nin KAP cekip cekemedigini, suresini ve Chromium gerekip
 # gerekmedigini olcer. Python; ana bot PowerShell'den bagimsiz.
 on:
+  schedule:
+    - cron: "0 5 * * 6"
   workflow_dispatch:
 
 permissions:

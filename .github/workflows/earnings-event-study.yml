@@ -4,6 +4,8 @@ name: Earnings Event Study
 # korelasyonlarini gercek veriyle (TradingView + Yahoo) hesaplar ve loga yazar.
 # Gunluk raporu ve state'i ETKILEMEZ; sadece okur.
 on:
+  schedule:
+    - cron: "0 19 * * 6"
   workflow_dispatch:
     inputs:
       max_stocks:

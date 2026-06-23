@@ -4,6 +4,8 @@ name: EVDS Series Discovery
 # ve loga yazar. Gunluk raporu/state'i ETKILEMEZ. Sadece dogru TR10Y seri
 # kodunu tespit etmek icin gecici/tanilama amacli.
 on:
+  schedule:
+    - cron: "0 5 1 * *"
   workflow_dispatch:
 
 permissions:

@@ -1,0 +1,75 @@
+name: Auto-Calibrate (kendi kendine ogrenme — ceyreklik)
+
+# 3 ayda bir (Oca/Nis/Tem/Eki ayinin 1'i, 18:00 UTC) PIT arsivinden (pit-archive
+# branch) walk-forward IC ile RFS faktor agirliklarini yeniden ogrenir ve
+# data/learned_factor_weights.json olarak main'e yazar. Elle tetikleme de var ama
+# GEREKMEZ — zamanlanmistir. Asiri-uyum korumali + veri-kapili: arsiv yeterince
+# birikene kadar (ilk ~3 ay) hicbir sey degismez.
+on:
+  schedule:
+    - cron: "0 18 1 1,4,7,10 *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: auto-calibrate
+  cancel-in-progress: false
+
+jobs:
+  calibrate:
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - name: Checkout (main)
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: true
+
+      - name: Fetch pit-archive snapshots
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Continue'
+          git fetch origin pit-archive --depth=1
+          $wt = Join-Path $env:RUNNER_TEMP 'pitarch'
+          if (Test-Path $wt) { git worktree remove --force $wt 2>$null }
+          git worktree add --detach $wt origin/pit-archive
+          # pit-archive'deki tarihli snapshot'lari yerel data/pit'e kopyala (script oradan okur)
+          New-Item -ItemType Directory -Force -Path 'data/pit' | Out-Null
+          $src = Join-Path $wt 'pit'
+          if (Test-Path $src) {
+            Copy-Item (Join-Path $src '*.json') 'data/pit' -Force -ErrorAction SilentlyContinue
+            Write-Host ("pit-archive'den kopyalanan snapshot: " + @(Get-ChildItem 'data/pit' -Filter '*.json').Count)
+          }
+          else {
+            Write-Host 'pit-archive henuz bos (snapshot yok).'
+          }
+          git worktree remove --force $wt 2>$null
+
+      - name: Run auto-calibration
+        shell: powershell
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\Invoke-AutoCalibration.ps1
+
+      - name: Commit learned weights to main
+        if: success()
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Continue'
+          if (-not (Test-Path -LiteralPath 'data/learned_factor_weights.json')) {
+            Write-Host 'Ogrenilmis agirlik dosyasi yok (yetersiz veri); commit atlandi.'
+            exit 0
+          }
+          git config user.name 'bist-autocalib-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f data/learned_factor_weights.json
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) { Write-Host 'Agirliklar degismedi; commit yok.'; exit 0 }
+          git commit -m 'chore(learn): RFS faktor agirliklari oto-kalibre edildi [skip ci]'
+          for ($i = 0; $i -lt 4; $i++) {
+            git push origin "HEAD:${env:GITHUB_REF_NAME}"
+            if ($LASTEXITCODE -eq 0) { Write-Host 'Ogrenilmis agirliklar main'+"'"+'e yazildi.'; break }
+            git pull --rebase origin "${env:GITHUB_REF_NAME}"
+            Start-Sleep -Seconds ([Math]::Pow(2, $i + 1))
+          }

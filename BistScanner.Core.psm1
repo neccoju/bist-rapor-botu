@@ -4886,6 +4886,12 @@ function Add-RawFactorScore {
         [hashtable]$Weights
     )
     if (-not $Weights) {
+        # ONCE ogrenilmis agirliklari dene (data/learned_factor_weights.json) — kendi
+        # kendine ogrenen ceyreklik kalibrasyon yazar. Yoksa/ gecersizse asagidaki
+        # statik BIST100 walk-forward varsayilanina duser.
+        $Weights = Get-LearnedFactorWeights
+    }
+    if (-not $Weights) {
         # BIST100 walk-forward (4-hafta tutus) ortalama agirliklari; kesit z-skoru basina.
         $Weights = @{
             RSI = -1.49; MACDh = 0.69; WMACDh = 0.35; dSMA20 = -0.13; dSMA50 = 0.82
@@ -4935,8 +4941,118 @@ function Add-RawFactorScore {
     return $Stocks
 }
 
-# ============================================================================
-# Akademik cok-faktor skoru (AFS): kesitsel beklenen-getiri proxy'si.
+function Get-LearnedFactorWeights {
+    <#
+        Ceyreklik oto-kalibrasyonun yazdigi RFS faktor agirliklarini okur
+        (data/learned_factor_weights.json -> .Weights). Yoksa/bozuksa $null.
+        Boylece RFS100 portfoyu "ogrenilmis" agirlikla calisir; digerleri statik kalir.
+    #>
+    param([string]$Path)
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        $root = if ($PSScriptRoot) { $PSScriptRoot } else { '.' }
+        $Path = Join-Path $root 'data/learned_factor_weights.json'
+    }
+    if (-not (Test-Path -LiteralPath $Path)) { return $null }
+    try {
+        $obj = Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json
+        $w = Get-ObjectPropertyValue -Object $obj -Name 'Weights'
+        if ($null -eq $w) { return $null }
+        $h = @{}
+        foreach ($p in $w.PSObject.Properties) {
+            $d = ConvertTo-DoubleOrNull $p.Value
+            if ($null -ne $d) { $h[$p.Name] = $d }
+        }
+        if ($h.Count -eq 0) { return $null }
+        return $h
+    }
+    catch { return $null }
+}
+
+function Get-PearsonCorrelation {
+    param([double[]]$X, [double[]]$Y)
+    $n = [Math]::Min($X.Count, $Y.Count)
+    if ($n -lt 3) { return $null }
+    $mx = 0.0; $my = 0.0
+    for ($i = 0; $i -lt $n; $i++) { $mx += $X[$i]; $my += $Y[$i] }
+    $mx /= $n; $my /= $n
+    $sxy = 0.0; $sxx = 0.0; $syy = 0.0
+    for ($i = 0; $i -lt $n; $i++) {
+        $dx = $X[$i] - $mx; $dy = $Y[$i] - $my
+        $sxy += $dx * $dy; $sxx += $dx * $dx; $syy += $dy * $dy
+    }
+    if ($sxx -le 1e-12 -or $syy -le 1e-12) { return $null }
+    return $sxy / [Math]::Sqrt($sxx * $syy)
+}
+
+function Get-WalkForwardFactorWeights {
+    <#
+        KENDI KENDINE OGRENME cekirdegi (asiri-uyuma karsi korumali). Girdi: walk-forward
+        DONEMLER; her donem = o gun gozlenen hisselerin faktor vektoru + ILERI getirisi.
+        Yontem: cok-degiskenli regresyon (multikolinearite/overfit riski) YERINE faktor
+        basina kesitsel IC (Pearson korelasyon, faktor<->ileri getiri); donemler arasi
+        ortalanir. IC vektoru, mevcut (prior) agirliklarin L2 normuna olceklenir, sonra
+        prior'a dogru BUZULTULUR (shrinkage, lambda) — boylece agirliklar yavas/dengeli
+        degisir. Yetersiz veride ($MinPeriods altinda) prior aynen korunur.
+        Doner: @{ Weights=...; Diagnostics=... }.
+    #>
+    param(
+        [Parameter(Mandatory)][object[]]$Periods,   # her oge: object[] gozlem (@{Factors=@{};FwdRet=d})
+        [Parameter(Mandatory)][hashtable]$PriorWeights,
+        [int]$MinPeriods = 8,
+        [int]$MinObsPerPeriod = 10,
+        [double]$Lambda = 0.30,
+        [double]$Bound = 3.0
+    )
+    $factorNames = @($PriorWeights.Keys)
+    $valid = @($Periods | Where-Object { @($_).Count -ge $MinObsPerPeriod })
+    $diag = [ordered]@{ PeriodsGiven = @($Periods).Count; PeriodsUsed = $valid.Count; MeanIC = @{}; Applied = $false }
+
+    if ($valid.Count -lt $MinPeriods) {
+        $diag.Reason = "Yetersiz donem ($($valid.Count) < $MinPeriods); prior korundu."
+        return [pscustomobject]@{ Weights = $PriorWeights.Clone(); Diagnostics = [pscustomobject]$diag }
+    }
+
+    # Faktor basina ortalama IC.
+    $meanIC = @{}
+    foreach ($fn in $factorNames) {
+        $ics = New-Object System.Collections.Generic.List[double]
+        foreach ($period in $valid) {
+            $fx = New-Object System.Collections.Generic.List[double]
+            $ry = New-Object System.Collections.Generic.List[double]
+            foreach ($obs in @($period)) {
+                $facs = $obs.Factors; $ret = ConvertTo-DoubleOrNull $obs.FwdRet
+                if ($null -eq $facs -or $null -eq $ret) { continue }
+                $fv = if ($facs.ContainsKey($fn)) { ConvertTo-DoubleOrNull $facs[$fn] } else { $null }
+                if ($null -eq $fv) { continue }
+                $fx.Add([double]$fv); $ry.Add([double]$ret)
+            }
+            $ic = Get-PearsonCorrelation -X $fx.ToArray() -Y $ry.ToArray()
+            if ($null -ne $ic) { [void]$ics.Add([double]$ic) }
+        }
+        $meanIC[$fn] = if ($ics.Count -gt 0) { ($ics | Measure-Object -Average).Average } else { 0.0 }
+        $diag.MeanIC[$fn] = [Math]::Round([double]$meanIC[$fn], 4)
+    }
+
+    # IC vektorunu prior'un L2 normuna olcekle (bot skor olcegiyle uyum).
+    $priorNorm = 0.0; foreach ($fn in $factorNames) { $priorNorm += [double]$PriorWeights[$fn] * [double]$PriorWeights[$fn] }
+    $priorNorm = [Math]::Sqrt($priorNorm)
+    $icNorm = 0.0; foreach ($fn in $factorNames) { $icNorm += [double]$meanIC[$fn] * [double]$meanIC[$fn] }
+    $icNorm = [Math]::Sqrt($icNorm)
+    $scale = if ($icNorm -gt 1e-9 -and $priorNorm -gt 1e-9) { $priorNorm / $icNorm } else { 0.0 }
+
+    $newW = @{}
+    foreach ($fn in $factorNames) {
+        $scaled = [double]$meanIC[$fn] * $scale
+        $blended = (1.0 - $Lambda) * [double]$PriorWeights[$fn] + $Lambda * $scaled
+        if ($blended -gt $Bound) { $blended = $Bound }
+        elseif ($blended -lt (-1 * $Bound)) { $blended = -1 * $Bound }
+        $newW[$fn] = [Math]::Round($blended, 4)
+    }
+    $diag.Applied = $true
+    return [pscustomobject]@{ Weights = $newW; Diagnostics = [pscustomobject]$diag }
+}
+
+
 # Literatur temelli, uzun-yonlu faktor karisimi:
 #   - Momentum 12-1 (Jegadeesh & Titman 1993): son 1 ay atlanarak 12 aylik
 #     getiri; kisa vadeli ters donusten arindirilir.
@@ -6038,6 +6154,17 @@ function Save-PitSnapshot {
                 Sector           = Get-ObjectPropertyValue -Object $s -Name 'Sector'
                 VolatilityD      = Get-ObjectPropertyValue -Object $s -Name 'VolatilityD'
                 AverageVolume10D = Get-ObjectPropertyValue -Object $s -Name 'AverageVolume10D'
+                # RFS faktor girdileri — oto-kalibrasyon (walk-forward IC) icin arsivlenir.
+                SMA20            = Get-ObjectPropertyValue -Object $s -Name 'SMA20'
+                SMA50            = Get-ObjectPropertyValue -Object $s -Name 'SMA50'
+                SMA200           = Get-ObjectPropertyValue -Object $s -Name 'SMA200'
+                RSI              = Get-ObjectPropertyValue -Object $s -Name 'RSI'
+                MacdHistogram    = Get-ObjectPropertyValue -Object $s -Name 'MacdHistogram'
+                MacdHistogramWeekly = Get-ObjectPropertyValue -Object $s -Name 'MacdHistogramWeekly'
+                PerfMonth        = Get-ObjectPropertyValue -Object $s -Name 'PerfMonth'
+                Perf3Month       = Get-ObjectPropertyValue -Object $s -Name 'Perf3Month'
+                RelativeVolume   = Get-ObjectPropertyValue -Object $s -Name 'RelativeVolume'
+                Volume           = Get-ObjectPropertyValue -Object $s -Name 'Volume'
                 LatestReportDate = (Get-ObjectPropertyValue -Object $s -Name 'LatestReportDate')
                 NextEarningsDate = (Get-ObjectPropertyValue -Object $s -Name 'NextEarningsDate')
                 FiscalPeriodEnd  = (Get-ObjectPropertyValue -Object $s -Name 'FiscalPeriodEnd')
@@ -6593,4 +6720,7 @@ Export-ModuleMember -Function `
     Get-StrategySelectionScore, `
     Get-CrossPortfolioConcentration, `
     Get-DataQualitySummary, `
-    Optimize-ModelPortfolioSetRisk
+    Optimize-ModelPortfolioSetRisk, `
+    Get-RawFactorVector, `
+    Get-LearnedFactorWeights, `
+    Get-WalkForwardFactorWeights

@@ -348,6 +348,22 @@ karara bağla" — overfitting'e karşı koruma). Veriler birikince, işe yaraya
   **veriye göre otomatik günceller**; yoksa güvenli varsayılana (−3) düşer.
 - **Dinamik enflasyon:** TÜFE kıyaslaması TCMB EVDS endeksinden (TP.FG.J0) 1Y/3Y/5Y
   birikimli olarak otomatik hesaplanır; EVDS yoksa statik değere düşer.
+- **Çeyreklik oto-kalibrasyon (PIT backtest → faktör ağırlığı öğrenme):** `auto-calibrate.yml`
+  3 ayda bir (Oca/Nis/Tem/Eki) **otomatik** çalışır; `pit-archive` branch'indeki
+  survivorship/look-ahead'siz PIT arşivinden **walk-forward** bir değerlendirme yapıp
+  **RFS100 portföyünün faktör ağırlıklarını** yeniden öğrenir
+  (`Invoke-AutoCalibration.ps1` → `data/learned_factor_weights.json`). Rapor varsa bu
+  öğrenilmiş ağırlıkları kullanır, yoksa statik varsayılana düşer.
+  - **Yöntem (overfit'e dirençli):** her faktör için kesitsel **IC** (Pearson; faktör ↔
+    ileri ~1 aylık getiri), dönemler arası ortalama → çok-değişkenli regresyonun
+    aşırı-uyum/çoklu-doğrusallık riski alınmaz; sonuç prior ağırlıklara doğru **büzülür**
+    (shrinkage) ve sınırlanır.
+  - **Veri kapısı (dürüst):** yeterli dönem (≥8) birikene kadar **hiçbir şey değişmez**.
+    PIT arşivi yeni kurulduğu için ilk **~3 ay** boyunca öğrenme devreye girmez; arşiv
+    biriktikçe kendiliğinden aktive olur. Delist olan hisseler hariç tutulur (hafif
+    survivorship — açıkça not edilir).
+  - **Kapsam:** yalnızca **RFS100 "öğrenme kanadı"**nı etkiler; diğer 5 portföyün el-ayarlı
+    skoru bilinçli olarak değişmez (tüm botu otomatik optimize edip overfit etme riski alınmaz).
 
 ## Veri Kaynakları ve Çoklu-Kaynak Yedekleme
 
@@ -528,6 +544,12 @@ sütununda gösterir. **Gözlem modu — karar etkisi yok.**
   **gerçek-veri doğrulaması**: verilen tarihli (vars. 30 Haziran) ay-sonu rebalance'ı
   güncel canlı taramayla simüle eder, 6 portföyün holding'lerini ve çiftler arası
   örtüşmeyi log'a yazar. **Gerçek state'e dokunmaz** (bellekte çalışır, kaydetmez).
+- `Invoke-AutoCalibration.ps1` + `auto-calibrate.yml` → `data/learned_factor_weights.json`
+  — **kendi kendine öğrenme** (çeyreklik, otomatik; elle tetikleme de var ama **gerekmez**).
+  PIT arşivinden (pit-archive branch) walk-forward kesitsel IC ile RFS100 faktör
+  ağırlıklarını yeniden öğrenir ve `main`'e yazar. **Veri-kapılı**: yeterli dönem
+  birikene kadar (ilk ~3 ay) prior korunur; aşırı-uyum korumalı (IC + shrinkage +
+  sınır + min-dönem); yalnız RFS100 kanadını etkiler.
 
 > Backtest uyarısı: ücretsiz veride **survivorship** (bugün listede olmayan/delist
 > hisseler yok) ve geçmiş bilanço anlık görüntüsü eksikliği vardır; backtest
@@ -761,9 +783,16 @@ Opsiyonel **Variables** (`Actions > Variables`):
 - `BIST_MODEL_COST_BPS` — model portföy işlem maliyeti (bps; vars. 20).
 - `BIST_EVDS_TR10Y_SERIES` — TR10Y için EVDS seri kodu (girilirse EVDS'ten çekilir).
 
-## Elle Çalıştırma
+## Otomatik Zamanlama ve Elle Çalıştırma
 
-`Actions` sekmesi → ilgili workflow → `Run workflow`:
+**Hiçbir şey "yalnız elle"ye bağlı değildir — her workflow zamanlanmıştır:** günlük
+rapor + KAP collector/enrich harici cron-job.org ile (18:15 ve öncesi), geri kalanların
+hepsi GitHub `schedule` cron'u ile otomatik çalışır:
+- **Auto-Calibrate** (öğrenme): 3 ayda bir (Oca/Nis/Tem/Eki ayın 1'i).
+- **Backtest (Event-Driven)**: aylık · **Strategy Separation Simulation**: aylık ·
+  **Earnings Event Study**: haftalık · **EVDS Discovery** / **borsapy KAP probe**: periyodik sağlık kontrolü.
+
+Elle de tetiklenebilir (opsiyonel override) — `Actions` sekmesi → ilgili workflow → `Run workflow`:
 - **BIST Cloud Report** — günlük raporu hemen üretir ve e-posta gönderir.
 - **Model Portfolio Backtest (Event-Driven)** — günlük olay eksenli gerçek
   event-driven backtest (gerçekçi dolum + kurumsal metrikler; önce motorun birim testi

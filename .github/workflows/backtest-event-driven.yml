@@ -5,6 +5,8 @@ name: Model Portfolio Backtest (Event-Driven)
 # (CAGR/Sharpe/Sortino/Calmar/maks dusus/turnover/alpha). Gunluk raporu/state'i
 # ETKILEMEZ.
 on:
+  schedule:
+    - cron: "0 19 1 * *"
   workflow_dispatch:
     inputs:
       start_date:

@@ -4,6 +4,8 @@ name: Strategy Separation Simulation
 # guncel canli BIST taramasiyla simule eder, portfoy holding'lerini + ortusmeyi
 # log'a yazar. Gercek state'e DOKUNMAZ; gunluk raporu/state'i ETKILEMEZ.
 on:
+  schedule:
+    - cron: "0 20 1 * *"
   workflow_dispatch:
     inputs:
       as_of:

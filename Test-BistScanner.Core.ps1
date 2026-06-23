@@ -586,6 +586,38 @@ $noopOpt = @(Optimize-ModelPortfolioSetRisk -Portfolios $noopPorts -MaxBookPct 0
 if ([double]($noopOpt[0].Holdings[0].Quantity) -ne 60.06) { throw "MaxBookPct=0 iken adet değişti (no-op bozuk)." }
 Write-Host "Tam lot yuvarlama testi başarılı (AAA 60.06 -> 60 adet, değer 19980; MaxBookPct=0 no-op)."
 
+# --- Kendi kendine öğrenme: walk-forward IC faktör ağırlığı (Get-WalkForwardFactorWeights) ---
+$rng = [Random]::new(7)
+$lrnPeriods = @()
+for ($p = 0; $p -lt 10; $p++) {
+    $obs = @()
+    for ($k = 0; $k -lt 15; $k++) {
+        $f1 = $rng.NextDouble() * 10
+        $ret = $f1 * 2 + ($rng.NextDouble() - 0.5)   # ileri getiri ~ F1 (öngörücü)
+        $f2 = $rng.NextDouble() * 10                 # alakasız (gürültü)
+        $obs += [pscustomobject]@{ Factors = @{ F1 = $f1; F2 = $f2 }; FwdRet = $ret }
+    }
+    $lrnPeriods += , $obs
+}
+$lrnPrior = @{ F1 = 0.1; F2 = 0.1 }
+$lrn = Get-WalkForwardFactorWeights -Periods $lrnPeriods -PriorWeights $lrnPrior -MinPeriods 8 -MinObsPerPeriod 10 -Lambda 0.5
+if (-not $lrn.Diagnostics.Applied) { throw "Yeterli dönemde öğrenme uygulanmadı." }
+if ([double]$lrn.Weights.F1 -le [double]$lrn.Weights.F2) { throw "Öngörücü F1 ağırlığı F2'den büyük olmalı (F1=$($lrn.Weights.F1), F2=$($lrn.Weights.F2))." }
+# Yetersiz dönem -> prior aynen korunur (overfit/erken öğrenme yok)
+$lrnFew = Get-WalkForwardFactorWeights -Periods @($lrnPeriods[0], $lrnPeriods[1]) -PriorWeights $lrnPrior -MinPeriods 8
+if ($lrnFew.Diagnostics.Applied) { throw "Yetersiz dönemde öğrenme uygulanmamalı." }
+if ([double]$lrnFew.Weights.F1 -ne 0.1) { throw "Yetersiz veride prior korunmadı." }
+Write-Host "Walk-forward öğrenme testi başarılı (öngörücü faktör yükseldi; yetersiz veride prior korundu)."
+
+# --- Öğrenilmiş ağırlık dosyası okuma (Get-LearnedFactorWeights) ---
+$tmpW = Join-Path ([System.IO.Path]::GetTempPath()) ("lw_" + [guid]::NewGuid().ToString('N') + ".json")
+([pscustomobject]@{ Weights = [pscustomobject]@{ RSI = -1.2; dSMA200 = 1.7 } }) | ConvertTo-Json | Set-Content -LiteralPath $tmpW -Encoding UTF8
+$lw = Get-LearnedFactorWeights -Path $tmpW
+if ($null -eq $lw -or [Math]::Abs([double]$lw['RSI'] - (-1.2)) -gt 1e-9 -or [Math]::Abs([double]$lw['dSMA200'] - 1.7) -gt 1e-9) { throw "Öğrenilmiş ağırlık dosyası doğru okunmadı." }
+if ($null -ne (Get-LearnedFactorWeights -Path (Join-Path ([System.IO.Path]::GetTempPath()) 'yok_olmayan.json'))) { throw "Dosya yokken null dönmeli." }
+Remove-Item -LiteralPath $tmpW -Force -ErrorAction SilentlyContinue
+Write-Host "Öğrenilmiş ağırlık okuma testi başarılı (dosya var -> kullan; yok -> null/varsayılan)."
+
 # --- Faz A gözlem modu: Piyasa genişliği (Get-MarketBreadth) ---
 $breadthStocks = @(
     [pscustomobject]@{ Symbol = 'A'; Price = 110; SMA50 = 100; SMA200 = 90; PerfMonth = 5 }
