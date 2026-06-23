@@ -264,18 +264,12 @@ seçimi + volatilite-tersi ağırlık). Hepsi 100.000 TL ile başlar ve teorikti
   kağıt üzerinde doldurulmuş varsayan ayrı bir denetim defteridir. Aracı kurum
   entegrasyonu yoktur ve varsayılan mod `PaperOnly` kalır.
 - **Point-in-time snapshot arşivi:** her başarılı çalışmada en yüksek skorlu
-  kompakt evren kesiti `data/latest_point_in_time_snapshot.json` ve
-  `data/point_in_time_snapshots/YYYYMMDD_HHMM.json` altında saklanır. Amaç,
-  gelecekte lookahead/survivorship riskini azaltan canlı veri arşivi oluşturmaktır.
-  **Otomatiktir:** günlük rapor her BIST işlem günü (Pzt-Cum) 18:15 Europe/Istanbul'da
-  harici bir zamanlayıcı (örn. cron-job.org) tarafından `workflow_dispatch` ile
-  tetiklenirken (ya da elle `Run workflow`'da) snapshot üretilip git'e commit edilir;
-  ek bir kurulum gerekmez. Böylece arşiv gün gün ileriye dönük olarak kendiliğinden
-  birikir.
-- **Validation sweep:** `Validate-StrategySweep.ps1` ve `strategy-validation.yml`
-  TopN, maliyet ve likidite eşiği kombinasyonlarını manuel olarak dener; günlük
-  rapor state'ini değiştirmez, `reports/strategy_validation.md` ve `.json`
-  artifact üretir.
+  kompakt evren kesiti `data/latest_point_in_time_snapshot.json` (sonraki koşu için)
+  ve tarihli `data/point_in_time_snapshots/YYYYMMDD_HHMM.json` altında üretilir. Amaç,
+  gelecekte lookahead/survivorship riskini azaltan **as-observed** canlı veri arşivi
+  oluşturmaktır. **Otomatiktir** ve `main`'i şişirmez: tarihli snapshot'lar git'e
+  `main`'e değil, ayrı bir **`pit-archive`** orphan branch'ine push edilir (normal
+  clone/checkout bu branch'i çekmez). Böylece arşiv gün gün ileriye dönük birikir.
 
 ## Getiri Karşılaştırma Grafiği
 
@@ -498,7 +492,6 @@ sütununda gösterir. **Gözlem modu — karar etkisi yok.**
   PEAD/kalibrasyon, Yahoo/TradingView yardımcıları.
 - `Test-BistScanner.Core.ps1` — workflow başında çalışan smoke + birim testler
   (strateji ayrışma testi dahil).
-- `Validate-StrategySweep.ps1` — manuel parametre taraması ve validation raporu.
 - `Simulate-RebalanceSeparation.ps1` — strateji ayrışması canlı-veri doğrulaması.
 - `collect_kap.py` + `.github/workflows/kap-collector.yml` — tüm BIST için KAP
   bildirim toplayıcısı (borsapy; `data/kap_disclosures.json` üretir/commit eder).
@@ -523,13 +516,11 @@ sütununda gösterir. **Gözlem modu — karar etkisi yok.**
 
 - `Analyze-EarningsEventStudy.ps1` + `earnings-event-study.yml` — bilanço tarihi olay
   çalışması (run-up / tepki / drift korelasyonları).
-- `Backtest-ModelPortfolio.ps1` + `backtest.yml` — momentum 12-1 aylık backtest.
-- `Backtest-Realistic.ps1` + `backtest-realistic.yml` — RFS teknik (point-in-time) +
-  o anki likidite kapısı + karekök piyasa-etkisi maliyetiyle gerçekçi backtest.
-- `Validate-StrategySweep.ps1` + `strategy-validation.yml` — TopN/maliyet/likidite
-  kombinasyonlarını manuel deneyen validation sweep; günlük raporu/state'i etkilemez.
 - `Backtest-EventDriven.ps1` + `backtest-event-driven.yml` — **gerçek event-driven
-  backtest** (aşağıya bakın); CI'da önce motorun ağsız birim testi çalışır.
+  backtest** (aşağıya bakın); CI'da önce motorun ağsız birim testi çalışır. Eski
+  `Backtest-ModelPortfolio.ps1` (momentum 12-1), `Backtest-Realistic.ps1` ve onun
+  parametre taraması `Validate-StrategySweep.ps1` **bu motora taşındığı için kaldırıldı**
+  (gerçekçi dolum + kurumsal metrikler hepsini kapsar).
 - `BacktestEngine.psm1` — event-driven backtest çekirdeği (`Invoke-EventDrivenBacktest`).
 - `Test-BacktestEngine.ps1` — motorun **ağsız, deterministik** birim testleri (CI kapısı).
 - `Find-EvdsBondSeries.ps1` + `evds-discovery.yml` — EVDS seri kodu keşfi (tanılama).
@@ -774,12 +765,10 @@ Opsiyonel **Variables** (`Actions > Variables`):
 
 `Actions` sekmesi → ilgili workflow → `Run workflow`:
 - **BIST Cloud Report** — günlük raporu hemen üretir ve e-posta gönderir.
-- **Model Portfolio Backtest (Realistic)** / **... Backtest** — geriye dönük analiz
-  (sonuçlar çalışma log'una yazılır).
 - **Model Portfolio Backtest (Event-Driven)** — günlük olay eksenli gerçek
-  event-driven backtest (kurumsal metrikler; önce motorun birim testi çalışır).
-- **Strategy Validation Sweep** — parametre kombinasyonlarını dener ve markdown/JSON
-  validation artifact üretir.
+  event-driven backtest (gerçekçi dolum + kurumsal metrikler; önce motorun birim testi
+  çalışır). Eski "Realistic" ve momentum 12-1 backtest'leri ile parametre taraması bu
+  motora taşındığı için kaldırıldı.
 - **Strategy Separation Simulation** — 30 Haziran (veya seçtiğin tarih) rebalance'ını
   canlı veriyle simüle edip portföylerin ayrıştığını log'da gösterir (state'e dokunmaz).
 - **Earnings Event Study** — bilanço olay çalışması.
