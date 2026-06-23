@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-06-22T14:45:58.946395+00:00",
-  "source": "borsapy 0.10.1 get_news_content",
-  "count": 60,
+  "generatedAt": "2026-06-23T14:46:25.635865+00:00",
+  "source": "borsapy 0.10.2 get_news_content",
+  "count": 67,
   "lastRun": {
-    "targets": 0,
-    "enriched": 0,
+    "targets": 7,
+    "enriched": 7,
     "errors": 0,
-    "elapsedSec": 1
+    "elapsedSec": 33
   },
   "items": {
     "1618795": {
@@ -1170,6 +1170,162 @@
       "impact": 2,
       "amounts": [],
       "rationale": "Edinim detayları (tutar/taraf) belirtilmediği için fiyat etkisi belirsiz."
+    },
+    "1619648": {
+      "symbol": "ENERY",
+      "title": "Özel Durum Açıklaması (Genel)",
+      "category": "Ozel Durum (Genel)",
+      "date": "23.06.2026 09:06:56",
+      "directionHint": "?",
+      "contentChars": 60449,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-06-23T14:45:54.385490+00:00",
+      "directionRefined": "0",
+      "summary": "ENERYA ENERJİ, finansal tablolarına ilişkin genel açıklama yaptı; SPK düzenlemelerine uygun ve doğru bilgi beyan edildi, ek finansal veri veya rakam yok.",
+      "impact": 1,
+      "amounts": [],
+      "rationale": "Açıklama rutin, yeni finansal veri veya önemli gelişme içermiyor."
+    },
+    "1619569": {
+      "symbol": "GEDIK",
+      "title": "Özel Durum Açıklaması (Genel)",
+      "category": "Ozel Durum (Genel)",
+      "date": "22.06.2026 18:48:41",
+      "directionHint": "?",
+      "contentChars": 61865,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-06-23T14:45:58.485157+00:00",
+      "directionRefined": "0",
+      "summary": "Gedik Yatırım, finansal tablolarına ilişkin genel açıklama yaptı; SPK kurallarına uygun ve tam bilgi beyan edildi, yeni finansal veri veya özel bir gelişme yok.",
+      "impact": 1,
+      "amounts": [
+        "100.000.000 TL"
+      ],
+      "rationale": "Yalnızca rutin, genel açıklama; fiyatı etkileyen yeni bilgi veya rakam bulunmuyor."
+    },
+    "1619523": {
+      "symbol": "VAKBN",
+      "title": "Özel Durum Açıklaması (Genel)",
+      "category": "Ozel Durum (Genel)",
+      "date": "22.06.2026 18:33:26",
+      "directionHint": "?",
+      "contentChars": 60089,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-06-23T14:46:03.345148+00:00",
+      "directionRefined": "0",
+      "summary": "Vakıfbank, finansal tablolarına ilişkin genel açıklama yaptı; SPK düzenlemelerine uygun ve doğru bilgi sunulduğunu beyan etti.",
+      "impact": 1,
+      "amounts": [],
+      "rationale": "Yalnızca rutin, genel beyan; yeni finansal veri veya önemli gelişme yok."
+    },
+    "1619519": {
+      "symbol": "SKBNK",
+      "title": "Özel Durum Açıklaması (Genel)",
+      "category": "Ozel Durum (Genel)",
+      "date": "22.06.2026 18:27:53",
+      "directionHint": "?",
+      "contentChars": 62227,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-06-23T14:46:08.151812+00:00",
+      "directionRefined": "0",
+      "summary": "Şekerbank, finansal tablolarına ilişkin genel açıklama yapmıştır; yeni bir finansal veri veya özel durum bulunmamaktadır.",
+      "impact": 1,
+      "amounts": [],
+      "rationale": "Yalnızca rutin açıklama, yatırımcı açısından fiyat etkisi yok."
+    },
+    "1619501": {
+      "symbol": "HLGYO",
+      "title": "Sermaye Artırımı - Azaltımı İşlemlerine İlişkin Bildirim",
+      "category": "Sermaye Artirimi",
+      "date": "22.06.2026 18:23:33",
+      "directionHint": "~",
+      "contentChars": 55108,
+      "pdfChars": 1807,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9ec11d43019eefe486f85f11"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1807,
+      "inputSnippet": " HALK GAYRİMENKUL YATIRIM ORTAKLIĞI A.Ş. 2025 YILI KÂR DAĞITIM TABLOSU 1. Ödenmiş / Çıkarılmış Sermaye 3.840.000.000,00 2. Toplam Yasal Yedek Akçe (Yasal Kayıtlara Göre) 407.756.579 Esas sözleşme uyarınca kar dağıtımında imtiyaz var ise söz konusu imtiyaza ilişkin bilgi - SPK' ya Göre Yasal Kayıtlara (YK) Göre 3. Dönem Kârı 19.311.307.749 5.303.236.394 4. Ödenecek Vergiler (-) (6.032.696.915) (487.642.893,01) 5. Dönem Net Kârı (=) 13.278.610.834 4.815.593.501 6. Geçmiş Yıllara Ait Zararlar (-) -",
+      "engine": "github",
+      "enrichedAt": "2026-06-23T14:46:12.534532+00:00",
+      "directionRefined": "+",
+      "summary": "HLGYO, 2025 için 2,21 milyar TL nakit ve 2,16 milyar TL bedelsiz temettü dağıtacak. Toplam temettü oranı %33,5.",
+      "impact": 4,
+      "amounts": [
+        "2,21 milyar TL nakit",
+        "2,16 milyar TL bedelsiz",
+        "13,04 milyar TL net dağıtılabilir kâr",
+        "4,37 milyar TL toplam temettü",
+        "8,47 milyar TL olağanüstü yedek",
+        "1 TL"
+      ],
+      "rationale": "Yüksek temettü oranı ve hem nakit hem bedelsiz dağıtım yatırımcı için olumlu."
+    },
+    "1619474": {
+      "symbol": "ORGE",
+      "title": "Esas Sözleşme Tadili",
+      "category": "Ihale/Sozlesme",
+      "date": "22.06.2026 18:10:26",
+      "directionHint": "+",
+      "contentChars": 58655,
+      "pdfChars": 3296,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9ec11d3d019eefaab302619e"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 3296,
+      "inputSnippet": " ORGE ENERJİ ELEKTRİK TAAHHÜT ANONİM ŞİRKETİ Esas Sözleşme Madde Tadilleri Mevcut Şekil Yeni Şekil SERMAYE Madde 6 Şirket, Sermaye Piyasası Kanunu hükümlerine göre kayıtlı sermaye sistemini kabul etmiş ve Sermaye Piyasası Kurulu’nun 13.01.2012 tarih ve 01/03 sayılı izni ile kayıtlı sermaye sistemine geçmiştir. Şirketin kayıtlı sermaye tavanı 1.000.000.000 (birmilyar) Türk Lirası olup, her biri 1 (bir) Türk Lirası itibari değerde hamiline yazılı 1.000.000.000 (birmilyar) paya bölünmüştür. Sermaye",
+      "engine": "github",
+      "enrichedAt": "2026-06-23T14:46:18.670523+00:00",
+      "directionRefined": "+",
+      "summary": "ORGE'nin çıkarılmış sermayesi 80 milyon TL'den 400 milyon TL'ye yükseltildi; kayıtlı sermaye tavanı 1 milyar TL.",
+      "impact": 4,
+      "amounts": [
+        "400 milyon TL",
+        "1 milyar TL"
+      ],
+      "rationale": "Sermaye artışı büyüme ve likidite için olumlu, pay sayısı artışı kısa vadede baskı yaratabilir."
+    },
+    "1619472": {
+      "symbol": "ORGE",
+      "title": "Sermaye Artırımı - Azaltımı İşlemlerine İlişkin Bildirim",
+      "category": "Sermaye Artirimi",
+      "date": "22.06.2026 18:10:16",
+      "directionHint": "~",
+      "contentChars": 52681,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-06-23T14:46:22.065554+00:00",
+      "directionRefined": "?",
+      "summary": "ORGE, 22.06.2026 tarihinde sermaye artırımı veya azaltımı işlemiyle ilgili KAP bildirimi yaptı; detay ve tutar belirtilmemiş.",
+      "impact": 2,
+      "amounts": [],
+      "rationale": "Bildirimde işlem detayları ve tutar yer almıyor; fiyat etkisi belirsiz."
     }
   }
 }
