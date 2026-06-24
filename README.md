@@ -802,13 +802,24 @@ Opsiyonel **Variables** (`Actions > Variables`):
 
 ## Otomatik Zamanlama ve Elle Çalıştırma
 
-**Hiçbir şey "yalnız elle"ye bağlı değildir — her workflow zamanlanmıştır:** günlük
-rapor + KAP collector/enrich harici cron-job.org ile (18:15 ve öncesi), geri kalanların
-hepsi GitHub `schedule` cron'u ile otomatik çalışır:
-- **Auto-Calibrate** (öğrenme): her ayın 1'i (veri-kapılı; yeterli bağımsız dönem
-  birikene kadar prior'u korur, hazır olunca öğrenir — kendi içinde süren döngü).
-- **Backtest (Event-Driven)**: aylık · **Strategy Separation Simulation**: aylık ·
-  **Earnings Event Study**: haftalık · **EVDS Discovery** / **borsapy KAP probe**: periyodik sağlık kontrolü.
+**Günlük işleyişte hiçbir tekrar eden elle adım yoktur — her şey zamanlanmıştır.**
+İki zamanlama mekanizması var:
+
+- **Harici cron-job.org** (kesin saat gerektirenler; GitHub cron'u gecikebildiği için):
+  **günlük rapor** (`bist-cloud-report`, ~18:15) + **KAP collector** + **KAP enrich**.
+  Bu üçünde GitHub cron'u yoktur; cron-job.org GitHub API ile tetikler.
+- **GitHub `schedule` cron'u** (GitHub içi, tam otomatik):
+  - **Auto-Calibrate** (öğrenme): her ayın 1'i (18:00 UTC). Veri-kapılı; yeterli bağımsız
+    dönem birikene kadar prior'u korur, hazır olunca öğrenir ve **Öğrenen Algoritma
+    portföyünü otomatik oluşturur** — kendi içinde süren döngü.
+  - **Backtest (Event-Driven)**: aylık · **Strategy Separation Simulation**: aylık ·
+    **Earnings Event Study**: haftalık · **EVDS Discovery**: aylık · **borsapy KAP probe**: haftalık.
+
+**Tek seferlik (kurulum, tekrar etmez — zaten yapıldı):** cron-job.org işlerinin
+tanımlanması, GitHub Secrets/PAT girişi ve bu sürümün `main`'e alınması. Bunlar günlük
+işleyişin parçası değildir; bir kez yapılır. Yani **bot artık kendi başına çalışır**:
+tarar, skorlar, rebalance eder, KAP yorumlar, ay sonu Claude yorumu üretir, çeyreklik
+öğrenir ve öğrendiğinde yeni portföyünü kendi kurar — hiçbiri elle müdahale istemez.
 
 Elle de tetiklenebilir (opsiyonel override) — `Actions` sekmesi → ilgili workflow → `Run workflow`:
 - **BIST Cloud Report** — günlük raporu hemen üretir ve e-posta gönderir.
