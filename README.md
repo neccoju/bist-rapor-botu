@@ -348,20 +348,22 @@ karara bağla" — overfitting'e karşı koruma). Veriler birikince, işe yaraya
   **veriye göre otomatik günceller**; yoksa güvenli varsayılana (−3) düşer.
 - **Dinamik enflasyon:** TÜFE kıyaslaması TCMB EVDS endeksinden (TP.FG.J0) 1Y/3Y/5Y
   birikimli olarak otomatik hesaplanır; EVDS yoksa statik değere düşer.
-- **Çeyreklik oto-kalibrasyon (PIT backtest → faktör ağırlığı öğrenme):** `auto-calibrate.yml`
-  3 ayda bir (Oca/Nis/Tem/Eki) **otomatik** çalışır; `pit-archive` branch'indeki
+- **Kendi içinde süren oto-kalibrasyon (PIT backtest → faktör ağırlığı öğrenme):**
+  `auto-calibrate.yml` **her ayın 1'i otomatik** çalışır; `pit-archive` branch'indeki
   survivorship/look-ahead'siz PIT arşivinden **walk-forward** bir değerlendirme yapıp
-  **RFS100 portföyünün faktör ağırlıklarını** yeniden öğrenir
+  **RFS100 portföyünün faktör ağırlıklarını** yeniden öğrenmeyi dener
   (`Invoke-AutoCalibration.ps1` → `data/learned_factor_weights.json`). Rapor varsa bu
   öğrenilmiş ağırlıkları kullanır, yoksa statik varsayılana düşer.
   - **Yöntem (overfit'e dirençli):** her faktör için kesitsel **IC** (Pearson; faktör ↔
-    ileri ~1 aylık getiri), dönemler arası ortalama → çok-değişkenli regresyonun
-    aşırı-uyum/çoklu-doğrusallık riski alınmaz; sonuç prior ağırlıklara doğru **büzülür**
-    (shrinkage) ve sınırlanır.
-  - **Veri kapısı (dürüst):** yeterli dönem (≥8) birikene kadar **hiçbir şey değişmez**.
-    PIT arşivi yeni kurulduğu için ilk **~3 ay** boyunca öğrenme devreye girmez; arşiv
-    biriktikçe kendiliğinden aktive olur. Delist olan hisseler hariç tutulur (hafif
-    survivorship — açıkça not edilir).
+    ileri ~1 aylık getiri), **çakışmayan/bağımsız** dönemler arası ortalama → çok-değişkenli
+    regresyonun aşırı-uyum/çoklu-doğrusallık riski ve otokorelasyonla şişme alınmaz; sonuç
+    prior ağırlıklara doğru **büzülür** (shrinkage) ve sınırlanır.
+  - **Veri kapısı (dürüst) + kendi kendine devam:** yeterli **bağımsız** dönem (≥8) birikene
+    kadar **hiçbir şey değişmez** — kuşu commit atmaz, `main`'e dokunmaz — ve bir **sonraki ay
+    otomatik tekrar denenir**. Yani "3 ay yetmezse 5./6./8. ay": arşiv yeterince birikene
+    kadar döngü kendiliğinden bekler, hazır olduğu an öğrenir ve **yeni model üretir**. Her ay
+    ~1 bağımsız dönem eklendiğinden öğrenme tipik olarak birkaç ay sonra devreye girer. Delist
+    olan hisseler hariç tutulur (hafif survivorship — açıkça not edilir).
   - **Kapsam:** yalnızca **RFS100 "öğrenme kanadı"**nı etkiler; diğer 5 portföyün el-ayarlı
     skoru bilinçli olarak değişmez (tüm botu otomatik optimize edip overfit etme riski alınmaz).
 
@@ -545,11 +547,12 @@ sütununda gösterir. **Gözlem modu — karar etkisi yok.**
   güncel canlı taramayla simüle eder, 6 portföyün holding'lerini ve çiftler arası
   örtüşmeyi log'a yazar. **Gerçek state'e dokunmaz** (bellekte çalışır, kaydetmez).
 - `Invoke-AutoCalibration.ps1` + `auto-calibrate.yml` → `data/learned_factor_weights.json`
-  — **kendi kendine öğrenme** (çeyreklik, otomatik; elle tetikleme de var ama **gerekmez**).
+  — **kendi içinde süren öğrenme** (her ay otomatik; elle tetikleme de var ama **gerekmez**).
   PIT arşivinden (pit-archive branch) walk-forward kesitsel IC ile RFS100 faktör
-  ağırlıklarını yeniden öğrenir ve `main`'e yazar. **Veri-kapılı**: yeterli dönem
-  birikene kadar (ilk ~3 ay) prior korunur; aşırı-uyum korumalı (IC + shrinkage +
-  sınır + min-dönem); yalnız RFS100 kanadını etkiler.
+  ağırlıklarını yeniden öğrenmeyi dener. **Veri-kapılı**: yeterli bağımsız dönem
+  birikene kadar prior korunur (commit yok, `main` dokunulmaz) ve sonraki ay tekrar
+  denenir — hazır olunca öğrenir, `main`'e yeni ağırlık dosyasını yazar. Aşırı-uyum
+  korumalı (IC + shrinkage + sınır + min-dönem); yalnız RFS100 kanadını etkiler.
 
 > Backtest uyarısı: ücretsiz veride **survivorship** (bugün listede olmayan/delist
 > hisseler yok) ve geçmiş bilanço anlık görüntüsü eksikliği vardır; backtest
@@ -788,7 +791,8 @@ Opsiyonel **Variables** (`Actions > Variables`):
 **Hiçbir şey "yalnız elle"ye bağlı değildir — her workflow zamanlanmıştır:** günlük
 rapor + KAP collector/enrich harici cron-job.org ile (18:15 ve öncesi), geri kalanların
 hepsi GitHub `schedule` cron'u ile otomatik çalışır:
-- **Auto-Calibrate** (öğrenme): 3 ayda bir (Oca/Nis/Tem/Eki ayın 1'i).
+- **Auto-Calibrate** (öğrenme): her ayın 1'i (veri-kapılı; yeterli bağımsız dönem
+  birikene kadar prior'u korur, hazır olunca öğrenir — kendi içinde süren döngü).
 - **Backtest (Event-Driven)**: aylık · **Strategy Separation Simulation**: aylık ·
   **Earnings Event Study**: haftalık · **EVDS Discovery** / **borsapy KAP probe**: periyodik sağlık kontrolü.
 

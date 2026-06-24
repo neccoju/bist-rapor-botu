@@ -1,6 +1,10 @@
 #requires -Version 5.1
 <#
-    Invoke-AutoCalibration.ps1 — KENDI KENDINE OGRENME (ceyreklik, otomatik).
+    Invoke-AutoCalibration.ps1 — KENDI KENDINE OGRENME (kendi icinde suren dongu).
+
+    Her ay otomatik calisir; yeterli BAGIMSIZ donem birikene kadar prior'u korur
+    (commit/main degisikligi YOK) ve bir sonraki ay tekrar dener — hazir oldugu an
+    ogrenir ve yeni model uretir.
 
     PIT (point-in-time) anlik goruntu arsivinden (pit-archive branch -> -PitDir)
     survivorship/look-ahead'siz bir WALK-FORWARD degerlendirme yapar ve RFS100
@@ -78,9 +82,14 @@ $snaps = @($snaps | Sort-Object Date)
 Write-Host "Gecerli snapshot: $($snaps.Count)"
 
 # Walk-forward donemler: her snapshot D icin ~Horizon gun sonraki snapshot ile ileri getiri.
+# CAKISMAYAN (bagimsiz) donemler: bir donem kullanildiktan sonra bir sonraki donem
+# en az 1 ufuk (HorizonDays) sonra baslar — boylece IC ortalamasi otokorelasyonla
+# sismez (yalanci-tekrar yok); MinPeriods gercek/bagimsiz aylik gozlem sayar.
 $periods = New-Object System.Collections.Generic.List[object]
+$nextEligible = [datetime]::MinValue
 for ($i = 0; $i -lt $snaps.Count; $i++) {
     $d0 = $snaps[$i].Date
+    if ($d0 -lt $nextEligible) { continue }   # cakismayan donem kapisi (bagimsizlik)
     $fwd = $null
     for ($j = $i + 1; $j -lt $snaps.Count; $j++) {
         $gap = ($snaps[$j].Date - $d0).TotalDays
@@ -103,9 +112,19 @@ for ($i = 0; $i -lt $snaps.Count; $i++) {
         $fh = @{}; foreach ($k in $fac.Keys) { $fh[$k] = $fac[$k] }
         [void]$obs.Add([pscustomobject]@{ Factors = $fh; FwdRet = $ret })
     }
-    if ($obs.Count -ge $MinObsPerPeriod) { [void]$periods.Add($obs.ToArray()) }
+    if ($obs.Count -ge $MinObsPerPeriod) {
+        [void]$periods.Add($obs.ToArray())
+        $nextEligible = $d0.AddDays($HorizonDays)   # sonraki donem >= 1 ufuk sonra (cakisma yok)
+    }
 }
-Write-Host "Walk-forward gecerli donem: $($periods.Count) (gereken min: $MinPeriods)"
+Write-Host "Bagimsiz walk-forward donem: $($periods.Count) (gereken min: $MinPeriods)"
+if ($periods.Count -lt $MinPeriods) {
+    $need = $MinPeriods - $periods.Count
+    Write-Host "Henuz yeterli bagimsiz donem yok ($need donem daha gerekli)."
+    Write-Host 'Ogrenme atlandi; prior korunur — bu kosu hicbir seyi degistirmez (main dokunulmaz).'
+    Write-Host 'DONGU SURUYOR: arsiv biriktikce bir SONRAKI AY otomatik tekrar denenecek.'
+    exit 0
+}
 
 $result = Get-WalkForwardFactorWeights -Periods $periods.ToArray() -PriorWeights $prior `
     -MinPeriods $MinPeriods -MinObsPerPeriod $MinObsPerPeriod -Lambda $Lambda

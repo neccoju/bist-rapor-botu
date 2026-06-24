@@ -1,13 +1,16 @@
-name: Auto-Calibrate (kendi kendine ogrenme — ceyreklik)
+name: Auto-Calibrate (kendi kendine ogrenme — kendi icinde suren dongu)
 
-# 3 ayda bir (Oca/Nis/Tem/Eki ayinin 1'i, 18:00 UTC) PIT arsivinden (pit-archive
-# branch) walk-forward IC ile RFS faktor agirliklarini yeniden ogrenir ve
-# data/learned_factor_weights.json olarak main'e yazar. Elle tetikleme de var ama
-# GEREKMEZ — zamanlanmistir. Asiri-uyum korumali + veri-kapili: arsiv yeterince
-# birikene kadar (ilk ~3 ay) hicbir sey degismez.
+# KENDI ICINDE SUREN OGRENME DONGUSU. Her ayin 1'i (18:00 UTC) PIT arsivine
+# (pit-archive branch) bakar; walk-forward IC ile RFS faktor agirliklarini
+# yeniden ogrenmeyi dener. VERI-KAPILI + ASIRI-UYUM KORUMALI: yeterli BAGIMSIZ
+# donem (>=MinPeriods) birikmediyse hicbir sey degismez (commit yok, main'e
+# dokunmaz) ve bir SONRAKI AY otomatik tekrar denenir. Boylece "3 ay yetmezse
+# 5./6./8. ay" — arsiv yeterince birikene kadar dongu kendiliginden bekler,
+# hazir oldugu an ogrenir ve yeni model (learned_factor_weights.json) uretir.
+# Elle tetikleme de var ama GEREKMEZ.
 on:
   schedule:
-    - cron: "0 18 1 1,4,7,10 *"
+    - cron: "0 18 1 * *"
   workflow_dispatch:
 
 permissions:
