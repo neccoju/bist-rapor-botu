@@ -656,6 +656,15 @@ Detaylı eleştirel inceleme (kod tabanı kanıtıyla) sonrası uygulananlar:
   **hafif cezalı (32)** puanlanır; düşük-açıklamalı/illikit hisseleri kayırma önyargısı azaltıldı.
 - **İşlem maliyeti gerçekçi:** model portföy maliyeti varsayılanı **20 → 50 bps** (BIST'te
   BSMV + komisyon + kayma); raporlanan getiriler daha gerçekçi (biraz daha düşük) olur.
+- **İki tablo tutarlılığı + BIST100 çapraz-kontrol:** "Getiri Karşılaştırması" özet tablosu
+  ile model-portföy detay tablosu artık **aynı otorite kaynağı** (canlı TradingView
+  mark-to-market) kullanır — model portföy ve BIST100 getirileri iki tabloda **birebir
+  aynıdır**. Grafik çizgileri günlük geçmiş için Yahoo kapanışından yeniden kurulur (tek
+  günlük seri için tek kaynak), bu yüzden grafik çizgisi tablodan hafif sapabilir; bu açıkça not edilir.
+  Ayrıca BIST100'ün **canlı (TradingView)** ve **Yahoo XU100.IS** getirileri >1,5 puan
+  ayrışırsa rapora **görünür uyarı** eklenir (alfa sessizce yanlış gösterilmez). Eskiden
+  özet tablo Yahoo'dan, detay tablo canlıdan beslendiği için aynı portföy iki farklı getiri
+  gösterebiliyordu; bu giderildi.
 - **Repo şişmesi durduruldu + PIT arşivi korundu:** tarihli PIT anlık görüntüleri
   (`data/pit/`, `data/point_in_time_snapshots/`) artık `main`'e commit **edilmez**
   (.gitignore + persist'ten çıkarıldı, untrack edildi) — `main` ve normal clone'lar

@@ -2205,6 +2205,7 @@ try {
     $stageStartedAt = Get-Date
     $perfChartUrl = $null
     $perfSummaryRows = @()
+    $bistSourceWarning = $null   # BIST100 canli-snapshot vs Yahoo serisi capraz-kontrol uyarisi
     $priceCache = @{}   # portfoy hisselerinin 1y kapanis serisi; R:R 52h zirvesi icin paylasilir
     try {
         $strategySeries = @(Get-StrategyPerformanceSeries -PortfolioSet $updatedPortfolioSet -TimeoutSec 8 -PriceCache $priceCache)
@@ -2219,11 +2220,37 @@ try {
         $perfChartUrl = New-PerformanceComparisonChart -StrategySeries $strategySeries -BenchmarkSeries $benchmarkSeries -TimeoutSec 25
         if ($perfChartUrl) { Write-Host "Performans grafigi URL'si uretildi: $perfChartUrl" } else { Write-Host 'Performans grafigi uretilemedi (QuickChart erisilemedi); ozet tablo gosterilecek.' }
 
-        # Ozet tablo (grafik gelmese de son % getiriler gorunur)
-        $perfSummaryRows = @(@($strategySeries) + @($benchmarkSeries) | Where-Object { $_ -and @($_.Points).Count -gt 0 } | ForEach-Object {
+        # Ozet tablo: MODEL PORTFOYLER + BIST100 icin OTORITE/CANLI getiriler kullanilir
+        # (detay model-portfoy tablosuyla BIREBIR ayni; TradingView mark-to-market). Boylece
+        # iki tablo celismez. Grafikteki gunluk cizgiler Yahoo kapanisindan YENIDEN KURULUR
+        # (gecmis seri icin gerekli) ve saglayici/zaman farkiyla bu canli degerlerden hafif
+        # sapabilir. Yabanci varliklar (Altin/Nasdaq/S&P/Mevduat) icin canli kaynak yok -> Yahoo.
+        $livePortfolios = @(Get-ObjectPropertyValue -Object $updatedPortfolioSet -Name 'Portfolios')
+        $liveRows = @($livePortfolios | ForEach-Object {
+                [pscustomobject]@{ Name = [string](Get-ObjectPropertyValue -Object $_ -Name 'Name'); ReturnPct = [double](Get-ObjectPropertyValue -Object $_ -Name 'TotalReturnPct') }
+            })
+        # BIST100: alfa ile AYNI canli snapshot getirisi (tum portfoyler ayni benchmark'i paylasir).
+        $liveBistReturn = $null
+        foreach ($lp in $livePortfolios) {
+            $br = Get-NumberValue -Object $lp -Name 'BenchmarkReturnPct'
+            if ($null -ne $br) { $liveBistReturn = [double]$br; break }
+        }
+        if ($null -ne $liveBistReturn) { $liveRows += [pscustomobject]@{ Name = 'BIST100'; ReturnPct = $liveBistReturn } }
+        # Yabanci varliklar (BIST100 HARIC; o canli geldi) Yahoo serisinden.
+        $foreignRows = @(@($benchmarkSeries) | Where-Object { $_ -and @($_.Points).Count -gt 0 -and [string]$_.Name -ne 'BIST100' } | ForEach-Object {
                 $last = $_.Points[$_.Points.Count - 1]
                 [pscustomobject]@{ Name = [string]$_.Name; ReturnPct = [double]$last.ReturnPct }
-            } | Sort-Object ReturnPct -Descending)
+            })
+        $perfSummaryRows = @(@($liveRows) + @($foreignRows) | Sort-Object ReturnPct -Descending)
+        # BIST100 capraz-kontrol: canli TradingView snapshot vs Yahoo XU100.IS serisi. Belirgin
+        # sapma alfayi guvenilmez kilar -> SESSIZCE yanlis gostermeyiz, rapora gorunur uyari.
+        $yahooBist = @(@($benchmarkSeries) | Where-Object { [string]$_.Name -eq 'BIST100' -and @($_.Points).Count -gt 0 } | Select-Object -First 1)
+        if ($yahooBist.Count -gt 0 -and $null -ne $liveBistReturn) {
+            $yb = [double]$yahooBist[0].Points[$yahooBist[0].Points.Count - 1].ReturnPct
+            if ([Math]::Abs($yb - $liveBistReturn) -gt 1.5) {
+                $bistSourceWarning = ('⚠️ BIST100 iki veri kaynağında belirgin farklı: canlı TradingView %{0}, Yahoo XU100.IS %{1} (aynı dönem). Tablodaki getiriler ve <b>alfa canlı TradingView</b>''i kullanır; grafikteki BIST100 çizgisi Yahoo''dan gelir. Fark veri sağlayıcı kaynaklıdır — alfayı temkinli okuyun.' -f ([Math]::Round($liveBistReturn, 2)), ([Math]::Round($yb, 2)))
+            }
+        }
     }
     catch { Write-Warning "Performans grafigi/serisi uretilemedi: $($_.Exception.Message)" }
     Write-TimingLog -Step 'Performans karsilastirma grafigi' -StartedAt $stageStartedAt
@@ -2727,7 +2754,8 @@ table { display:block; overflow-x:auto; white-space:nowrap; }
         $perfChartSectionHtml = @"
 <div class="card" style="margin:24px 30px;">
 <h2>📈 Getiri Karşılaştırması (100.000 TL)</h2>
-<p class="muted">Tüm model portföyler + BIST100, Altın, Mevduat, Nasdaq, S&amp;P 500 — TRY bazında % getiri. Model portföylerin kuruluşundan bugüne; grafik her çalışmada otomatik uzar. Yabancı varlıklar ve altın USD/TRY ile TRY'ye çevrilmiştir; mevduat yaklaşıktır.</p>
+<p class="muted">Tüm model portföyler + BIST100, Altın, Mevduat, Nasdaq, S&amp;P 500 — TRY bazında % getiri. Model portföylerin kuruluşundan bugüne; grafik her çalışmada otomatik uzar. Yabancı varlıklar ve altın USD/TRY ile TRY'ye çevrilmiştir; mevduat yaklaşıktır. <b>Aşağıdaki tablo</b> model portföyler ve BIST100 için <b>canlı (TradingView) değerleri</b> gösterir — model portföy detay tablosuyla birebir aynıdır. <b>Grafik çizgileri</b> günlük geçmiş için Yahoo kapanışından yeniden kurulur ve sağlayıcı/zaman farkıyla tablodan hafif sapabilir.</p>
+$(if ($bistSourceWarning) { "<p class=`"muted`" style=`"color:#b45309`">$bistSourceWarning</p>" } else { '' })
 $perfImgTag
 <table><thead><tr><th>Strateji / Varlık</th><th style="text-align:right">Dönem getirisi</th></tr></thead><tbody>
 $perfRowsHtml
