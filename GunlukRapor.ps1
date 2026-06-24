@@ -969,6 +969,7 @@ function Update-InstantEntrySignalPortfolio {
         [object[]]$Stocks,
         [datetime]$AsOf,
         [double]$DailyBudgetTL = 5000,
+        [double]$InitialCapitalTL = 100000,
         [double]$MinBuyScore = 90,
         [int]$MaxBuysPerDay = 3,
         $RiskRules = $null
@@ -1058,6 +1059,15 @@ function Update-InstantEntrySignalPortfolio {
         }
     }
 
+    # --- KAPALI DONGU NAKIT (100k sermaye, 5k/gun) ---
+    # Bu noktada $transactions bugunku SATIS'lari icerir (yukarida eklendi) ama bugunku
+    # ALIM'lari henuz icermez. Nakit = sermaye - kumulatif alim + kumulatif satis hasilati;
+    # satis hasilati (KAR dahil) nakte donerek tekrar girise musait olur ("kazandigi karla
+    # da girsin"). Gunluk alim hakki hem 5k hem KALAN NAKIT ile sinirli (100k asilmaz).
+    $cashState = Get-InstantEntryCashTL -InitialCapitalTL $InitialCapitalTL -Transactions $transactions.ToArray()
+    $cashAvailable = [double]$cashState.CashTL
+    $todayBudget = [Math]::Round([Math]::Min([double]$DailyBudgetTL, [Math]::Max(0.0, $cashAvailable)), 2)
+
     $todayKey = $AsOf.ToString('yyyy-MM-dd')
     $alreadyBoughtToday = @(
         $transactions | Where-Object {
@@ -1074,7 +1084,7 @@ function Update-InstantEntrySignalPortfolio {
 
     $statusNote = ''
     if ($alreadyBoughtToday) {
-        $statusNote = 'Bugün bu portföy için daha önce alım kaydı oluştu; tekrar 5.000 TL kullanılmadı.'
+        $statusNote = ('Bugün bu portföy için daha önce alım kaydı oluştu; tekrar {0:N0} TL günlük hak kullanılmadı.' -f $DailyBudgetTL)
     }
     else {
         $maxBuys = [Math]::Max(1, [Math]::Min(3, $MaxBuysPerDay))
@@ -1085,12 +1095,15 @@ function Update-InstantEntrySignalPortfolio {
                 Select-Object -First $maxBuys
         )
 
-        if ($buyCandidates.Count -eq 0) {
-            $statusNote = ('Bugün çok güçlü anlık giriş sinyali yok; {0:N0} TL günlük alım hakkı kullanılmadı.' -f $DailyBudgetTL)
+        if ($todayBudget -le 0) {
+            $statusNote = ('Kullanılabilir nakit yok ({0:N0} TL); 100.000 TL sermaye tamamen pozisyonlarda. Bir satış nakit serbest bırakınca tekrar giriş yapılır.' -f $cashAvailable)
+        }
+        elseif ($buyCandidates.Count -eq 0) {
+            $statusNote = ('Bugün çok güçlü anlık giriş sinyali yok; {0:N0} TL günlük alım hakkı kullanılmadı.' -f $todayBudget)
         }
         else {
             $sequence = $transactions.Count + 1
-            $remainingBudget = [Math]::Round($DailyBudgetTL, 2)
+            $remainingBudget = [Math]::Round($todayBudget, 2)
             $boughtSymbols = [System.Collections.Generic.List[string]]::new()
 
             for ($index = 0; $index -lt $buyCandidates.Count; $index++) {
@@ -1107,7 +1120,7 @@ function Update-InstantEntrySignalPortfolio {
                     $remainingBudget
                 }
                 else {
-                    [Math]::Round($DailyBudgetTL / $buyCandidates.Count, 2)
+                    [Math]::Round($todayBudget / $buyCandidates.Count, 2)
                 }
                 $remainingBudget = [Math]::Round($remainingBudget - $amount, 2)
                 if ($amount -le 0) { continue }
@@ -1193,7 +1206,7 @@ function Update-InstantEntrySignalPortfolio {
                 $valuedPortfolio.LastBuyDateText = $AsOf.ToString('dd.MM.yyyy HH:mm')
             }
             else {
-                $statusNote = ('Aday bulundu ama fiyat/sembol eksikliği nedeniyle {0:N0} TL günlük alım hakkı kullanılmadı.' -f $DailyBudgetTL)
+                $statusNote = ('Aday bulundu ama fiyat/sembol eksikliği nedeniyle {0:N0} TL günlük alım hakkı kullanılmadı.' -f $todayBudget)
             }
         }
     }
@@ -1216,8 +1229,8 @@ function Update-InstantEntrySignalPortfolio {
         }
     }
 
-    $totalGain = $totalValue - $totalInvested
-    $totalReturnPct = if ($totalInvested -gt 0) { ($totalGain / $totalInvested) * 100.0 } else { 0.0 }
+    # $totalInvested = acik pozisyonlarin maliyeti; $totalValue = acik pozisyonlarin guncel degeri.
+    $unrealizedGain = $totalValue - $totalInvested
     $lastBuyDate = Get-ObjectPropertyValue -Object $valuedPortfolio -Name 'LastBuyDate'
     $lastBuyDateText = Get-ObjectPropertyValue -Object $valuedPortfolio -Name 'LastBuyDateText'
 
@@ -1228,6 +1241,13 @@ function Update-InstantEntrySignalPortfolio {
     # Gerceklesen getiri: kapatilmis pozisyonlarin maliyetine gore.
     $realizedReturnPct = if ([double]$realizedCost -gt 0) { ([double]$realizedGain / [double]$realizedCost) * 100.0 } else { 0.0 }
 
+    # KAPALI DONGU final nakit/deger (bugunku ALIM'lar da islendikten sonra, defterden turetilir).
+    $finalCash = Get-InstantEntryCashTL -InitialCapitalTL $InitialCapitalTL -Transactions $transactions.ToArray()
+    $cashTL = [double]$finalCash.CashTL
+    $portfolioTotalValue = [Math]::Round($cashTL + $totalValue, 2)   # nakit + hissede duran deger
+    $portfolioReturnPct = if ($InitialCapitalTL -gt 0) { (($portfolioTotalValue - $InitialCapitalTL) / $InitialCapitalTL) * 100.0 } else { 0.0 }
+    $deployedPct = if ($InitialCapitalTL -gt 0) { ($totalValue / $InitialCapitalTL) * 100.0 } else { 0.0 }
+
     return [pscustomobject][ordered]@{
         Version = 1
         CreatedAt = Get-ObjectPropertyValue -Object $valuedPortfolio -Name 'CreatedAt'
@@ -1235,19 +1255,29 @@ function Update-InstantEntrySignalPortfolio {
         LastValuationAt = $AsOf.ToString('o')
         LastValuationAtText = $AsOf.ToString('dd.MM.yyyy HH:mm')
         DailyBudgetTL = [Math]::Round($DailyBudgetTL, 2)
+        InitialCapitalTL = [Math]::Round($InitialCapitalTL, 2)
         MinBuyScore = [Math]::Round($MinBuyScore, 1)
         MaxBuysPerDay = $MaxBuysPerDay
-        TotalInvestedTL = [Math]::Round($totalInvested, 2)
-        CurrentValueTL = [Math]::Round($totalValue, 2)
-        TotalGainTL = [Math]::Round($totalGain, 2)
-        TotalReturnPct = [Math]::Round($totalReturnPct, 2)
+        # Kapali dongu durumu
+        CashTL = [Math]::Round($cashTL, 2)                       # kullanilabilir nakit (tekrar girise hazir)
+        HoldingsValueTL = [Math]::Round($totalValue, 2)          # hissede duran guncel deger
+        TotalValueTL = $portfolioTotalValue                     # nakit + hisse = toplam portfoy degeri
+        TotalReturnPct = [Math]::Round($portfolioReturnPct, 2)  # 100k sermayeye gore getiri
+        DeployedPct = [Math]::Round($deployedPct, 2)            # sermayenin yuzde kaci hissede
+        TotalBoughtTL = [Math]::Round([double]$finalCash.TotalBoughtTL, 2)         # kumulatif girilen (tum alimlar)
+        TotalSoldProceedsTL = [Math]::Round([double]$finalCash.TotalSoldProceedsTL, 2)  # kumulatif satis hasilati
+        # Acik pozisyon detayi
+        TotalInvestedTL = [Math]::Round($totalInvested, 2)      # acik pozisyon maliyeti
+        CurrentValueTL = [Math]::Round($totalValue, 2)          # acik pozisyon guncel degeri (geriye uyum)
+        UnrealizedGainTL = [Math]::Round($unrealizedGain, 2)    # acik K/Z
+        # Gerceklesen (kapatilmis pozisyon) K/Z
         RealizedGainTL = [Math]::Round([double]$realizedGain, 2)
         RealizedCostTL = [Math]::Round([double]$realizedCost, 2)
         RealizedReturnPct = [Math]::Round([double]$realizedReturnPct, 2)
         LastBuyDate = $lastBuyDate
         LastBuyDateText = $lastBuyDateText
         StatusNote = $statusNote
-        Notes = 'Anlık giriş fırsatı portföyü teorik modeldir. Her gün 18:15 kapanış taramasında yalnızca çok güçlü sinyal varsa günlük bütçe ile alım kaydı oluşturur; gerçek emir göndermez.'
+        Notes = ('Anlık giriş fırsatı portföyü teorik modeldir (kapalı döngü: {0:N0} TL sermaye, günlük {1:N0} TL alım hakkı). Satış hasılatı + kâr nakte döner ve tekrar girişte kullanılabilir; nakit bitince yeni alım durur. Gerçek emir göndermez.' -f $InitialCapitalTL, $DailyBudgetTL)
         Holdings = $finalHoldings.ToArray()
         Transactions = $transactions.ToArray()
     }
@@ -1256,15 +1286,29 @@ function Update-InstantEntrySignalPortfolio {
 function Get-InstantEntryPortfolioSummaryRows {
     param($Portfolio)
 
+    # Kapali dongu ozeti: 100k sermaye -> ne kadar girilmis (kumulatif), ne kadar hissede
+    # duruyor (guncel), ne kadar kar-satisi (gerceklesen) yapilmis, kalan nakit ve toplam deger.
+    # Geriye uyum: yeni alanlar yoksa (eski state) makul varsayilanlara duser.
+    $initialCapital = Get-NumberValue -Object $Portfolio -Name 'InitialCapitalTL'
+    if ($null -eq $initialCapital) { $initialCapital = 100000.0 }
+    $holdingsValue = Get-NumberValue -Object $Portfolio -Name 'HoldingsValueTL'
+    if ($null -eq $holdingsValue) { $holdingsValue = Get-NumberValue -Object $Portfolio -Name 'CurrentValueTL' }
+    $cash = Get-NumberValue -Object $Portfolio -Name 'CashTL'
+    $totalValue = Get-NumberValue -Object $Portfolio -Name 'TotalValueTL'
+    if ($null -ne $cash -and $null -ne $holdingsValue -and $null -eq $totalValue) { $totalValue = [double]$cash + [double]$holdingsValue }
+
     return @(
         [pscustomobject][ordered]@{
-            'Günlük Alım Hakkı' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $Portfolio -Name 'DailyBudgetTL') -Format 'N2' -Suffix ' TL'
-            'Minimum Sinyal Skoru' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $Portfolio -Name 'MinBuyScore') -Format 'N1'
-            'Toplam Yatırım' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $Portfolio -Name 'TotalInvestedTL') -Format 'N2' -Suffix ' TL'
-            'Güncel Değer' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $Portfolio -Name 'CurrentValueTL') -Format 'N2' -Suffix ' TL'
-            'Açık Kar/Zarar' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $Portfolio -Name 'TotalGainTL') -Format 'N2' -Suffix ' TL'
-            'Getiri' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $Portfolio -Name 'TotalReturnPct') -Format 'N2' -Suffix '%'
-            'Gerçekleşen K/Z' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $Portfolio -Name 'RealizedGainTL') -Format 'N2' -Suffix ' TL'
+            'Toplam Sermaye' = Format-ReportNumber -Value $initialCapital -Format 'N0' -Suffix ' TL'
+            'Günlük Alım Hakkı' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $Portfolio -Name 'DailyBudgetTL') -Format 'N0' -Suffix ' TL'
+            'Kullanılabilir Nakit' = Format-ReportNumber -Value $cash -Format 'N2' -Suffix ' TL'
+            'Hissede (Güncel Değer)' = Format-ReportNumber -Value $holdingsValue -Format 'N2' -Suffix ' TL'
+            'Toplam Girilen (kümülatif alım)' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $Portfolio -Name 'TotalBoughtTL') -Format 'N2' -Suffix ' TL'
+            'Kâr-Satışı Hasılatı (kümülatif)' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $Portfolio -Name 'TotalSoldProceedsTL') -Format 'N2' -Suffix ' TL'
+            'Açık K/Z' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $Portfolio -Name 'UnrealizedGainTL') -Format 'N2' -Suffix ' TL'
+            'Gerçekleşen K/Z (satışlardan)' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $Portfolio -Name 'RealizedGainTL') -Format 'N2' -Suffix ' TL'
+            'Toplam Değer (nakit + hisse)' = Format-ReportNumber -Value $totalValue -Format 'N2' -Suffix ' TL'
+            'Getiri (100k sermayeye göre)' = Format-ReportNumber -Value (Get-ObjectPropertyValue -Object $Portfolio -Name 'TotalReturnPct') -Format 'N2' -Suffix '%'
             'Son Alım' = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $Portfolio -Name 'LastBuyDateText')
             Durum = ConvertTo-PlainText (Get-ObjectPropertyValue -Object $Portfolio -Name 'StatusNote')
         }
@@ -2063,6 +2107,7 @@ $instantEntryCandidateLimit = [int](Get-ConfigValue -Object $settings.Report -Na
 $instantEntryTimeoutSec = [int](Get-ConfigValue -Object $settings.Report -Name 'InstantEntryTimeoutSec' -Default 5)
 $instantEntryMaxElapsedSec = [int](Get-ConfigValue -Object $settings.Report -Name 'InstantEntryMaxElapsedSec' -Default 75)
 $instantEntryPortfolioDailyBudgetTL = [double](Get-ConfigValue -Object $settings.Report -Name 'InstantEntryPortfolioDailyBudgetTL' -Default 5000)
+$instantEntryPortfolioInitialCapitalTL = [double](Get-ConfigValue -Object $settings.Report -Name 'InstantEntryPortfolioInitialCapitalTL' -Default 100000)
 $instantEntryPortfolioMinBuyScore = [double](Get-ConfigValue -Object $settings.Report -Name 'InstantEntryPortfolioMinBuyScore' -Default 90)
 $instantEntryPortfolioMaxBuysPerDay = [int](Get-ConfigValue -Object $settings.Report -Name 'InstantEntryPortfolioMaxBuysPerDay' -Default 3)
 $modelCostBps = [double](Get-EnvironmentValue -Names @('BIST_MODEL_COST_BPS') -Default ([string](Get-ConfigValue -Object $settings.Report -Name 'ModelPortfolioCostBps' -Default 50)))
@@ -2290,6 +2335,7 @@ try {
         -Stocks $stocks `
         -AsOf $runAt `
         -DailyBudgetTL $instantEntryPortfolioDailyBudgetTL `
+        -InitialCapitalTL $instantEntryPortfolioInitialCapitalTL `
         -MinBuyScore $instantEntryPortfolioMinBuyScore `
         -MaxBuysPerDay $instantEntryPortfolioMaxBuysPerDay `
         -RiskRules $riskRules
@@ -2663,7 +2709,7 @@ try {
         "Makro: $($macroSnapshot.Status)",
         "Skor isabet orani: " + $(if ($null -ne $signalPerfSummary.HitRatePct) { "%$($signalPerfSummary.HitRatePct) ($($signalPerfSummary.SampleCount) gun, ort. fark %$($signalPerfSummary.AvgEdgePct))" } else { 'henuz veri yok' }),
         "Anlik giris radari: " + $(if ($entryOpportunities.Count -gt 0) { (($entryOpportunities | ForEach-Object { "$($_.Symbol)($($_.EntryOpportunityScore))" }) -join ', ') } else { 'bugun uygun aday yok' }),
-        "Anlik firsat portfoyu: $($updatedInstantEntryPortfolio.StatusNote) Deger $($updatedInstantEntryPortfolio.CurrentValueTL) TL, getiri $($updatedInstantEntryPortfolio.TotalReturnPct)%",
+        "Anlik firsat portfoyu: $($updatedInstantEntryPortfolio.StatusNote) Toplam deger $($updatedInstantEntryPortfolio.TotalValueTL) TL (nakit $($updatedInstantEntryPortfolio.CashTL) + hisse $($updatedInstantEntryPortfolio.HoldingsValueTL)), getiri $($updatedInstantEntryPortfolio.TotalReturnPct)%",
         "Model portfoyler: " + ((@($updatedPortfolioSet.Portfolios) | ForEach-Object { "$($_.Strategy): " + ((@($_.Holdings) | ForEach-Object Symbol) -join ',') }) -join ' | '),
         "HTML rapor: $htmlPath"
     ) -join [Environment]::NewLine
@@ -2850,7 +2896,7 @@ $dataQualityBanner
 <div class="kpi gold"><div class="lab">Skor Lideri</div><div class="val">$($leader.Symbol)</div><div class="sub">Skor $($leader.Score) · $($leader.Signal)</div></div>
 <div class="kpi"><div class="lab">Ham-Faktör Lideri</div><div class="val">$(($scored | Sort-Object RawFactorScore100 -Descending | Select-Object -First 1).Symbol)</div><div class="sub">RFS100 $(($scored | Sort-Object RawFactorScore100 -Descending | Select-Object -First 1).RawFactorScore100)</div></div>
 <div class="kpi $(if ($macroSnapshot.Status -match 'destekleyici') { 'good' } elseif ($macroSnapshot.Status -match 'temkinli') { 'bad' } else { 'gold' })"><div class="lab">Makro Zemin</div><div class="val" style="font-size:15px">$($macroSnapshot.Status)</div><div class="sub">Destek $($macroSnapshot.SupportiveCount) · Baskı $($macroSnapshot.PressureCount)</div></div>
-<div class="kpi $(if ([double]($updatedInstantEntryPortfolio.TotalReturnPct) -ge 0) { 'good' } else { 'bad' })"><div class="lab">Anlık Fırsat Portföyü</div><div class="val">%$($updatedInstantEntryPortfolio.TotalReturnPct)</div><div class="sub">Değer $($updatedInstantEntryPortfolio.CurrentValueTL) TL</div></div>
+<div class="kpi $(if ([double]($updatedInstantEntryPortfolio.TotalReturnPct) -ge 0) { 'good' } else { 'bad' })"><div class="lab">Anlık Fırsat Portföyü</div><div class="val">%$($updatedInstantEntryPortfolio.TotalReturnPct)</div><div class="sub">Toplam $([string]::Format('{0:N0}', [double](Get-NumberValue -Object $updatedInstantEntryPortfolio -Name 'TotalValueTL'))) TL · nakit $([string]::Format('{0:N0}', [double](Get-NumberValue -Object $updatedInstantEntryPortfolio -Name 'CashTL'))) TL</div></div>
 <div class="kpi"><div class="lab">Anlık Giriş Fırsatı</div><div class="val">$(@($entryOpportunities).Count)</div><div class="sub">bugünkü sinyal</div></div>
 <div class="kpi $(if ($null -ne $signalPerfSummary.HitRatePct -and [double]$signalPerfSummary.HitRatePct -ge 50) { 'good' } elseif ($null -ne $signalPerfSummary.HitRatePct) { 'bad' } else { 'gold' })"><div class="lab">Skor İsabet Oranı</div><div class="val">$(if ($null -ne $signalPerfSummary.HitRatePct) { "%$($signalPerfSummary.HitRatePct)" } else { 'veri yok' })</div><div class="sub">$($signalPerfSummary.SampleCount) gün · ort. fark $(if ($null -ne $signalPerfSummary.AvgEdgePct) { "%$($signalPerfSummary.AvgEdgePct)" } else { '-' })</div></div>
 </div>
@@ -2862,7 +2908,7 @@ $(New-HtmlTable -Rows $macroRows)
 <p class="muted">Bu bölüm, temeli geçen hisselerde skor 85+ ve backtestte fake oranını düşüren teknik koşulu arar: MACD yeni sıfır kesişimi veya pozitif ivme + 52H %20-50 bandı. Liste sayısı sabit değildir; bugün koşul yoksa boş gelebilir.</p>
 $(New-HtmlTable -Rows $entryOpportunityRows)
 <h2>Anlık Fırsat Portföyü</h2>
-<p class="muted">Bu portföy, her gün 18:15 kapanış çalışmasında yalnızca çok güçlü anlık giriş sinyali varsa teorik alım kaydı oluşturur. Günlük bütçe $([string]::Format('{0:N0}', $instantEntryPortfolioDailyBudgetTL)) TL; aynı gün tekrar çalışırsa ikinci kez alım yapmaz.</p>
+<p class="muted">Bu portföy <b>kapalı döngü</b> çalışır: toplam <b>$([string]::Format('{0:N0}', $instantEntryPortfolioInitialCapitalTL)) TL</b> sermaye, günde en fazla <b>$([string]::Format('{0:N0}', $instantEntryPortfolioDailyBudgetTL)) TL</b> yeni alım. Her gün 18:15 kapanışında yalnızca çok güçlü sinyal varsa teorik alım yapar; risk kuralıyla (stop/kâr-al/iz-süren) pozisyon kapatır. <b>Satış hasılatı + kâr nakde döner</b> ve sonraki günlerde tekrar girişte kullanılabilir; <b>nakit bitince</b> (sermaye tamamen pozisyonlarda) yeni alım durur, bir satış nakit serbest bırakınca devam eder. Aynı gün tekrar çalışırsa ikinci kez alım yapmaz. Gerçek emir göndermez.</p>
 $(New-HtmlTable -Rows $instantEntryPortfolioSummaryRows)
 <h3>Anlık Fırsat Açık Pozisyonları</h3>
 $(New-HtmlTable -Rows $instantEntryPortfolioHoldingRows)

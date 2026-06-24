@@ -3327,6 +3327,36 @@ function Get-InstantEntryExitDecision {
     return $null
 }
 
+function Get-InstantEntryCashTL {
+    <#
+        Anlik firsat portfoyu KAPALI DONGU nakit durumu (100k sermaye + 5k/gun).
+        Nakit, degismez islem defterinden TURETILIR (idempotent; ayni gun tekrar
+        kosulsa sonuc degismez):
+            Nakit = Baslangic sermayesi - kumulatif ALIM(AmountTL) + kumulatif SATIS(AmountTL)
+        Satis hasilati (anapara + KAR) nakte doner -> kazanilan karla tekrar girilebilir.
+        Nakit 0'a inince yeni alim yapilamaz (100k asilmaz) ta ki bir satis nakti
+        serbest birakana kadar. Doner: Cash / TotalBought / TotalSoldProceeds / RealizedNote.
+    #>
+    [CmdletBinding()]
+    param(
+        [double]$InitialCapitalTL = 100000,
+        [object[]]$Transactions = @()
+    )
+    $buys = 0.0; $sells = 0.0
+    foreach ($t in @($Transactions)) {
+        $act = [string](Get-ObjectPropertyValue -Object $t -Name 'Action')
+        $amt = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $t -Name 'AmountTL')
+        if ($null -eq $amt) { continue }
+        if ($act -eq 'AL') { $buys += [double]$amt }
+        elseif ($act -eq 'SAT') { $sells += [double]$amt }
+    }
+    return [pscustomobject][ordered]@{
+        CashTL              = [Math]::Round($InitialCapitalTL - $buys + $sells, 2)
+        TotalBoughtTL       = [Math]::Round($buys, 2)
+        TotalSoldProceedsTL = [Math]::Round($sells, 2)
+    }
+}
+
 function New-InstantEntryOpportunity {
     param(
         $Stock,
@@ -6750,6 +6780,7 @@ Export-ModuleMember -Function `
     Get-BistIndexBenchmarks, `
     Get-InstantEntryOpportunities, `
     Get-InstantEntryExitDecision, `
+    Get-InstantEntryCashTL, `
     New-ModelPortfolioSet, `
     Update-ModelPortfolioSet, `
     Save-PitSnapshot, `

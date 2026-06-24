@@ -522,6 +522,25 @@ if ($null -ne (Get-InstantEntryExitDecision -Holding $hNoTrail -Rules $exitRules
 if ($null -ne (Get-InstantEntryExitDecision -Holding $hStop -Rules $null)) { throw "Risk çıkışı: kural yokken çıkış üretildi." }
 Write-Host "Anlık fırsat risk çıkışı testi başarılı (stop/kar-al/iz-süren stop ayrışıyor)."
 
+# --- Anlık fırsat KAPALI DÖNGÜ nakit (100k sermaye, kâr recycle) ---
+# 2 alım (5000+5000) + 1 satış (6000 hasılat; 5000 maliyet + 1000 kâr). Nakit defterden:
+$ieTx = @(
+    [pscustomobject]@{ Action = 'AL'; AmountTL = 5000 }
+    [pscustomobject]@{ Action = 'AL'; AmountTL = 5000 }
+    [pscustomobject]@{ Action = 'SAT'; AmountTL = 6000 }
+)
+$ieCash = Get-InstantEntryCashTL -InitialCapitalTL 100000 -Transactions $ieTx
+# 100000 - 10000 + 6000 = 96000
+if ([Math]::Abs([double]$ieCash.CashTL - 96000) -gt 0.01) { throw "Anlık nakit yanlış: $($ieCash.CashTL) (beklenen 96000)" }
+if ([Math]::Abs([double]$ieCash.TotalBoughtTL - 10000) -gt 0.01) { throw "Kümülatif alım yanlış: $($ieCash.TotalBoughtTL)" }
+if ([Math]::Abs([double]$ieCash.TotalSoldProceedsTL - 6000) -gt 0.01) { throw "Satış hasılatı yanlış: $($ieCash.TotalSoldProceedsTL)" }
+# Recycle kanıtı: satıştan gelen 6000 (kâr dahil) nakde döndü -> sırf alımlara baksak 90000 olurdu.
+if (-not ([double]$ieCash.CashTL -gt (100000 - 10000))) { throw "Kâr recycle edilmedi: nakit satış hasılatını içermiyor." }
+# Sermaye tükenmesi: alımlar = sermaye -> nakit 0 (yeni alım duracak).
+$ieCash2 = Get-InstantEntryCashTL -InitialCapitalTL 10000 -Transactions @([pscustomobject]@{ Action = 'AL'; AmountTL = 10000 })
+if ([Math]::Abs([double]$ieCash2.CashTL) -gt 0.01) { throw "Sermaye tükenince nakit 0 olmalı: $($ieCash2.CashTL)" }
+Write-Host "Anlık fırsat kapalı döngü nakit testi başarılı (nakit=96000; kâr recycle; sermaye bitince nakit=0)."
+
 # --- Eksik temel veri CEZALI olmalı (nötr 45 değil) ---
 $peGood = & (Get-Module 'BistScanner.Core') { Get-PEComponentScore -Value 10 }
 $peNull = & (Get-Module 'BistScanner.Core') { Get-PEComponentScore -Value $null }

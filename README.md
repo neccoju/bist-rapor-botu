@@ -156,8 +156,16 @@ fine-grained, bu repo, **Actions: Read and write**. Girdiler boş bırakılır
 - **Akademik Çok-Faktör Skoru (AFS):** momentum 12-1 (Jegadeesh-Titman), kalite
   (Novy-Marx/RMW), değer, düşük volatilite (Frazzini-Pedersen), boyut faktörlerinin
   kesitsel z-skor karışımı; yıllık vol ve getiri/risk metrikleri.
-- **Anlık Giriş Fırsatı + Anlık Fırsat Portföyü:** temel filtre + haftalık MACD
-  ivmesi + 52 hafta konumu + BIST rejimi; çok güçlü sinyalde teorik alım kaydı.
+- **Anlık Giriş Fırsatı + Anlık Fırsat Portföyü (kapalı döngü):** temel filtre + haftalık
+  MACD ivmesi + 52 hafta konumu + BIST rejimi; çok güçlü sinyalde teorik alım kaydı.
+  Portföy **kapalı döngü** çalışır: **100.000 TL sermaye**, günde en fazla **5.000 TL yeni
+  alım**. Risk kuralıyla (stop/kâr-al/iz-süren) pozisyon kapanınca **satış hasılatı + kâr
+  nakde döner** ve sonraki günlerde tekrar girişte kullanılabilir; **nakit bitince** (sermaye
+  tamamen pozisyonlarda) yeni alım durur, bir satış nakit serbest bırakınca devam eder.
+  Nakit, değişmez işlem defterinden türetilir (`Get-InstantEntryCashTL`; idempotent: nakit =
+  sermaye − kümülatif alım + kümülatif satış hasılatı). Rapor temiz bir özet verir: toplam
+  girilen (kümülatif), hissede duran güncel değer, kâr-satışı/gerçekleşen K/Z, kullanılabilir
+  nakit ve 100k'ya göre toplam getiri.
 - **Yaklaşan Bilanço Takvimi:** son/sonraki bilanço tarihi + kalan gün + olay-riski
   uyarısı (bilançoya ≤7 gün kala skorda ceza).
 - **Bilanço Öncesi İvme Radarı (anticipation):** yaklaşan bilanço + güçlenen
