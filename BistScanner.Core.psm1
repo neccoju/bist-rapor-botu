@@ -3592,7 +3592,7 @@ function Get-InstantEntryOpportunities {
 }
 
 function Get-ModelPortfolioDefinitions {
-    return @(
+    $definitions = @(
         [pscustomobject][ordered]@{
             Id = 'Dengeli'
             Name = 'Dengeli Model Portföy'
@@ -3639,6 +3639,25 @@ function Get-ModelPortfolioDefinitions {
             Description = 'Normal model portföyleri bozmadan ayrı izlenen risk dengeli portföydür. Seçim Dengeli skorla yapılır; ağırlıklar günlük oynaklık tersine göre dağıtılır ve tek hisse riski için min/max ağırlık sınırları uygulanır.'
         }
     )
+
+    # VERI-KAPILI 7. portfoy: bot KENDI OGRENDIGI faktor agirliklariyla kurar.
+    # Yalniz ogrenilmis agirlik dosyasi (data/learned_factor_weights.json) varken
+    # listeye eklenir; yoksa hic olusturulmaz (yeterli PIT verisi birikip ceyreklik
+    # oto-kalibrasyon calisana kadar bekler — kullanici istegi: "yeterli veri/ogrenme
+    # oldugunda olustur"). RFS100 STATIK temel cizgiyi korur; bu portfoy ogrenilmis
+    # agirliklari kullanir, ikisi yan yana izlenerek ogrenmenin katkisi olculur.
+    if (Get-LearnedFactorWeights) {
+        $definitions += [pscustomobject][ordered]@{
+            Id = 'OgrenenAlgoritma'
+            Name = 'Öğrenen Algoritma Model Portföyü'
+            Strategy = 'Dengeli'
+            RankBy = 'LearnedFactorScore100'
+            RequiresLearnedWeights = $true
+            Description = 'Botun çeyreklik walk-forward IC oto-kalibrasyonuyla KENDİ ÖĞRENDİĞİ faktör ağırlıklarını (data/learned_factor_weights.json) kullanarak kuran 5 hisselik portföy. Yalnızca yeterli PIT verisi birikip öğrenme gerçekleştiğinde oluşturulur. RFS100 statik backtest ağırlıklarını korurken bu portföy öğrenilmiş ağırlıkları uygular; ikisi yan yana izlenerek öğrenmenin gerçek alfa katkısı ölçülebilir. Temel/likidite uygunluk filtresi ve sektör çeşitlendirmesi RFS100 ile aynıdır.'
+        }
+    }
+
+    return $definitions
 }
 
 function Get-ModelPortfolioNumberText {
@@ -3825,12 +3844,25 @@ function Get-ModelPortfolioSelection {
 
     $scoredAll = @(Get-BistScores -Stocks $Stocks -Strategy $Strategy)
     if ($RankBy -eq 'RawFactorScore100') {
-        # RFS100 tum evren uzerinde kesitsel hesaplanir, sonra uygunlar siralanir.
+        # RFS100 (STATIK temel cizgi) tum evren uzerinde kesitsel hesaplanir, sonra uygunlar siralanir.
         $scoredAll = @(Add-RawFactorScore -Stocks $scoredAll)
         $candidates = @(
             $scoredAll |
                 Where-Object { Test-ModelPortfolioEligibleStock -Stock $_ } |
                 Sort-Object @{ Expression = { [double](Get-ObjectPropertyValue -Object $_ -Name 'RawFactorScore100') }; Descending = $true }
+        )
+    }
+    elseif ($RankBy -eq 'LearnedFactorScore100') {
+        # OGRENEN portfoy: botun kendi ogrendigi agirliklarla (Get-LearnedFactorWeights)
+        # kesitsel skor. Hem statik RFS100 (karsilastirma icin) hem LearnedFactorScore100
+        # hesaplanir; siralama ogrenilmis skora gore. Agirlik yoksa statige duser (guvenli).
+        $learnedWeights = Get-LearnedFactorWeights
+        $scoredAll = @(Add-RawFactorScore -Stocks $scoredAll)
+        $scoredAll = @(Add-RawFactorScore -Stocks $scoredAll -Weights $learnedWeights -ScoreName 'LearnedFactorScore')
+        $candidates = @(
+            $scoredAll |
+                Where-Object { Test-ModelPortfolioEligibleStock -Stock $_ } |
+                Sort-Object @{ Expression = { [double](Get-ObjectPropertyValue -Object $_ -Name 'LearnedFactorScore100') }; Descending = $true }
         )
     }
     else {
@@ -4226,6 +4258,7 @@ function New-ModelPortfolioHolding {
         SectorTR = [string]$Stock.SectorTR
         StrategyScore = [Math]::Round([double]$Stock.Score, 1)
         RawFactorScore100 = Get-ObjectPropertyValue -Object $Stock -Name 'RawFactorScore100'
+        LearnedFactorScore100 = Get-ObjectPropertyValue -Object $Stock -Name 'LearnedFactorScore100'
         MacroSectorScore = Get-ObjectPropertyValue -Object $Stock -Name 'MacroSectorScore'
         EvEbitda = Get-ObjectPropertyValue -Object $Stock -Name 'EvEbitda'
         VolatilityD = Get-ObjectPropertyValue -Object $Stock -Name 'VolatilityD'
@@ -4413,6 +4446,7 @@ function Update-ModelPortfolioValuation {
                 SectorTR = [string](Get-ObjectPropertyValue -Object $holding -Name 'SectorTR')
                 StrategyScore = Get-ObjectPropertyValue -Object $holding -Name 'StrategyScore'
                 RawFactorScore100 = Get-ObjectPropertyValue -Object $holding -Name 'RawFactorScore100'
+                LearnedFactorScore100 = Get-ObjectPropertyValue -Object $holding -Name 'LearnedFactorScore100'
                 MacroSectorScore = Get-ObjectPropertyValue -Object $holding -Name 'MacroSectorScore'
                 EvEbitda = Get-ObjectPropertyValue -Object $holding -Name 'EvEbitda'
                 VolatilityD = Get-ObjectPropertyValue -Object $holding -Name 'VolatilityD'
@@ -4879,24 +4913,30 @@ function Get-RawFactorVector {
     }
 }
 
+function Get-StaticFactorWeights {
+    # BIST100 walk-forward (4-hafta tutus) ortalama agirliklari; kesit z-skoru basina.
+    # RFS100'un STATIK temel cizgisi (backtest). Ogrenme bunu DEGISTIRMEZ; ayri
+    # 'OgrenenAlgoritma' portfoyu ogrenilmis agirliklari kullanir (yan yana izlenir).
+    return @{
+        RSI = -1.49; MACDh = 0.69; WMACDh = 0.35; dSMA20 = -0.13; dSMA50 = 0.82
+        dSMA200 = 1.58; Perf1M = 0.86; Perf3M = -1.29; RelVol = -0.40; RVol = -0.62
+    }
+}
+
 function Add-RawFactorScore {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][object[]]$Stocks,
-        [hashtable]$Weights
+        [hashtable]$Weights,
+        # Yazilacak ozellik adi: '<ScoreName>' (ham) + '<ScoreName>100' (0-100 yuzdelik).
+        # Varsayilan RawFactorScore/RawFactorScore100 (RFS100 statik temel cizgisi).
+        # Ogrenilmis portfoy 'LearnedFactorScore' adiyla ayri bir alana yazar.
+        [string]$ScoreName = 'RawFactorScore'
     )
     if (-not $Weights) {
-        # ONCE ogrenilmis agirliklari dene (data/learned_factor_weights.json) — kendi
-        # kendine ogrenen ceyreklik kalibrasyon yazar. Yoksa/ gecersizse asagidaki
-        # statik BIST100 walk-forward varsayilanina duser.
-        $Weights = Get-LearnedFactorWeights
-    }
-    if (-not $Weights) {
-        # BIST100 walk-forward (4-hafta tutus) ortalama agirliklari; kesit z-skoru basina.
-        $Weights = @{
-            RSI = -1.49; MACDh = 0.69; WMACDh = 0.35; dSMA20 = -0.13; dSMA50 = 0.82
-            dSMA200 = 1.58; Perf1M = 0.86; Perf3M = -1.29; RelVol = -0.40; RVol = -0.62
-        }
+        # Varsayilan: STATIK backtest agirliklari (RFS100 temel cizgisi). Ogrenilmis
+        # agirliklari kullanmak isteyen cagiran -Weights (Get-LearnedFactorWeights) verir.
+        $Weights = Get-StaticFactorWeights
     }
     $factorNames = @($Weights.Keys)
     $facList = New-Object System.Collections.Generic.List[object]
@@ -4935,17 +4975,18 @@ function Add-RawFactorScore {
         $pct[$idx] = if ($n -gt 1) { [Math]::Round(($rank / ($n - 1.0)) * 100, 1) } else { 50 }
     }
     for ($i = 0; $i -lt $Stocks.Count; $i++) {
-        $Stocks[$i] | Add-Member -NotePropertyName RawFactorScore -NotePropertyValue ([Math]::Round($blends[$i], 4)) -Force
-        $Stocks[$i] | Add-Member -NotePropertyName RawFactorScore100 -NotePropertyValue $pct[$i] -Force
+        $Stocks[$i] | Add-Member -NotePropertyName $ScoreName -NotePropertyValue ([Math]::Round($blends[$i], 4)) -Force
+        $Stocks[$i] | Add-Member -NotePropertyName ($ScoreName + '100') -NotePropertyValue $pct[$i] -Force
     }
     return $Stocks
 }
 
 function Get-LearnedFactorWeights {
     <#
-        Ceyreklik oto-kalibrasyonun yazdigi RFS faktor agirliklarini okur
+        Oto-kalibrasyonun yazdigi ogrenilmis RFS faktor agirliklarini okur
         (data/learned_factor_weights.json -> .Weights). Yoksa/bozuksa $null.
-        Boylece RFS100 portfoyu "ogrenilmis" agirlikla calisir; digerleri statik kalir.
+        Varligi 'OgrenenAlgoritma' portfoyunu aktive eder ve onun seciminde kullanilir;
+        RFS100 ve diger portfoyler STATIK agirligi korur (yan yana karsilastirma).
     #>
     param([string]$Path)
     if ([string]::IsNullOrWhiteSpace($Path)) {
@@ -6699,6 +6740,7 @@ Export-ModuleMember -Function `
     Get-BistScore, `
     Get-BistScores, `
     Add-RawFactorScore, `
+    Get-StaticFactorWeights, `
     Get-RawFactorVector, `
     Get-EvdsSeries, `
     Get-ModelPortfolioDefinitions, `

@@ -194,9 +194,16 @@ fine-grained, bu repo, **Actions: Read and write**. Girdiler boş bırakılır
 ## Model Portföyler — ne zaman, nasıl seçer?
 
 Bot 6 model portföy yönetir: **Dengeli, Değer, Momentum, Kalite** (klasik strateji
-skoruyla), **RFS100** (ham teknik faktör skoruyla) ve **Risk Dengeli** (Dengeli
-seçimi + volatilite-tersi ağırlık). Hepsi 100.000 TL ile başlar ve teoriktir
-(gerçek emir yok).
+skoruyla), **RFS100** (ham teknik faktör skoruyla — **statik** backtest ağırlıkları)
+ve **Risk Dengeli** (Dengeli seçimi + volatilite-tersi ağırlık). Hepsi 100.000 TL ile
+başlar ve teoriktir (gerçek emir yok).
+
+Yeterli PIT verisi birikip öğrenme gerçekleştiğinde **7.** bir portföy otomatik eklenir:
+**Öğrenen Algoritma** (`OgrenenAlgoritma`) — botun çeyreklik walk-forward IC
+oto-kalibrasyonuyla **kendi öğrendiği** faktör ağırlıklarıyla kurulan 5 hisselik portföy.
+Öğrenme gerçekleşene kadar **oluşturulmaz** (veri-kapılı). RFS100 statik temel çizgiyi
+korur; Öğrenen Algoritma öğrenilmiş ağırlıkları uygular — ikisi **yan yana** izlenerek
+öğrenmenin gerçek alfa katkısı ölçülebilir.
 
 ### Ne zaman alım/satım yapılır?
 - **Yalnız ayın son BIST işlem gününde** yeniden dengelenir (rebalance: sıralama +
@@ -219,8 +226,8 @@ seçimi + volatilite-tersi ağırlık). Hepsi 100.000 TL ile başlar ve teorikti
    uygun hisseler stratejinin **kendi karakterine** göre sıralanır.
 4. **Sektör sınırı + Top 5:** sektör başına en fazla 2 hisse kuralıyla en yüksek
    5 hisse seçilir (5'e ulaşılamazsa sınır gevşetilerek tamamlanır).
-5. **Eşit ağırlık:** Dengeli/Değer/Momentum/Kalite/RFS100 portföylerinde 5 hisse ×
-   %20. (Risk Dengeli farklı; aşağıda.)
+5. **Eşit ağırlık:** Dengeli/Değer/Momentum/Kalite/RFS100/Öğrenen Algoritma
+   portföylerinde 5 hisse × %20. (Risk Dengeli farklı; aşağıda.)
 
 ### Strateji-özgü seçim — portföyler neden artık birbirinden farklı?
 > **Geçmişteki sorun:** Dört strateji de seçimi doğrudan genel `Score` ile
@@ -348,24 +355,29 @@ karara bağla" — overfitting'e karşı koruma). Veriler birikince, işe yaraya
   **veriye göre otomatik günceller**; yoksa güvenli varsayılana (−3) düşer.
 - **Dinamik enflasyon:** TÜFE kıyaslaması TCMB EVDS endeksinden (TP.FG.J0) 1Y/3Y/5Y
   birikimli olarak otomatik hesaplanır; EVDS yoksa statik değere düşer.
-- **Kendi içinde süren oto-kalibrasyon (PIT backtest → faktör ağırlığı öğrenme):**
-  `auto-calibrate.yml` **her ayın 1'i otomatik** çalışır; `pit-archive` branch'indeki
-  survivorship/look-ahead'siz PIT arşivinden **walk-forward** bir değerlendirme yapıp
-  **RFS100 portföyünün faktör ağırlıklarını** yeniden öğrenmeyi dener
-  (`Invoke-AutoCalibration.ps1` → `data/learned_factor_weights.json`). Rapor varsa bu
-  öğrenilmiş ağırlıkları kullanır, yoksa statik varsayılana düşer.
+- **Kendi içinde süren oto-kalibrasyon (PIT backtest → faktör ağırlığı öğrenme →
+  yeni portföy):** `auto-calibrate.yml` **her ayın 1'i otomatik** çalışır;
+  `pit-archive` branch'indeki survivorship/look-ahead'siz PIT arşivinden **walk-forward**
+  bir değerlendirme yapıp faktör ağırlıklarını yeniden öğrenmeyi dener
+  (`Invoke-AutoCalibration.ps1` → `data/learned_factor_weights.json`).
+  - **Çıktı = yeni bir model portföy:** öğrenme gerçekleştiğinde **Öğrenen Algoritma**
+    (`OgrenenAlgoritma`) portföyü otomatik oluşturulur ve öğrenilmiş ağırlıklarla 5 hisse
+    seçer. **RFS100 statik backtest temel çizgisini korur** (öğrenme onu değiştirmez); iki
+    portföy yan yana izlenerek öğrenmenin gerçek katkısı ölçülür (A/B).
   - **Yöntem (overfit'e dirençli):** her faktör için kesitsel **IC** (Pearson; faktör ↔
     ileri ~1 aylık getiri), **çakışmayan/bağımsız** dönemler arası ortalama → çok-değişkenli
     regresyonun aşırı-uyum/çoklu-doğrusallık riski ve otokorelasyonla şişme alınmaz; sonuç
     prior ağırlıklara doğru **büzülür** (shrinkage) ve sınırlanır.
   - **Veri kapısı (dürüst) + kendi kendine devam:** yeterli **bağımsız** dönem (≥8) birikene
-    kadar **hiçbir şey değişmez** — kuşu commit atmaz, `main`'e dokunmaz — ve bir **sonraki ay
-    otomatik tekrar denenir**. Yani "3 ay yetmezse 5./6./8. ay": arşiv yeterince birikene
-    kadar döngü kendiliğinden bekler, hazır olduğu an öğrenir ve **yeni model üretir**. Her ay
-    ~1 bağımsız dönem eklendiğinden öğrenme tipik olarak birkaç ay sonra devreye girer. Delist
-    olan hisseler hariç tutulur (hafif survivorship — açıkça not edilir).
-  - **Kapsam:** yalnızca **RFS100 "öğrenme kanadı"**nı etkiler; diğer 5 portföyün el-ayarlı
-    skoru bilinçli olarak değişmez (tüm botu otomatik optimize edip overfit etme riski alınmaz).
+    kadar **hiçbir şey değişmez** — kuşu commit atmaz, `main`'e dokunmaz, Öğrenen Algoritma
+    portföyü **oluşturulmaz** — ve bir **sonraki ay otomatik tekrar denenir**. Yani "3 ay
+    yetmezse 5./6./8. ay": arşiv yeterince birikene kadar döngü kendiliğinden bekler, hazır
+    olduğu an öğrenir ve **yeni model üretir**. Her ay ~1 bağımsız dönem eklendiğinden öğrenme
+    tipik olarak birkaç ay sonra devreye girer. Delist olan hisseler hariç tutulur (hafif
+    survivorship — açıkça not edilir).
+  - **Kapsam:** yalnızca yeni **Öğrenen Algoritma** portföyünü besler; RFS100 dahil diğer 6
+    portföyün ağırlıkları/skoru bilinçli olarak değişmez (tüm botu otomatik optimize edip
+    overfit etme riski alınmaz).
 
 ## Veri Kaynakları ve Çoklu-Kaynak Yedekleme
 
@@ -548,11 +560,13 @@ sütununda gösterir. **Gözlem modu — karar etkisi yok.**
   örtüşmeyi log'a yazar. **Gerçek state'e dokunmaz** (bellekte çalışır, kaydetmez).
 - `Invoke-AutoCalibration.ps1` + `auto-calibrate.yml` → `data/learned_factor_weights.json`
   — **kendi içinde süren öğrenme** (her ay otomatik; elle tetikleme de var ama **gerekmez**).
-  PIT arşivinden (pit-archive branch) walk-forward kesitsel IC ile RFS100 faktör
-  ağırlıklarını yeniden öğrenmeyi dener. **Veri-kapılı**: yeterli bağımsız dönem
-  birikene kadar prior korunur (commit yok, `main` dokunulmaz) ve sonraki ay tekrar
-  denenir — hazır olunca öğrenir, `main`'e yeni ağırlık dosyasını yazar. Aşırı-uyum
-  korumalı (IC + shrinkage + sınır + min-dönem); yalnız RFS100 kanadını etkiler.
+  PIT arşivinden (pit-archive branch) walk-forward kesitsel IC ile faktör ağırlıklarını
+  yeniden öğrenmeyi dener. Öğrenme gerçekleşince **Öğrenen Algoritma** (`OgrenenAlgoritma`)
+  model portföyü otomatik oluşur ve bu ağırlıklarla 5 hisse seçer; RFS100 statik temel
+  çizgi olarak kalır (A/B karşılaştırma). **Veri-kapılı**: yeterli bağımsız dönem birikene
+  kadar prior korunur (commit yok, `main` dokunulmaz, portföy oluşmaz) ve sonraki ay tekrar
+  denenir. Aşırı-uyum korumalı (IC + shrinkage + sınır + min-dönem); yalnız Öğrenen Algoritma
+  portföyünü besler.
 
 > Backtest uyarısı: ücretsiz veride **survivorship** (bugün listede olmayan/delist
 > hisseler yok) ve geçmiş bilanço anlık görüntüsü eksikliği vardır; backtest
@@ -634,7 +648,7 @@ Detaylı eleştirel inceleme (kod tabanı kanıtıyla) sonrası uygulananlar:
   gibi kritik makro/benchmark girdileri eksik geldiğinde rapora **görünür kırmızı uyarı**
   bandı eklenir (`Get-DataQualitySummary`); temel verisi eksik hisse oranı da gösterilir.
   Artık eksik veri sessizce yanlış skor/alfa üretmez — kullanıcı uyarılır.
-- **Portföyler-arası yoğunlaşma (gözlem):** aynı hissenin 6 model portföyün **tamamı**
+- **Portföyler-arası yoğunlaşma (gözlem):** aynı hissenin **tüm** model portföyler
   üzerindeki toplam ağırlığı hesaplanıp rapora **yeni bir tablo** olarak eklendi
   (`Get-CrossPortfolioConcentration`); defterin %12'sini aşan isimler ⚠️ ile işaretlenir.
   Tek portföy içi sektör tavanının görmediği gizli yoğunlaşma artık izlenir.

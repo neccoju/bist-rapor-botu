@@ -618,6 +618,42 @@ if ($null -ne (Get-LearnedFactorWeights -Path (Join-Path ([System.IO.Path]::GetT
 Remove-Item -LiteralPath $tmpW -Force -ErrorAction SilentlyContinue
 Write-Host "Öğrenilmiş ağırlık okuma testi başarılı (dosya var -> kullan; yok -> null/varsayılan)."
 
+# --- Veri-kapılı 'Öğrenen Algoritma' model portföyü ---
+# Öğrenilmiş ağırlık dosyası YOKKEN tanımlarda OgrenenAlgoritma OLMAMALI; dosya
+# olusturulunca EKLENMELI ve seçim öğrenilmiş ağırlıklara göre yapılmalı.
+$defaultLearnPath = Join-Path $PSScriptRoot 'data/learned_factor_weights.json'
+if (Test-Path -LiteralPath $defaultLearnPath) { throw "Test ön koşulu: $defaultLearnPath zaten var; test güvenli değil." }
+$idsBefore = @((Get-ModelPortfolioDefinitions).Id)
+if ($idsBefore -contains 'OgrenenAlgoritma') { throw "Öğrenilmiş ağırlık yokken OgrenenAlgoritma portföyü görünmemeli." }
+try {
+    $dataDir = Split-Path -Parent $defaultLearnPath
+    if (-not (Test-Path -LiteralPath $dataDir)) { New-Item -ItemType Directory -Force -Path $dataDir | Out-Null }
+    # Yalniz Perf1M'e (pozitif) agirlik -> en yuksek aylik getiri en uste cikmali.
+    ([pscustomobject]@{ Weights = [pscustomobject]@{
+        RSI = 0; MACDh = 0; WMACDh = 0; dSMA20 = 0; dSMA50 = 0; dSMA200 = 0
+        Perf1M = 10; Perf3M = 0; RelVol = 0; RVol = 0
+    } }) | ConvertTo-Json | Set-Content -LiteralPath $defaultLearnPath -Encoding UTF8
+
+    $defsAfter = @(Get-ModelPortfolioDefinitions)
+    $learnDef = $defsAfter | Where-Object { $_.Id -eq 'OgrenenAlgoritma' }
+    if ($null -eq $learnDef) { throw "Öğrenilmiş ağırlık varken OgrenenAlgoritma portföyü tanımlara eklenmedi." }
+    if ([string]$learnDef.RankBy -ne 'LearnedFactorScore100') { throw "OgrenenAlgoritma RankBy yanlış: $($learnDef.RankBy)" }
+
+    $learnSel = @(Get-ModelPortfolioSelection -Stocks $stratStocks -Strategy 'Dengeli' -RankBy 'LearnedFactorScore100' -Count 5)
+    if ($learnSel.Count -ne 5) { throw "Öğrenen portföy 5 hisse seçmeli, $($learnSel.Count) seçti." }
+    foreach ($h in $learnSel) {
+        if ($null -eq (Get-ObjectPropertyValue -Object $h -Name 'LearnedFactorScore100')) { throw "Seçilen hissede LearnedFactorScore100 yok: $($h.Symbol)" }
+    }
+    $learnTop = [string](@($learnSel | Sort-Object @{ Expression = { [double]$_.LearnedFactorScore100 }; Descending = $true } | Select-Object -First 1).Symbol)
+    if ($learnTop -ne 'MOM1') { throw "Perf1M-ağırlıklı öğrenmede en yüksek aylık getiri (MOM1) öne çıkmalıydı, çıkan: $learnTop" }
+}
+finally {
+    Remove-Item -LiteralPath $defaultLearnPath -Force -ErrorAction SilentlyContinue
+}
+$idsAfterCleanup = @((Get-ModelPortfolioDefinitions).Id)
+if ($idsAfterCleanup -contains 'OgrenenAlgoritma') { throw "Dosya silindikten sonra OgrenenAlgoritma yine görünmemeli (veri-kapısı)." }
+Write-Host "Öğrenen Algoritma portföyü testi başarılı (veri-kapılı: dosya yok->yok, var->5 hisse öğrenilmiş ağırlıkla; MOM1 öne çıktı)."
+
 # --- Faz A gözlem modu: Piyasa genişliği (Get-MarketBreadth) ---
 $breadthStocks = @(
     [pscustomobject]@{ Symbol = 'A'; Price = 110; SMA50 = 100; SMA200 = 90; PerfMonth = 5 }

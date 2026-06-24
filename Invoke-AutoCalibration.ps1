@@ -41,14 +41,10 @@ Write-Host ('=' * 64)
 Write-Host 'KENDI KENDINE OGRENME — RFS faktor agirligi oto-kalibrasyon'
 Write-Host ('=' * 64)
 
-# Prior (mevcut) agirliklar: ogrenilmis varsa onu, yoksa statik varsayilani.
+# Prior (mevcut) agirliklar: ogrenilmis varsa onu, yoksa STATIK temel cizgi
+# (Get-StaticFactorWeights — RFS100 ile tek kaynak).
 $prior = Get-LearnedFactorWeights
-if (-not $prior) {
-    $prior = @{
-        RSI = -1.49; MACDh = 0.69; WMACDh = 0.35; dSMA20 = -0.13; dSMA50 = 0.82
-        dSMA200 = 1.58; Perf1M = 0.86; Perf3M = -1.29; RelVol = -0.40; RVol = -0.62
-    }
-}
+if (-not $prior) { $prior = Get-StaticFactorWeights }
 
 if (-not (Test-Path -LiteralPath $PitDir)) {
     Write-Warning "PIT dizini yok: $PitDir — ogrenme atlandi (prior korunur)."
