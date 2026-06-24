@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-06-23T14:46:25.635865+00:00",
+  "generatedAt": "2026-06-24T14:46:17.347184+00:00",
   "source": "borsapy 0.10.2 get_news_content",
-  "count": 67,
+  "count": 71,
   "lastRun": {
-    "targets": 7,
-    "enriched": 7,
+    "targets": 4,
+    "enriched": 4,
     "errors": 0,
-    "elapsedSec": 33
+    "elapsedSec": 20
   },
   "items": {
     "1618795": {
@@ -1326,6 +1326,95 @@
       "impact": 2,
       "amounts": [],
       "rationale": "Bildirimde işlem detayları ve tutar yer almıyor; fiyat etkisi belirsiz."
+    },
+    "1620022": {
+      "symbol": "INDES",
+      "title": "Özel Durum Açıklaması (Genel)",
+      "category": "Ozel Durum (Genel)",
+      "date": "24.06.2026 09:20:36",
+      "directionHint": "?",
+      "contentChars": 73048,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-06-24T14:45:59.364783+00:00",
+      "directionRefined": "0",
+      "summary": "INDES, finansal tablolarına ilişkin genel açıklama yaptı; SPK düzenlemelerine uygun ve doğru bilgi beyan edildi, yeni somut finansal veri yok.",
+      "impact": 1,
+      "amounts": [],
+      "rationale": "Yalnızca rutin uyum ve doğruluk beyanı; fiyatı etkileyen yeni bilgi yok."
+    },
+    "1619951": {
+      "symbol": "GLYHO",
+      "title": "Payların Geri Alınmasına İlişkin Bildirim",
+      "category": "Geri Alim",
+      "date": "23.06.2026 20:21:27",
+      "directionHint": "+",
+      "contentChars": 109104,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-06-24T14:46:03.529921+00:00",
+      "directionRefined": "+",
+      "summary": "GLYHO, paylarının geri alımına ilişkin karar aldığını bildirdi. Geri alım programı detayları ve tutar belirtilmemiştir.",
+      "impact": 3,
+      "amounts": [
+        "18,00 TL"
+      ],
+      "rationale": "Geri alım genellikle hisse fiyatını destekler; detaylar açıklanmadığı için etki sınırlı olabilir."
+    },
+    "1619929": {
+      "symbol": "ENERY",
+      "title": "Payların Geri Alınmasına İlişkin Bildirim",
+      "category": "Geri Alim",
+      "date": "23.06.2026 18:30:09",
+      "directionHint": "+",
+      "contentChars": 115461,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-06-24T14:46:09.572028+00:00",
+      "directionRefined": "+",
+      "summary": "ENERY, pay geri alımı kararı bildirdi. Geri alım miktarı ve tutarı açıklamada belirtilmemiştir.",
+      "impact": 3,
+      "amounts": [
+        "9,67 TL",
+        "9,70 TL",
+        "9,688 TL"
+      ],
+      "rationale": "Geri alım kararı genelde hisseye destek sağlar, miktar belirtilmediği için etki sınırlı."
+    },
+    "1619899": {
+      "symbol": "ISCTR",
+      "title": "Özel Durum Açıklaması (Genel)",
+      "category": "Ozel Durum (Genel)",
+      "date": "23.06.2026 18:11:18",
+      "directionHint": "?",
+      "contentChars": 60869,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-06-24T14:46:13.072109+00:00",
+      "directionRefined": "0",
+      "summary": "İş Bankası, finansal tablolarına ilişkin genel açıklama yaptı; bilgiler SPK düzenlemelerine uygun ve tam olarak yansıtılmıştır.",
+      "impact": 1,
+      "amounts": [
+        "3.936.002.116 TL",
+        "727.100.000 TL"
+      ],
+      "rationale": "Standart uyum ve doğruluk beyanı; fiyat üzerinde etkisi yoktur."
     }
   }
 }
