@@ -1,10 +1,26 @@
 ﻿{
     "Version":  1,
     "CreatedAt":  "2026-06-15T21:15:50.7046948+00:00",
-    "UpdatedAt":  "2026-06-26T15:15:48.9919171+00:00",
+    "UpdatedAt":  "2026-06-27T15:15:47.4587029+00:00",
     "Mode":  "PaperOnly",
     "Notes":  "Gerçek emir göndermez; raporun ürettiği teorik order intent kayıtlarını doldurulmuş varsayan denetim defteridir.",
     "Orders":  [
+                   {
+                       "Id":  "InstantEntry:InstantEntry:12:TNZTP:2026-06-27T15:15:47.4587029+00:00",
+                       "CreatedAt":  "2026-06-27T15:15:47.4587029+00:00",
+                       "FilledAt":  "2026-06-27T15:15:47.4587029+00:00",
+                       "Status":  "PaperFilled",
+                       "Source":  "InstantEntry",
+                       "PortfolioId":  "InstantEntry",
+                       "PortfolioName":  "Anlık Fırsat Portföyü",
+                       "Side":  "Buy",
+                       "Symbol":  "TNZTP",
+                       "Company":  "TAPDİ OKSİJEN ÖZEL SAĞLIK VE EĞİTİM HİZMETLERİ SANAYİ TİCARET A.Ş.",
+                       "Price":  26.06,
+                       "Quantity":  191.864927,
+                       "AmountTL":  5000,
+                       "Note":  "Günlük anlık fırsat bütçesiyle alındı. Sıkı anlık alış filtresi geçti: skor 85+, MACD yeni sıfır kesişimi veya pozitif ivme + 52H %20-50 bandı. Haftalık MACD histogramı son 8 haftada 3/7 kez, son 3 hafta üst üste iyileşti; son 0.14, önceki 0.13. Backtestte pozitif ivme etiketi en güçlü 1 aylık segmentti; skorda ek ağırlık aldı. Temel filtre geçti: bilanço 81.8, kalite 62.5, değer 84.2; son 5 çeyrek kârlı. RSI 53.0; aşırı alıma girmeden momentum toparlanması var. 52 haftalık bandın orta-alt bölgesinde: konum 43.9%, 52H ortalamaya mesafe 4.7%. Sektör rotasyonu Nötr; BIST100e göre ortalama fark -1.9 puan. FD/FAVÖK 7.45; ucuz/makul değerleme filtresinde. Göreli hacim 1.14x; fiyat hareketi tamamen hacimsiz değil."
+                   },
                    {
                        "Id":  "InstantEntry:InstantEntry:11:TNZTP:2026-06-26T15:15:48.9919171+00:00",
                        "CreatedAt":  "2026-06-26T15:15:48.9919171+00:00",
@@ -86,6 +102,38 @@
                        "Note":  "Günlük anlık fırsat bütçesiyle alındı. Sıkı anlık alış filtresi geçti: skor 85+, MACD yeni sıfır kesişimi veya pozitif ivme + 52H %20-50 bandı. Haftalık MACD histogramı son 8 haftada 4/7 kez, son 4 hafta üst üste iyileşti; son 0.00, önceki -0.06. Histogram negatiften pozitife bu hafta geçti; erken dönüş sinyali en güçlü teknik gerekçe. Backtestte sıfır üstüne yeni dönüş yüksek kazanma oranı verdi; skorda teyit olarak öne alındı. Temel filtre geçti: bilanço 92.7, kalite 72.5, değer 75.5; son 5 çeyrek kârlı. RSI 65.7; momentum var ama kısa vadeli yorulma riski izlenmeli. 52 haftalık bandın üst yarısında: konum 100.0%; güç var ama dip fırsatı değil. Sektör rotasyonu Nötr; BIST100e göre ortalama fark -1.9 puan. FD/FAVÖK 9.43; ucuz/makul değerleme filtresinde. Göreli hacim 2.08x; fiyat hareketi tamamen hacimsiz değil."
                    },
                    {
+                       "Id":  "ModelPortfolio:RiskDengeli:2:CCOLA:2026-06-15T21:15:50.7046948+00:00",
+                       "CreatedAt":  "2026-06-15T21:15:50.7046948+00:00",
+                       "FilledAt":  "2026-06-15T21:15:50.7046948+00:00",
+                       "Status":  "PaperFilled",
+                       "Source":  "ModelPortfolio",
+                       "PortfolioId":  "RiskDengeli",
+                       "PortfolioName":  "Risk Dengeli Model Portföyü",
+                       "Side":  "Buy",
+                       "Symbol":  "CCOLA",
+                       "Company":  "COCA-COLA İÇECEK A.Ş.",
+                       "Price":  82.5,
+                       "Quantity":  287.291273,
+                       "AmountTL":  23701.53,
+                       "Note":  "İlk kurulum: hedef ağırlık %23.75. Strateji skoru 78.2; makro/sektör 78.2; trend 82.8; değer 79.2; kalite 88.8; bilanço 100.0; teknik RSI 56.1; risk Orta."
+                   },
+                   {
+                       "Id":  "ModelPortfolio:RiskDengeli:5:BIMAS:2026-06-15T21:15:50.7046948+00:00",
+                       "CreatedAt":  "2026-06-15T21:15:50.7046948+00:00",
+                       "FilledAt":  "2026-06-15T21:15:50.7046948+00:00",
+                       "Status":  "PaperFilled",
+                       "Source":  "ModelPortfolio",
+                       "PortfolioId":  "RiskDengeli",
+                       "PortfolioName":  "Risk Dengeli Model Portföyü",
+                       "Side":  "Buy",
+                       "Symbol":  "BIMAS",
+                       "Company":  "BİM BİRLEŞİK MAĞAZALAR A.Ş.",
+                       "Price":  394,
+                       "Quantity":  35.460482,
+                       "AmountTL":  13971.43,
+                       "Note":  "İlk kurulum: hedef ağırlık %14. Strateji skoru 74.6; makro/sektör 76.9; trend 86.6; değer 61.2; kalite 77.5; bilanço 100.0; teknik RSI 58.1; risk Orta."
+                   },
+                   {
                        "Id":  "ModelPortfolio:RiskDengeli:6:NTGAZ:2026-06-15T21:15:50.7046948+00:00",
                        "CreatedAt":  "2026-06-15T21:15:50.7046948+00:00",
                        "FilledAt":  "2026-06-15T21:15:50.7046948+00:00",
@@ -148,38 +196,6 @@
                        "Quantity":  1139.812876,
                        "AmountTL":  18943.69,
                        "Note":  "İlk kurulum: hedef ağırlık %18.98. Strateji skoru 77.6; makro/sektör 72.0; trend 84.1; değer 75.5; kalite 72.5; bilanço 92.7; teknik RSI 62.3; risk Düşük."
-                   },
-                   {
-                       "Id":  "ModelPortfolio:RiskDengeli:2:CCOLA:2026-06-15T21:15:50.7046948+00:00",
-                       "CreatedAt":  "2026-06-15T21:15:50.7046948+00:00",
-                       "FilledAt":  "2026-06-15T21:15:50.7046948+00:00",
-                       "Status":  "PaperFilled",
-                       "Source":  "ModelPortfolio",
-                       "PortfolioId":  "RiskDengeli",
-                       "PortfolioName":  "Risk Dengeli Model Portföyü",
-                       "Side":  "Buy",
-                       "Symbol":  "CCOLA",
-                       "Company":  "COCA-COLA İÇECEK A.Ş.",
-                       "Price":  82.5,
-                       "Quantity":  287.291273,
-                       "AmountTL":  23701.53,
-                       "Note":  "İlk kurulum: hedef ağırlık %23.75. Strateji skoru 78.2; makro/sektör 78.2; trend 82.8; değer 79.2; kalite 88.8; bilanço 100.0; teknik RSI 56.1; risk Orta."
-                   },
-                   {
-                       "Id":  "ModelPortfolio:RiskDengeli:5:BIMAS:2026-06-15T21:15:50.7046948+00:00",
-                       "CreatedAt":  "2026-06-15T21:15:50.7046948+00:00",
-                       "FilledAt":  "2026-06-15T21:15:50.7046948+00:00",
-                       "Status":  "PaperFilled",
-                       "Source":  "ModelPortfolio",
-                       "PortfolioId":  "RiskDengeli",
-                       "PortfolioName":  "Risk Dengeli Model Portföyü",
-                       "Side":  "Buy",
-                       "Symbol":  "BIMAS",
-                       "Company":  "BİM BİRLEŞİK MAĞAZALAR A.Ş.",
-                       "Price":  394,
-                       "Quantity":  35.460482,
-                       "AmountTL":  13971.43,
-                       "Note":  "İlk kurulum: hedef ağırlık %14. Strateji skoru 74.6; makro/sektör 76.9; trend 86.6; değer 61.2; kalite 77.5; bilanço 100.0; teknik RSI 58.1; risk Orta."
                    }
                ],
     "Positions":  [
@@ -214,10 +230,10 @@
                           "PortfolioName":  "Anlık Fırsat Portföyü",
                           "Symbol":  "TNZTP",
                           "Company":  "TAPDİ OKSİJEN ÖZEL SAĞLIK VE EĞİTİM HİZMETLERİ SANAYİ TİCARET A.Ş.",
-                          "Quantity":  377.971274,
-                          "CostBasisTL":  10000,
-                          "LastPrice":  26.18,
-                          "LastOrderAt":  "2026-06-26T15:15:48.9919171+00:00"
+                          "Quantity":  569.836201,
+                          "CostBasisTL":  15000,
+                          "LastPrice":  26.06,
+                          "LastOrderAt":  "2026-06-27T15:15:47.4587029+00:00"
                       },
                       {
                           "Key":  "ModelPortfolio|RiskDengeli|BIMAS",
