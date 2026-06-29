@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-06-26T14:46:42.465622+00:00",
+  "generatedAt": "2026-06-29T14:46:04.778623+00:00",
   "source": "borsapy 0.10.2 get_news_content",
-  "count": 81,
+  "count": 83,
   "lastRun": {
-    "targets": 6,
-    "enriched": 6,
+    "targets": 2,
+    "enriched": 2,
     "errors": 0,
-    "elapsedSec": 46
+    "elapsedSec": 10
   },
   "items": {
     "1618795": {
@@ -1643,6 +1643,46 @@
       "impact": 2,
       "amounts": [],
       "rationale": "Dava konusu ve tutarı açıklanmadığı için fiyat etkisi belirsiz; detaylar yatırımcı için kritik."
+    },
+    "1621445": {
+      "symbol": "CCOLA",
+      "title": "Özel Durum Açıklaması (Genel)",
+      "category": "Ozel Durum (Genel)",
+      "date": "29.06.2026 15:10:37",
+      "directionHint": "?",
+      "contentChars": 64420,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-06-29T14:45:56.857651+00:00",
+      "directionRefined": "0",
+      "summary": "CCOLA, finansal tablolarına ilişkin genel açıklama yaptı; bilgiler SPK düzenlemelerine uygun ve doğru olarak beyan edilmiştir.",
+      "impact": 1,
+      "amounts": [],
+      "rationale": "Yasal zorunlu genel açıklama; yeni finansal veya operasyonel bilgi yok."
+    },
+    "1621285": {
+      "symbol": "YEOTK",
+      "title": "Özel Durum Açıklaması (Genel)",
+      "category": "Ozel Durum (Genel)",
+      "date": "29.06.2026 09:00:26",
+      "directionHint": "?",
+      "contentChars": 66704,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-06-29T14:46:01.025686+00:00",
+      "directionRefined": "0",
+      "summary": "YEOTK, finansal tablolarına ilişkin genel açıklama yaptı; SPK'nın Özel Durumlar Tebliği'ne uygun ve doğru bilgi beyan edildi.",
+      "impact": 1,
+      "amounts": [],
+      "rationale": "Standart, rutin açıklama; fiyat etkisi yok."
     }
   }
 }
