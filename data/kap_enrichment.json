@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-06-29T14:46:04.778623+00:00",
+  "generatedAt": "2026-06-30T14:46:06.580388+00:00",
   "source": "borsapy 0.10.2 get_news_content",
-  "count": 83,
+  "count": 84,
   "lastRun": {
-    "targets": 2,
-    "enriched": 2,
+    "targets": 1,
+    "enriched": 1,
     "errors": 0,
-    "elapsedSec": 10
+    "elapsedSec": 8
   },
   "items": {
     "1618795": {
@@ -1683,6 +1683,28 @@
       "impact": 1,
       "amounts": [],
       "rationale": "Standart, rutin açıklama; fiyat etkisi yok."
+    },
+    "1621613": {
+      "symbol": "OZSUB",
+      "title": "Kredi Derecelendirmesi",
+      "category": "Kredi Notu",
+      "date": "29.06.2026 18:16:28",
+      "directionHint": "~",
+      "contentChars": 56929,
+      "pdfChars": 4355,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f0a0859019f12001af7049c"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 4355,
+      "inputSnippet": " F-16-04 Telif hakkı © 2007, JCR Eurasia Rating Finanskent Mah. Finans Cad. No: 4 İç Kapı No: 6 34760 Ümraniye / İstanbul - Türkiye Telefon: +90 (212) 3525673 Faks: +90 (216) 629 20 97 İzinsiz çoğaltılması yasaktır Tüm hakları saklıdır Tüm bilgiler JCR Eurasia Rating`in güvenilir olduğuna inandığı kaynaklardan ve Şirket tarafından sağlanan bilgi / açıklamalardan alınmıştır Ancak, JCR Eurasia Rating bu bilgilerin gerçekliğini, doğruluğunu ve yeterliliğini garanti etmez JCR Eurasia Rating derecele",
+      "engine": "github",
+      "enrichedAt": "2026-06-30T14:46:02.826235+00:00",
+      "directionRefined": "+",
+      "summary": "Özsu Balık'ın ulusal kredi notu BBB+ (tr)'den A- (tr)'ye yükseltildi, görünüm Pozitif'ten Durağan'a çevrildi.",
+      "impact": 4,
+      "amounts": [],
+      "rationale": "Kredi notu yükseltildi, finansal güven artışı; görünüm durağan, kısa vadede ek pozitif beklenti yok."
     }
   }
 }
