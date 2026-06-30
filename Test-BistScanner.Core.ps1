@@ -498,6 +498,19 @@ $noop = & (Get-Module 'BistScanner.Core') {
 if ([Math]::Abs([double]$noop['A'] - 0.34) -gt 1e-9) { throw "Tavan altı portföy gereksiz yere değişti." }
 Write-Host "Sektör yoğunlaşma tavanı testi başarılı (Banka %$([Math]::Round($bankaTotal*100,2)) ≤ %35, toplam=%$([Math]::Round($capSum*100,2)))."
 
+# --- Ay-sonu rebalance saat dilimi (BIST piyasa saati = UTC+3) ---
+# CI runner UTC; 18:15 Istanbul = 15:15 UTC. Get-BistMarketNow UTC -> Istanbul cevirir.
+$mn = Get-BistMarketNow -ReferenceUtc ([datetime]::new(2026, 6, 30, 15, 15, 0))
+if ($mn.Hour -ne 18 -or $mn.Minute -ne 15 -or $mn.Day -ne 30) { throw "Piyasa saati çevrimi yanlış: $($mn.ToString('o')) (beklenen 30.06 18:15)" }
+# Son işlem günü (30 Haziran Salı) piyasa saatiyle: 18:15 -> bu ay-sonu (rebalance); 15:15 (UTC, eski hata) -> önceki ay.
+$lcMarket = & (Get-Module 'BistScanner.Core') { Get-LatestCompletedModelPortfolioPeriodEnd -AsOf ([datetime]'2026-06-30T18:15:00') }
+$lcUtcBug = & (Get-Module 'BistScanner.Core') { Get-LatestCompletedModelPortfolioPeriodEnd -AsOf ([datetime]'2026-06-30T15:15:00') }
+if ($lcMarket.ToString('yyyy-MM-dd') -ne '2026-06-30') { throw "Piyasa saatiyle son tamamlanan dönem 2026-06-30 olmalı, çıkan: $($lcMarket.ToString('yyyy-MM-dd'))" }
+if ($lcUtcBug.Month -ne 5) { throw "UTC saatiyle (eski hata) önceki ay dönmeliydi (regresyon kontrolü), çıkan: $($lcUtcBug.ToString('yyyy-MM-dd'))" }
+# Rebalance tetikleme: 11 Haziran'da kurulan portföy, 30 Haziran piyasa-saati kapanışında rebalance olmalı.
+if (-not ([datetime]'2026-06-11' -lt $lcMarket)) { throw "11 Haziran < 30 Haziran ay-sonu olmalı (rebalance tetiklenmeli)." }
+Write-Host "Ay-sonu rebalance saat dilimi testi başarılı (15:15 UTC -> 18:15 Istanbul; son işlem günü rebalance tetikleniyor, UTC hatası regresyonu kilitlendi)."
+
 # --- Anlık fırsat portföyü risk çıkışı (Get-InstantEntryExitDecision) ---
 $exitRules = [pscustomobject]@{ StopLossPct = -8.0; TakeProfitPct = 18.0; TrailingStopPct = 7.0 }
 # 1) Tut: küçük kazanç, tepe yakın -> çıkış yok.

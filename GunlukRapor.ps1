@@ -2118,7 +2118,11 @@ if (-not (Test-Path $outputDirectory)) {
     [void](New-Item -ItemType Directory -Path $outputDirectory -Force)
 }
 
-$runAt = Get-Date
+# BIST piyasa yerel saati (Istanbul, UTC+3). CI runner UTC oldugu icin Get-Date
+# UTC dönerdi; bu da ay-sonu rebalance kararini yanlis saat diliminde verdiriyordu
+# (18:15 Istanbul = 15:15 UTC < 18:10 tampon -> ay-sonu gec algilaniyordu). Artik
+# tum rapor zaman damgalari ve rebalance kararlari piyasa saatine gore.
+$runAt = Get-BistMarketNow
 $stamp = $runAt.ToString('yyyyMMdd_HHmm')
 $htmlPath = Join-Path $outputDirectory "BIST_Rapor_$stamp.html"
 $csvPath = Join-Path $outputDirectory "BIST_Top_$stamp.csv"

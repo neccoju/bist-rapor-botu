@@ -3993,7 +3993,22 @@ function Get-LastModelPortfolioTradingDay {
     return $candidate.Date
 }
 
+function Get-BistMarketNow {
+    <#
+        BIST piyasa YEREL saati (Istanbul). Girdi UTC kabul edilir ve sabit +3 saat
+        eklenir (Turkiye 2016'dan beri kalici UTC+3; yaz saati YOK). CI runner'i UTC
+        oldugu icin ($runAt = Get-Date orada UTC doner) ay-sonu/rebalance kararlari
+        yanlis saat diliminde verilirdi; bu yardimci piyasa saatini garanti eder.
+        Varsayilan [datetime]::UtcNow kullanir (runner yerel TZ'sinden bagimsiz).
+    #>
+    param([datetime]$ReferenceUtc = [datetime]::UtcNow)
+    return $ReferenceUtc.AddHours(3)
+}
+
 function Get-LatestCompletedModelPortfolioPeriodEnd {
+    # DIKKAT: $AsOf PIYASA YEREL (Istanbul) saati olmalidir; market-close tamponu
+    # (18:10) Istanbul saatine goredir. UTC verilirse ay-sonu gec algilanir
+    # (bkz. Get-BistMarketNow — cagiran taraf $runAt'i piyasa saatine cevirir).
     param([datetime]$AsOf)
 
     $currentMonthEnd = Get-LastModelPortfolioTradingDay -Month $AsOf
@@ -6776,6 +6791,8 @@ Export-ModuleMember -Function `
     Get-ModelPortfolioDefinitions, `
     Get-ModelPortfolioSelection, `
     Get-LastModelPortfolioTradingDay, `
+    Get-BistMarketNow, `
+    Get-LatestCompletedModelPortfolioPeriodEnd, `
     Get-MacroSnapshot, `
     Get-BistIndexBenchmarks, `
     Get-InstantEntryOpportunities, `
