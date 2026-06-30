@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="tr" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="dark light" />
+  <title>BIST Yatırım Paneli</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%236e8bff'/%3E%3Ctext x='16' y='22' font-family='Arial' font-size='18' font-weight='bold' fill='white' text-anchor='middle'%3EB%3C/text%3E%3C/svg%3E" />
+  <meta name="description" content="BIST kantitatif rapor motoru — yatırım paneli" />
+  <link rel="stylesheet" href="./assets/style.css" />
+</head>
+<body>
+  <!-- Mobil üst bar -->
+  <div class="mobilebar">
+    <button class="iconbtn" id="navToggle" aria-label="Menü">☰</button>
+    <span class="mobilebar__title">BIST Paneli</span>
+    <button class="iconbtn" id="themeToggleMobile" aria-label="Tema">◑</button>
+  </div>
+
+  <div class="layout">
+    <!-- SOL NAVIGASYON -->
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand__mark">B</div>
+        <div class="brand__text">
+          <span class="brand__name">BIST Paneli</span>
+          <span class="brand__sub">Kantitatif Rapor</span>
+        </div>
+      </div>
+      <nav class="nav" id="nav">
+        <a class="nav__item is-active" href="#ozet" data-section="ozet">Özet</a>
+        <a class="nav__item" href="#performans" data-section="performans">Performans</a>
+        <a class="nav__item" href="#dagilim" data-section="dagilim">Portföy Dağılımı</a>
+        <a class="nav__item" href="#hisseler" data-section="hisseler">Hisseler</a>
+        <a class="nav__item" href="#sektor" data-section="sektor">Sektör Rotasyonu</a>
+        <a class="nav__item" href="#akis" data-section="akis">Para Akışı</a>
+        <a class="nav__item" href="#teknik" data-section="teknik">Teknik Sinyaller</a>
+        <a class="nav__item" href="#yorum" data-section="yorum">Yapay Zekâ Yorumu</a>
+        <a class="nav__item" href="#aksiyon" data-section="aksiyon">Aksiyon Listesi</a>
+      </nav>
+      <div class="sidebar__foot">
+        <button class="themebtn" id="themeToggle"><span class="themebtn__dot"></span> Tema</button>
+        <p class="disclaimer-mini" id="sidebarDisclaimer">Karar destek amaçlıdır.</p>
+      </div>
+    </aside>
+    <div class="scrim" id="scrim"></div>
+
+    <!-- ANA İÇERİK -->
+    <main class="main">
+      <!-- 1) HEADER -->
+      <header class="topbar" id="ozet">
+        <div class="topbar__left">
+          <h1 class="topbar__title">Günlük Yatırım Paneli</h1>
+          <div class="topbar__meta" id="headerMeta"><span class="skeleton skeleton--line"></span></div>
+        </div>
+        <div class="topbar__right">
+          <div class="market-pill" id="marketStatus" title="Piyasa durumu"><span class="market-pill__dot"></span><span id="marketStatusText">—</span></div>
+          <label class="select">
+            <span class="select__label">Rapor</span>
+            <select id="historySelect" aria-label="Geçmiş raporlar"></select>
+          </label>
+        </div>
+      </header>
+
+      <p class="source-note" id="sourceNote"></p>
+
+      <!-- 2) ÜST ÖZET KARTLARI -->
+      <section class="block">
+        <div class="kpigrid" id="kpiCards"></div>
+      </section>
+
+      <!-- 3) ANA PERFORMANS GRAFİĞİ -->
+      <section class="block" id="performans">
+        <div class="card card--chart">
+          <div class="card__head">
+            <div>
+              <h2 class="card__title">Performans Karşılaştırması</h2>
+              <p class="card__sub">Kuruluştan bugüne, TL bazında % getiri</p>
+            </div>
+            <div class="legend" id="perfLegend"></div>
+          </div>
+          <div class="card__body">
+            <div class="chartwrap"><canvas id="perfChart"></canvas></div>
+            <div class="empty" id="perfEmpty" hidden></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4) PORTFÖY DAĞILIMI -->
+      <section class="block" id="dagilim">
+        <div class="grid2">
+          <div class="card">
+            <div class="card__head"><h2 class="card__title">Portföy Dağılımı</h2><p class="card__sub">Mevcut ve hedef ağırlık</p></div>
+            <div class="card__body"><div id="allocList" class="alloc"></div></div>
+          </div>
+          <div class="card card--chart">
+            <div class="card__head"><h2 class="card__title">Ağırlık Dağılımı</h2></div>
+            <div class="card__body"><div class="chartwrap chartwrap--sm"><canvas id="allocChart"></canvas></div></div>
+          </div>
+        </div>
+        <div id="rebalanceAlert"></div>
+      </section>
+
+      <!-- 5) HİSSE TABLOSU -->
+      <section class="block" id="hisseler">
+        <div class="card">
+          <div class="card__head card__head--table">
+            <div><h2 class="card__title">Hisseler</h2><p class="card__sub">Tarama evreninden seçili kayıtlar</p></div>
+            <input class="search" id="stockSearch" type="search" placeholder="Hisse ara…" aria-label="Hisse ara" />
+          </div>
+          <div class="card__body card__body--flush">
+            <div class="tablewrap">
+              <table class="table" id="stockTable">
+                <thead id="stockThead"></thead>
+                <tbody id="stockTbody"></tbody>
+              </table>
+            </div>
+            <div class="empty" id="stockEmpty" hidden></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6) SEKTÖR ROTASYONU -->
+      <section class="block" id="sektor">
+        <div class="card">
+          <div class="card__head"><h2 class="card__title">Sektör Rotasyonu</h2><p class="card__sub">Para girişi / çıkışı (günlük ve haftalık)</p></div>
+          <div class="card__body"><div id="sectorList" class="sector"></div></div>
+        </div>
+      </section>
+
+      <!-- 7) PARA AKIŞI / SMART MONEY -->
+      <section class="block" id="akis">
+        <div class="grid2">
+          <div class="card">
+            <div class="card__head"><h2 class="card__title">Para Akışı</h2><p class="card__sub">Büyük hacim ve anomaliler</p></div>
+            <div class="card__body"><div id="smartMoneyList" class="flowlist"></div></div>
+          </div>
+          <div class="card">
+            <div class="card__head"><h2 class="card__title">Güçlenen / Zayıflayan</h2></div>
+            <div class="card__body"><div id="strengthLists" class="twocol"></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 8) TEKNİK SİNYALLER -->
+      <section class="block" id="teknik">
+        <div class="card">
+          <div class="card__head"><h2 class="card__title">Teknik Sinyaller</h2><p class="card__sub">RSI, MACD, trend ve kırılım</p></div>
+          <div class="card__body"><div id="signalGrid" class="signalgrid"></div></div>
+        </div>
+      </section>
+
+      <!-- 9) YAPAY ZEKÂ YORUMU -->
+      <section class="block" id="yorum">
+        <div class="card">
+          <div class="card__head"><h2 class="card__title">Yapay Zekâ Yorumu</h2><div id="llmStance" class="stance"></div></div>
+          <div class="card__body"><div id="llmCommentary" class="commentary"></div></div>
+        </div>
+      </section>
+
+      <!-- 10) AKSİYON LİSTESİ -->
+      <section class="block" id="aksiyon">
+        <div class="card card--accent">
+          <div class="card__head"><h2 class="card__title">Bugün ne yapmalıyım?</h2></div>
+          <div class="card__body"><div id="actionItems" class="actions"></div></div>
+        </div>
+      </section>
+
+      <footer class="foot">
+        <p id="footDisclaimer"></p>
+        <p class="foot__sig">BIST Kantitatif Rapor Motoru · panel <span id="footMode"></span></p>
+      </footer>
+    </main>
+  </div>
+
+  <!-- Chart.js v4.4.1 (MIT) lokal vendor — CDN/internet bağımlılığı yok; Pages, file:// ve offline çalışır -->
+  <script src="./assets/vendor/chart.umd.min.js" defer></script>
+  <script src="./assets/app.js" defer></script>
+</body>
+</html>
