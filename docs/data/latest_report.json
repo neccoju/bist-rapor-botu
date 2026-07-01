@@ -1,0 +1,990 @@
+﻿{
+    "meta":  {
+                 "schemaVersion":  1,
+                 "reportDate":  "2026-07-01",
+                 "generatedAt":  "2026-07-01T11:51:34.8942861Z",
+                 "lastUpdatedText":  "01.07.2026 11:51",
+                 "marketStatus":  "AÃ§Ä±k",
+                 "strategy":  "Dengeli",
+                 "scannedCount":  608,
+                 "source":  "Mail raporundan Ã¼retildi",
+                 "isSample":  false,
+                 "pagesUrl":  "https://neccoju.github.io/bist-rapor-botu/",
+                 "disclaimer":  "Bu panel karar destek amaÃ§lÄ±dÄ±r, yatÄ±rÄ±m tavsiyesi deÄŸildir."
+             },
+    "history":  [
+                    {
+                        "date":  "2026-07-01",
+                        "label":  "Son rapor"
+                    }
+                ],
+    "summary":  {
+                    "portfolioValueTL":  102906.47,
+                    "initialCapitalTL":  100000,
+                    "dailyChangePct":  null,
+                    "weeklyChangePct":  null,
+                    "monthlyChangePct":  2.91,
+                    "bestStock":  {
+                                      "ticker":  "SEGMN",
+                                      "changePct":  9.9817
+                                  },
+                    "worstStock":  {
+                                       "ticker":  "BMSTL",
+                                       "changePct":  -48.9329
+                                   },
+                    "riskScore":  {
+                                      "value":  49,
+                                      "label":  "Orta"
+                                  },
+                    "llmStance":  null
+                },
+    "performance":  {
+                        "note":  null,
+                        "series":  [
+                                       {
+                                           "name":  "PortfÃ¶y",
+                                           "key":  "portfolio",
+                                           "points":  [
+                                                          {
+                                                              "t":  "2026-06-11",
+                                                              "v":  0.41
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-15",
+                                                              "v":  3.4
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-16",
+                                                              "v":  6.11
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-17",
+                                                              "v":  7.43
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-18",
+                                                              "v":  6.49
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-19",
+                                                              "v":  8.73
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-22",
+                                                              "v":  7.28
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-23",
+                                                              "v":  6.06
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-24",
+                                                              "v":  6.36
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-25",
+                                                              "v":  6.27
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-26",
+                                                              "v":  5.34
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-29",
+                                                              "v":  5.15
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-30",
+                                                              "v":  1.64
+                                                          },
+                                                          {
+                                                              "t":  "2026-07-01",
+                                                              "v":  3.02
+                                                          }
+                                                      ]
+                                       },
+                                       {
+                                           "name":  "BIST100",
+                                           "key":  "bist100",
+                                           "points":  [
+                                                          {
+                                                              "t":  "2026-06-12",
+                                                              "v":  -0.01
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-15",
+                                                              "v":  1.41
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-16",
+                                                              "v":  5.11
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-17",
+                                                              "v":  5.45
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-18",
+                                                              "v":  4.92
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-19",
+                                                              "v":  7.88
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-22",
+                                                              "v":  7.2
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-23",
+                                                              "v":  7.17
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-24",
+                                                              "v":  5.78
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-25",
+                                                              "v":  4.27
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-26",
+                                                              "v":  3.75
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-29",
+                                                              "v":  3.85
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-30",
+                                                              "v":  3.19
+                                                          },
+                                                          {
+                                                              "t":  "2026-07-01",
+                                                              "v":  2.74
+                                                          }
+                                                      ]
+                                       },
+                                       {
+                                           "name":  "Altın (TRY)",
+                                           "key":  "series",
+                                           "points":  [
+                                                          {
+                                                              "t":  "2026-06-12",
+                                                              "v":  -0.24
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-15",
+                                                              "v":  2.85
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-16",
+                                                              "v":  5.66
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-17",
+                                                              "v":  5.77
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-18",
+                                                              "v":  6.77
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-19",
+                                                              "v":  3.42
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-22",
+                                                              "v":  3.49
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-23",
+                                                              "v":  2.49
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-24",
+                                                              "v":  1.23
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-25",
+                                                              "v":  -2.12
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-26",
+                                                              "v":  -0.98
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-29",
+                                                              "v":  0.28
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-30",
+                                                              "v":  -1.05
+                                                          },
+                                                          {
+                                                              "t":  "2026-07-01",
+                                                              "v":  -1.04
+                                                          }
+                                                      ]
+                                       },
+                                       {
+                                           "name":  "Nasdaq (TRY)",
+                                           "key":  "nasdaq",
+                                           "points":  [
+                                                          {
+                                                              "t":  "2026-06-12",
+                                                              "v":  2.74
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-15",
+                                                              "v":  3.11
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-16",
+                                                              "v":  6.32
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-17",
+                                                              "v":  5.15
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-18",
+                                                              "v":  4.03
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-19",
+                                                              "v":  5.97
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-22",
+                                                              "v":  6.04
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-23",
+                                                              "v":  4.67
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-24",
+                                                              "v":  2.36
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-25",
+                                                              "v":  2
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-26",
+                                                              "v":  1.69
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-29",
+                                                              "v":  1.52
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-30",
+                                                              "v":  3.67
+                                                          },
+                                                          {
+                                                              "t":  "2026-07-01",
+                                                              "v":  5.25
+                                                          }
+                                                      ]
+                                       },
+                                       {
+                                           "name":  "S\u0026P 500 (TRY)",
+                                           "key":  "sp500",
+                                           "points":  [
+                                                          {
+                                                              "t":  "2026-06-12",
+                                                              "v":  1.95
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-15",
+                                                              "v":  2.51
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-16",
+                                                              "v":  4.25
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-17",
+                                                              "v":  3.71
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-18",
+                                                              "v":  2.75
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-19",
+                                                              "v":  3.82
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-22",
+                                                              "v":  3.89
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-23",
+                                                              "v":  3.54
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-24",
+                                                              "v":  2.06
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-25",
+                                                              "v":  2.03
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-26",
+                                                              "v":  2.19
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-29",
+                                                              "v":  2.22
+                                                          },
+                                                          {
+                                                              "t":  "2026-06-30",
+                                                              "v":  3.47
+                                                          },
+                                                          {
+                                                              "t":  "2026-07-01",
+                                                              "v":  4.29
+                                                          }
+                                                      ]
+                                       }
+                                   ]
+                    },
+    "allocation":  {
+                       "rebalanceNeeded":  false,
+                       "rebalanceNote":  null,
+                       "holdings":  [
+                                        {
+                                            "ticker":  "CCOLA",
+                                            "company":  "COCA-COLA İÇECEK A.Ş.",
+                                            "weightPct":  19.82,
+                                            "targetPct":  20
+                                        },
+                                        {
+                                            "ticker":  "GLYHO",
+                                            "company":  "GLOBAL YATIRIM HOLDİNG A.Ş.",
+                                            "weightPct":  19.86,
+                                            "targetPct":  20
+                                        },
+                                        {
+                                            "ticker":  "TUPRS",
+                                            "company":  "TÜPRAŞ-TÜRKİYE PETROL RAFİNERİLERİ A.Ş.",
+                                            "weightPct":  20.47,
+                                            "targetPct":  20
+                                        },
+                                        {
+                                            "ticker":  "AKSA",
+                                            "company":  "AKSA AKRİLİK KİMYA SANAYİİ A.Ş.",
+                                            "weightPct":  20.01,
+                                            "targetPct":  20
+                                        },
+                                        {
+                                            "ticker":  "ARASE",
+                                            "company":  "DOĞU ARAS ENERJİ YATIRIMLARI A.Ş.",
+                                            "weightPct":  19.83,
+                                            "targetPct":  20
+                                        }
+                                    ]
+                   },
+    "stocks":  [
+                   {
+                       "ticker":  "CCOLA",
+                       "company":  "COCA-COLA İÇECEK A.Ş.",
+                       "price":  82.25,
+                       "dailyPct":  -0.9633,
+                       "weeklyPct":  5.9923,
+                       "rsi":  55.9452,
+                       "macd":  0.3182,
+                       "volume":  "0.29x",
+                       "signal":  "Güçlü İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "GLYHO",
+                       "company":  "GLOBAL YATIRIM HOLDİNG A.Ş.",
+                       "price":  18.07,
+                       "dailyPct":  -0.7688,
+                       "weeklyPct":  -0.7143,
+                       "rsi":  61.8585,
+                       "macd":  0.0245,
+                       "volume":  "0.16x",
+                       "signal":  "Güçlü İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "TRGYO",
+                       "company":  "TORUNLAR GAYRİMENKUL YATIRIM ORTAKLIĞI A.Ş.",
+                       "price":  99.6,
+                       "dailyPct":  -0.4,
+                       "weeklyPct":  2.7864,
+                       "rsi":  55.5251,
+                       "macd":  0.068,
+                       "volume":  "0.1x",
+                       "signal":  "Güçlü İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "PAGYO",
+                       "company":  "PANORA GAYRİMENKUL YATIRIM ORTAKLIĞI A.Ş.",
+                       "price":  150.4,
+                       "dailyPct":  -0.1991,
+                       "weeklyPct":  8.1237,
+                       "rsi":  61.7306,
+                       "macd":  0.7697,
+                       "volume":  "0.2x",
+                       "signal":  "Güçlü İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "ORGE",
+                       "company":  "ORGE ENERJİ ELEKTRİK TAAHHÜT A.Ş.",
+                       "price":  111.1,
+                       "dailyPct":  -0.0899,
+                       "weeklyPct":  -10.7631,
+                       "rsi":  48.7791,
+                       "macd":  -2.116,
+                       "volume":  "0.24x",
+                       "signal":  "İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "TUPRS",
+                       "company":  "TÜPRAŞ-TÜRKİYE PETROL RAFİNERİLERİ A.Ş.",
+                       "price":  234.1,
+                       "dailyPct":  2.9011,
+                       "weeklyPct":  6.4091,
+                       "rsi":  52.0668,
+                       "macd":  1.3898,
+                       "volume":  "0.74x",
+                       "signal":  "İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "AHGAZ",
+                       "company":  "AHLATCI DOĞAL GAZ DAĞITIM ENERJİ VE YATIRIM A.Ş.",
+                       "price":  39.3,
+                       "dailyPct":  -1.75,
+                       "weeklyPct":  8.5036,
+                       "rsi":  74.8809,
+                       "macd":  0.3316,
+                       "volume":  "0.74x",
+                       "signal":  "İzle",
+                       "llmNote":  null,
+                       "action":  "riskli"
+                   },
+                   {
+                       "ticker":  "AKSA",
+                       "company":  "AKSA AKRİLİK KİMYA SANAYİİ A.Ş.",
+                       "price":  12.1,
+                       "dailyPct":  null,
+                       "weeklyPct":  1.8519,
+                       "rsi":  58.6075,
+                       "macd":  0.0024,
+                       "volume":  "0.19x",
+                       "signal":  "İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "MTRKS",
+                       "company":  "MATRİKS FİNANSAL TEKNOLOJİLER A.Ş.",
+                       "price":  29.46,
+                       "dailyPct":  0.5461,
+                       "weeklyPct":  -3.0921,
+                       "rsi":  57.5012,
+                       "macd":  -0.1516,
+                       "volume":  "0.15x",
+                       "signal":  "İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "AKSGY",
+                       "company":  "AKİŞ GAYRİMENKUL YATIRIM ORTAKLIĞI A.Ş.",
+                       "price":  9.41,
+                       "dailyPct":  0.1064,
+                       "weeklyPct":  0.5342,
+                       "rsi":  51.441,
+                       "macd":  0.0006,
+                       "volume":  "0.05x",
+                       "signal":  "İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "ARASE",
+                       "company":  "DOĞU ARAS ENERJİ YATIRIMLARI A.Ş.",
+                       "price":  115.3,
+                       "dailyPct":  -0.5177,
+                       "weeklyPct":  0.6108,
+                       "rsi":  51.4027,
+                       "macd":  -0.4658,
+                       "volume":  "0.15x",
+                       "signal":  "İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "OZSUB",
+                       "company":  "ÖZSU BALIK ÜRETİM A.Ş.",
+                       "price":  31.78,
+                       "dailyPct":  0.6971,
+                       "weeklyPct":  -4.5646,
+                       "rsi":  58.0541,
+                       "macd":  0.0227,
+                       "volume":  "0.09x",
+                       "signal":  "İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "AGHOL",
+                       "company":  "AG ANADOLU GRUBU HOLDİNG A.Ş.",
+                       "price":  34.58,
+                       "dailyPct":  null,
+                       "weeklyPct":  4.7879,
+                       "rsi":  57.5232,
+                       "macd":  0.0785,
+                       "volume":  "0.28x",
+                       "signal":  "İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "BIMAS",
+                       "company":  "BİM BİRLEŞİK MAĞAZALAR A.Ş.",
+                       "price":  366.25,
+                       "dailyPct":  0.2738,
+                       "weeklyPct":  -4.3734,
+                       "rsi":  41.2917,
+                       "macd":  -2.1609,
+                       "volume":  "0.25x",
+                       "signal":  "İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "INDES",
+                       "company":  "İNDEKS BİLGİSAYAR SİSTEMLERİ MÜHENDİSLİK SANAYİ VE TİCARET A.Ş.",
+                       "price":  11.27,
+                       "dailyPct":  -0.8795,
+                       "weeklyPct":  -0.7923,
+                       "rsi":  48.5235,
+                       "macd":  -0.0627,
+                       "volume":  "0.19x",
+                       "signal":  "İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "ESCOM",
+                       "company":  "ESCORT TEKNOLOJİ YATIRIM A.Ş.",
+                       "price":  5.99,
+                       "dailyPct":  1.0118,
+                       "weeklyPct":  -3.6977,
+                       "rsi":  55.4153,
+                       "macd":  -0.014,
+                       "volume":  "0.21x",
+                       "signal":  "İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "EGPRO",
+                       "company":  "EGE PROFİL TİCARET VE SANAYİ A.Ş.",
+                       "price":  38.92,
+                       "dailyPct":  -0.2051,
+                       "weeklyPct":  -2.4561,
+                       "rsi":  48.3459,
+                       "macd":  -0.089,
+                       "volume":  "0.12x",
+                       "signal":  "İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "LIDFA",
+                       "company":  "LİDER FAKTORİNG A.Ş.",
+                       "price":  2.95,
+                       "dailyPct":  0.6826,
+                       "weeklyPct":  -7.2327,
+                       "rsi":  43.1898,
+                       "macd":  0.0005,
+                       "volume":  "0.09x",
+                       "signal":  "İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "AKBNK",
+                       "company":  "AKBANK T.A.Ş.",
+                       "price":  76.65,
+                       "dailyPct":  -0.4545,
+                       "weeklyPct":  -4.8417,
+                       "rsi":  54.9476,
+                       "macd":  0.0036,
+                       "volume":  "0.42x",
+                       "signal":  "İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "FONET",
+                       "company":  "FONET BİLGİ TEKNOLOJİLERİ A.Ş.",
+                       "price":  5.3,
+                       "dailyPct":  -0.5629,
+                       "weeklyPct":  -11.2228,
+                       "rsi":  45.6205,
+                       "macd":  -0.0366,
+                       "volume":  "0.1x",
+                       "signal":  "İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "YEOTK",
+                       "company":  "YEO TEKNOLOJİ ENERJİ VE ENDÜSTRİ A.Ş.",
+                       "price":  98.95,
+                       "dailyPct":  -2.704,
+                       "weeklyPct":  -6.8267,
+                       "rsi":  45.7184,
+                       "macd":  -2.4305,
+                       "volume":  "0.38x",
+                       "signal":  "İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "THYAO",
+                       "company":  "TÜRK HAVA YOLLARI A.O.",
+                       "price":  329,
+                       "dailyPct":  0.9202,
+                       "weeklyPct":  1.153,
+                       "rsi":  62.2284,
+                       "macd":  0.9227,
+                       "volume":  "0.46x",
+                       "signal":  "İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "SKBNK",
+                       "company":  "ŞEKERBANK T.A.Ş.",
+                       "price":  15.81,
+                       "dailyPct":  1.672,
+                       "weeklyPct":  -4.759,
+                       "rsi":  60.5616,
+                       "macd":  0.0176,
+                       "volume":  "0.21x",
+                       "signal":  "İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "ENERY",
+                       "company":  "Enerya Enerji A.S.",
+                       "price":  11.53,
+                       "dailyPct":  7.2558,
+                       "weeklyPct":  18.2564,
+                       "rsi":  78.0961,
+                       "macd":  0.1772,
+                       "volume":  "1.14x",
+                       "signal":  "İzle",
+                       "llmNote":  null,
+                       "action":  "riskli"
+                   },
+                   {
+                       "ticker":  "HALKB",
+                       "company":  "TÜRKİYE HALK BANKASI A.Ş.",
+                       "price":  43.6,
+                       "dailyPct":  1.537,
+                       "weeklyPct":  -4.4698,
+                       "rsi":  47.5941,
+                       "macd":  -0.6698,
+                       "volume":  "0.29x",
+                       "signal":  "İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "KRSTL",
+                       "company":  "KRİSTAL KOLA VE MEŞRUBAT SANAYİ TİCARET A.Ş.",
+                       "price":  11.01,
+                       "dailyPct":  null,
+                       "weeklyPct":  1.2879,
+                       "rsi":  50.5118,
+                       "macd":  -0.0422,
+                       "volume":  "0.12x",
+                       "signal":  "İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "AEFES",
+                       "company":  "ANADOLU EFES BİRACILIK VE MALT SANAYİİ A.Ş.",
+                       "price":  21.12,
+                       "dailyPct":  0.3802,
+                       "weeklyPct":  3.631,
+                       "rsi":  57.0013,
+                       "macd":  -0.0207,
+                       "volume":  "0.31x",
+                       "signal":  "İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "YKBNK",
+                       "company":  "YAPI VE KREDİ BANKASI A.Ş.",
+                       "price":  39.98,
+                       "dailyPct":  -0.3986,
+                       "weeklyPct":  -6.7631,
+                       "rsi":  54.0562,
+                       "macd":  -0.1333,
+                       "volume":  "0.41x",
+                       "signal":  "İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "YGGYO",
+                       "company":  "YENİ GİMAT GAYRİMENKUL YATIRIM ORTAKLIĞI A.Ş.",
+                       "price":  236.2,
+                       "dailyPct":  0.0847,
+                       "weeklyPct":  -9.1538,
+                       "rsi":  50.5549,
+                       "macd":  -0.6077,
+                       "volume":  "0.04x",
+                       "signal":  "İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "KIMMR",
+                       "company":  "ERSAN ALIŞVERİŞ HİZMETLERİ VE GIDA SANAYİ TİCARET A.Ş.",
+                       "price":  15.92,
+                       "dailyPct":  0.7595,
+                       "weeklyPct":  -5.9102,
+                       "rsi":  38.1591,
+                       "macd":  -0.0839,
+                       "volume":  "0.27x",
+                       "signal":  "İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   }
+               ],
+    "sectorRotation":  [
+                           {
+                               "sector":  "İletişim",
+                               "dailyPct":  1.31,
+                               "weeklyPct":  6.83,
+                               "flow":  "giriÅŸ"
+                           },
+                           {
+                               "sector":  "Enerji Hammaddeleri",
+                               "dailyPct":  1.05,
+                               "weeklyPct":  1.8,
+                               "flow":  "giriÅŸ"
+                           },
+                           {
+                               "sector":  "Endüstriyel Hizmetler",
+                               "dailyPct":  1.96,
+                               "weeklyPct":  0.1,
+                               "flow":  "nÃ¶tr"
+                           },
+                           {
+                               "sector":  "Ticari Hizmetler",
+                               "dailyPct":  0.93,
+                               "weeklyPct":  -0.16,
+                               "flow":  "nÃ¶tr"
+                           },
+                           {
+                               "sector":  "Çeşitli",
+                               "dailyPct":  1.41,
+                               "weeklyPct":  -0.25,
+                               "flow":  "nÃ¶tr"
+                           },
+                           {
+                               "sector":  "Sağlık Teknolojisi",
+                               "dailyPct":  0.64,
+                               "weeklyPct":  -1.13,
+                               "flow":  "Ã§Ä±kÄ±ÅŸ"
+                           },
+                           {
+                               "sector":  "Enerji Dışı Mineraller",
+                               "dailyPct":  0.41,
+                               "weeklyPct":  -1.18,
+                               "flow":  "Ã§Ä±kÄ±ÅŸ"
+                           },
+                           {
+                               "sector":  "Finans",
+                               "dailyPct":  0.64,
+                               "weeklyPct":  -1.32,
+                               "flow":  "Ã§Ä±kÄ±ÅŸ"
+                           },
+                           {
+                               "sector":  "Elektronik Teknoloji",
+                               "dailyPct":  0.65,
+                               "weeklyPct":  -1.73,
+                               "flow":  "Ã§Ä±kÄ±ÅŸ"
+                           },
+                           {
+                               "sector":  "Dağıtım Hizmetleri",
+                               "dailyPct":  0.18,
+                               "weeklyPct":  -1.75,
+                               "flow":  "Ã§Ä±kÄ±ÅŸ"
+                           },
+                           {
+                               "sector":  "Teknoloji Hizmetleri",
+                               "dailyPct":  0.37,
+                               "weeklyPct":  -1.82,
+                               "flow":  "Ã§Ä±kÄ±ÅŸ"
+                           },
+                           {
+                               "sector":  "Süreç Endüstrileri",
+                               "dailyPct":  0.46,
+                               "weeklyPct":  -2.77,
+                               "flow":  "Ã§Ä±kÄ±ÅŸ"
+                           }
+                       ],
+    "smartMoney":  {
+                       "commentary":  "GÃ¶reli hacmi 1,5x ve Ã¼zeri olan hisselerde yÃ¶n ayrÄ±ÅŸmasÄ± (otomatik tÃ¼retildi).",
+                       "items":  [
+
+                                 ],
+                       "strengthening":  [
+                                             "DENGE",
+                                             "RALYH",
+                                             "BURCE",
+                                             "KONYA"
+                                         ],
+                       "weakening":  [
+                                         "AKCNS"
+                                     ]
+                   },
+    "technicalSignals":  {
+                             "overbought":  [
+                                                {
+                                                    "ticker":  "IEYHO",
+                                                    "rsi":  94.7251
+                                                },
+                                                {
+                                                    "ticker":  "HEDEF",
+                                                    "rsi":  91.8973
+                                                },
+                                                {
+                                                    "ticker":  "MRSHL",
+                                                    "rsi":  89.2734
+                                                },
+                                                {
+                                                    "ticker":  "ISBTR",
+                                                    "rsi":  88.3292
+                                                },
+                                                {
+                                                    "ticker":  "DSTKF",
+                                                    "rsi":  86.487799999999993
+                                                },
+                                                {
+                                                    "ticker":  "EUKYO",
+                                                    "rsi":  84.9465
+                                                },
+                                                {
+                                                    "ticker":  "TEHOL",
+                                                    "rsi":  83.7203
+                                                },
+                                                {
+                                                    "ticker":  "KOCMT",
+                                                    "rsi":  82.5053
+                                                }
+                                            ],
+                             "oversold":  [
+                                              {
+                                                  "ticker":  "BMSTL",
+                                                  "rsi":  16.1223
+                                              },
+                                              {
+                                                  "ticker":  "KONTR",
+                                                  "rsi":  18.0056
+                                              },
+                                              {
+                                                  "ticker":  "OBAMS",
+                                                  "rsi":  20.7506
+                                              },
+                                              {
+                                                  "ticker":  "FRIGO",
+                                                  "rsi":  22.0801
+                                              },
+                                              {
+                                                  "ticker":  "LMKDC",
+                                                  "rsi":  22.2441
+                                              },
+                                              {
+                                                  "ticker":  "OTTO",
+                                                  "rsi":  22.3346
+                                              },
+                                              {
+                                                  "ticker":  "TABGD",
+                                                  "rsi":  23.2336
+                                              },
+                                              {
+                                                  "ticker":  "BMSCH",
+                                                  "rsi":  24.2381
+                                              }
+                                          ],
+                             "macdCross":  [
+
+                                           ],
+                             "trendStrengthening":  [
+
+                                                    ],
+                             "momentumLosing":  [
+
+                                                ],
+                             "breakout":  [
+
+                                          ]
+                         },
+    "llmCommentary":  {
+                          "stance":  null,
+                          "marketSummary":  null,
+                          "portfolioComment":  "# Aylık Portföy Notu — 30 Haziran 2026 Yeniden Dengeleme\n\n### Dengeli Model Portföy\n\nBu ay portföy, ilk kurulumdaki tüketim/holding eğiliminden çıkıp daha klasik bir \"değer + enerji/altyapı\" dengesine kaydı; kurulustan %2.78 getiri ve BIST100\u0027e karşı %6.19 alfa ile strateji kimliğine uygun, dengeli bir görüntü veriyor. Yeni giren TUPRS, %8.1 temettü verimi ve 4.9 FD/FAVÖK ile değer ayağını güçlendirirken, ARASE 3.4 FD/FAVÖK ve %26 üç aylık getirisiyle hem ucuz hem momentumlu bir altyapı pozisyonu olarak öne çıkıyor; AKSA ise %4.9 temettü ve makul 10.6 F/K ile dengeleyici rol üstleniyor. Ne var ki TUPRS\u0027un 1 aylık %-3.6, 3 aylık %-10.2 getirisi ve RSI 45.8 ile zayıf seyri, değer cazibesine rağmen kısa vadede sürükleyici olabilir. En önemli risk, GLYHO\u0027nun finans/holding karakteri dışında portföyün üç pozisyonunun (TUPRS, AKSA, ARASE) enerji-altyapı-kimya zincirine yaslanması; yani emtia ve enerji fiyatlarına dolaylı yoğunlaşma.\n\n### Değer Model Portföyü\n\nPortföy bu ay en sert rotasyonlarından birini yaptı; CCOLA, ORGE, GLYHO ve BIMAS topluca çıkarılıp yerlerine NTGAZ, INDES, TUPRS ve TTKOM alınarak \"derin değer\" kimliği belirginleştirildi ve %4.93 getiri ile %8.51 alfa, stratejinin bu dönem çalıştığını gösteriyor. Tez nettir: düşük çarpanlı, yüksek temettülü isimler. INDES 2.3 FD/FAVÖK ve 1.1 PD/DD ile öbeğin en ucuzu, TTKOM ise 0.9 PD/DD ve 7.9 F/K ile defansif-ucuz bir iletişim pozisyonu olarak mantıklı duruyor; NTGAZ da 3.7 FD/FAVÖK ve %7.7 temettü ile klasik değer tezine uyuyor. Ancak NTGAZ\u0027ın 1 aylık %-10.3 getirisi ve RSI 37.7 ile aşırı satım bölgesine yakın olması, \"ucuz ama düşen bıçak\" riskini hatırlatıyor. Asıl risk ise yoğunlaşma: NTGAZ ve ARASE\u0027nin her ikisi de altyapı hizmetleri sektöründe olması ve INDES ile NTGAZ\u0027ın 8 milyar TL civarı küçük piyasa değerleriyle likidite hassasiyeti taşıması.\n\n### Momentum Model Portföyü\n\nMomentum portföyü hâlâ kurulustan %-0.83 ile ekside; bu ay BIMAS, RYGYO ve ORGE çıkarılıp güçlü trendli DOFRB, THYAO ve DSTKF eklenerek tutarlılık artırılmaya çalışıldı, ki bu doğru yön. Yeni giren DOFRB %67.4 üç aylık getiri ve RSI 62.3 ile gerçek bir momentum ismi, THYAO ise 3.4 F/K gibi son derece ucuz çarpana rağmen %9.6 aylık getiri ve RSI 60 ile hem değer hem ivme sunuyor — strateji açısından kaliteli bir ekleme. Buradaki temel çelişki DSTKF: momentumu güçlü (1A %74.6, RSI 86.3) olsa da 275.7 F/K, 90.7 PD/DD ve 116.7 FD/FAVÖK ile değerleme tamamen kopmuş durumda ve RSI 86.3 aşırı alımın da ötesinde. En önemli risk, DSTKF\u0027nin bu aşırı ısınmış teknik görünümüyle olası bir geri dönüşte portföye orantısız zarar yazdırması; ayrıca DOFRB için temel veri (F/K, FAVÖK) yokluğu, fiyatın yalnızca momentumla taşındığını gösteriyor.\n\n### Kalite Model Portföyü\n\nKalite portföyü bu ay GLYHO ve ARASE\u0027yi bırakıp NTGAZ ve GUBRF ekleyerek yüksek özsermaye kârlılığı temasını korudu; %4.83 getiri ve %8.51 alfa ile strateji sağlıklı çalışıyor. Çekirdek isimler tutarlı: CCOLA %24.7 ROE ile güçlü bir tüketim markası, ORGE %20.4 ROE ve 4.2 FD/FAVÖK ile hem kaliteli hem makul fiyatlı, NTGAZ ise %20.3 ROE ve %7.7 temettü ile sağlam bir altyapı pozisyonu. Buna karşılık GUBRF, %23.5 ROE\u0027si kalite filtresine uysa da 19.6 F/K, 4.2 PD/DD ve 11.8 FD/FAVÖK ile öbeğin en pahalısı ve 1 aylık %-22.4 düşüş ile RSI 36.0, ciddi bir teknik zayıflığa işaret ediyor. En önemli risk, GUBRF ve NTGAZ\u0027ın aynı anda aşırı satım bölgesinde (RSI 36-38) olması; kaliteli ama momentumu kırılan bu iki ismin kısa vadede portföyü baskılama ihtimali yüksek.\n\n### RFS100 Model Portföyü\n\nDengeli etiketine rağmen bu portföy bu ay belirgin biçimde yüksek-beta/momentum tarafına savruldu ve kurulustan %-1.94 ile ekside kalması bu tutarsızlığı yansıtıyor. DOFRB\u0027nin tek başına %31 ağırlığa çıkarılması, \"dengeli\" kimlik için en rahatsız edici unsur; tek bir hisseye bu denli yüklenmek isim yoğunlaşma riskini kritik seviyeye taşıyor. Ayrıca DSTKF (F/K 275.7, RSI 86.3) ve YEOTK (22.2 F/K, 7.9 PD/DD, RSI 48.4) gibi pahalı ve yüksek değerleme taşıyan isimlerin yan yana durması, portföyü değerleme açısından savunmasız bırakıyor; görece daha makul ARASE (3.4 FD/FAVÖK) ve YGGYO (%24.6 ROE, 9.9 F/K) ise bu agresif yapıyı tek başına dengeleyemiyor. En önemli risk açıkça DOFRB\u0027deki %31\u0027lik tek-hisse konsantrasyonu ile DSTKF\u0027nin aşırı ısınmış teknik görünümünün birleşmesi.\n\n### Risk Dengeli Model Portföyü\n\nTers-oynaklık ağırlıklı bu portföy, altı strateji içinde tek negatif alfaya sahip olanı (%-0.3) ve kurulustan %-3.42 ile en zayıf performansı sergiliyor; düşük oynaklıklı isimlere ağırlık verme mantığı bu dönem koruma sağlamadı. Yöntem gereği CCOLA %28 ile en yüklü pozisyon yapıldı — düşük oynaklığı nedeniyle anlaşılır olsa da tek isimde %28 ağırlık, çeşitlendirme avantajını zayıflatıyor. ARASE\u0027nin %24.8 ağırlıkla ikinci sıraya çekilmesi 3.4 FD/FAVÖK ucuzluğu ve %26 üç aylık getirisiyle desteklenebilir, ancak TUPRS\u0027un düşük ağırlığa (%14.4) rağmen 1 aylık %-3.6 ve 3 aylık %-10.2 negatif getirisi performansı baskılayan unsurlardan. En önemli risk, CCOLA ve ARASE\u0027nin toplamda portföyün yarısından fazlasını oluşturması; \"risk dengeli\" adına rağmen efektif",
+                          "risks":  [
+
+                                    ],
+                          "opportunities":  [
+
+                                            ],
+                          "levels":  [
+
+                                     ],
+                          "watchNext":  null
+                      },
+    "actionItems":  {
+                        "watch":  [
+                                      "CCOLA",
+                                      "GLYHO",
+                                      "TRGYO",
+                                      "PAGYO",
+                                      "ORGE"
+                                  ],
+                        "rebalance":  {
+
+                                      },
+                        "riskReduction":  [
+                                              "AHGAZ",
+                                              "ENERY"
+                                          ],
+                        "buyWatchlist":  [
+
+                                         ],
+                        "note":  "Karar destek amaÃ§lÄ±dÄ±r, yatÄ±rÄ±m tavsiyesi deÄŸildir."
+                    }
+}
