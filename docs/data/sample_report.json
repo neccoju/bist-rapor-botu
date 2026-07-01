@@ -124,6 +124,19 @@
     { "sector": "Gayrimenkul", "dailyPct": -1.3, "weeklyPct": -4.0, "monthlyPct": -7.8, "flow": "çıkış" },
     { "sector": "Banka", "dailyPct": -0.2, "weeklyPct": 0.3, "monthlyPct": 1.5, "flow": "nötr" }
   ],
+  "sectorFlow": [
+    { "from": "Gayrimenkul", "to": "Enerji", "flow": 3.433 },
+    { "from": "Gayrimenkul", "to": "Ulaştırma", "flow": 2.426 },
+    { "from": "Gayrimenkul", "to": "Tüketim", "flow": 1.045 },
+    { "from": "Gayrimenkul", "to": "Banka", "flow": 0.560 },
+    { "from": "Gayrimenkul", "to": "Holding", "flow": 0.336 },
+    { "from": "Kimya", "to": "Enerji", "flow": 1.056 },
+    { "from": "Kimya", "to": "Ulaştırma", "flow": 0.746 },
+    { "from": "Kimya", "to": "Tüketim", "flow": 0.322 },
+    { "from": "Kimya", "to": "Banka", "flow": 0.172 },
+    { "from": "Kimya", "to": "Holding", "flow": 0.103 }
+  ],
+  "sectorFlowBasis": "aylık",
   "smartMoney": {
     "commentary": "Büyük hacim akışı enerji ve ulaştırmada yoğunlaştı; gayrimenkulde kâr realizasyonu görülüyor. Akış henüz geniş tabanlı değil, seçici.",
     "items": [

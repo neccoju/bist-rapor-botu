@@ -185,6 +185,37 @@ function ConvertTo-DashboardReport {
         } | Where-Object { $null -ne $_.weeklyPct } | Sort-Object weeklyPct -Descending | Select-Object -First 12)
     } catch { $sectorRotation = @() }
 
+    # ---- sectorFlow (Sankey icin TAHMINI rotasyon akisi — GERCEK sermaye takibi DEGIL) ----
+    # Zayiflayan sektorlerden (kaynak) guclenen sektorlere (hedef) orantisal akis: her
+    # kaynagin toplam "cikis" buyuklugu, hedeflerin goreli "giris" payina gore bolusturulur
+    # (flow(i,j) = |kaynak_i| * hedef_j / toplam_hedef). Boylece her kaynagin TOPLAM giden
+    # akisi kendi buyuklugune esittir (dogru); hedefler arasi PAYLASIM da orantili dogrudur;
+    # yalniz hedeflerin MUTLAK toplami olcek sabitiyle carpilir (Sankey'de zaten goreli
+    # boyut onemlidir). Tek zaman dilimi (aylik, yoksa haftalik) kullanilir — karisik
+    # donemler kiyaslanmaz. Kaynak/hedef en fazla 5'er ile sinirlanir (okunabilirlik).
+    $sectorFlow = @()
+    $sectorFlowBasis = 'aylık'
+    try {
+        $flowBasis = @($sectorRotation | Where-Object { $null -ne $_.monthlyPct })
+        $useKey = 'monthlyPct'
+        if ($flowBasis.Count -lt 2) { $flowBasis = @($sectorRotation); $useKey = 'weeklyPct'; $sectorFlowBasis = 'haftalık' }
+        $sources = @($flowBasis | Where-Object { [double](Get-DashProp -Object $_ -Name $useKey) -lt 0 } |
+            ForEach-Object { [pscustomobject]@{ Name = $_.sector; Mag = [Math]::Abs([double](Get-DashProp -Object $_ -Name $useKey)) } } |
+            Sort-Object Mag -Descending | Select-Object -First 5)
+        $sinks = @($flowBasis | Where-Object { [double](Get-DashProp -Object $_ -Name $useKey) -gt 0 } |
+            ForEach-Object { [pscustomobject]@{ Name = $_.sector; Mag = [double](Get-DashProp -Object $_ -Name $useKey) } } |
+            Sort-Object Mag -Descending | Select-Object -First 5)
+        $totalSinkMag = if ($sinks.Count -gt 0) { ($sinks | Measure-Object -Property Mag -Sum).Sum } else { 0 }
+        if ($sources.Count -gt 0 -and $sinks.Count -gt 0 -and $totalSinkMag -gt 0) {
+            foreach ($src in $sources) {
+                foreach ($snk in $sinks) {
+                    $flowVal = [Math]::Round($src.Mag * ($snk.Mag / $totalSinkMag), 3)
+                    if ($flowVal -gt 0.01) { $sectorFlow += [pscustomobject]@{ from = $src.Name; to = $snk.Name; flow = $flowVal } }
+                }
+            }
+        }
+    } catch { $sectorFlow = @() }
+
     # ---- smartMoney (yüksek göreli hacim + yön) ----
     $strengthening = @($Stocks | Where-Object {
         $rv = Get-DashNum -Object $_ -Name 'RelativeVolume'; $ch = Get-DashNum -Object $_ -Name 'ChangePct'
@@ -352,6 +383,8 @@ function ConvertTo-DashboardReport {
         instantEntry = $instantEntry
         stocks = $topRows
         sectorRotation = $sectorRotation
+        sectorFlow = $sectorFlow
+        sectorFlowBasis = $sectorFlowBasis
         smartMoney = [pscustomobject]$smartMoney
         technicalSignals = [pscustomobject]$technicalSignals
         llmCommentary = [pscustomobject]$llmCommentary

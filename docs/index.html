@@ -90,17 +90,15 @@
 
       <!-- 4) PORTFÖY DAĞILIMI -->
       <section class="block" id="dagilim">
-        <div class="grid2">
-          <div class="card">
-            <div class="card__head"><h2 class="card__title">Portföy Dağılımı</h2><p class="card__sub">Mevcut ve hedef ağırlık</p></div>
-            <div class="card__body"><div id="allocList" class="alloc"></div></div>
-          </div>
-          <div class="card card--chart">
-            <div class="card__head"><h2 class="card__title">Ağırlık Dağılımı</h2></div>
-            <div class="card__body"><div class="chartwrap chartwrap--sm"><canvas id="allocChart"></canvas></div></div>
-          </div>
+        <div class="card">
+          <div class="card__head"><h2 class="card__title">Portföy Dağılımı</h2><p class="card__sub">Birincil portföy — mevcut ve hedef ağırlık</p></div>
+          <div class="card__body"><div id="allocList" class="alloc"></div></div>
         </div>
         <div id="rebalanceAlert"></div>
+        <div class="card" style="margin-top:16px">
+          <div class="card__head"><h2 class="card__title">Ağırlık Dağılımı — Tüm Portföyler</h2><p class="card__sub">Her stratejinin kendi hisse ağırlıkları</p></div>
+          <div class="card__body"><div id="allocPies" class="piegrid"></div></div>
+        </div>
       </section>
 
       <!-- 4b) MODEL PORTFÖYLER (hepsi) -->
@@ -148,7 +146,19 @@
       <!-- 6) SEKTÖR ROTASYONU -->
       <section class="block" id="sektor">
         <div class="card card--chart">
-          <div class="card__head"><h2 class="card__title">Sektör Rotasyonu</h2><p class="card__sub">Para girişi / çıkışı — günlük, haftalık, aylık yan yana</p></div>
+          <div class="card__head">
+            <div>
+              <h2 class="card__title">Tahmini Sektör Rotasyon Akışı</h2>
+              <p class="card__sub">Zayıflayan sektörlerden (kırmızı) güçlenen sektörlere (yeşil) — aylık değişimden orantısal olarak türetilmiş tahmini akış, gerçek sermaye takibi değildir</p>
+            </div>
+          </div>
+          <div class="card__body">
+            <div class="chartwrap chartwrap--sankey"><canvas id="sectorSankey"></canvas></div>
+            <div class="empty" id="sectorSankeyEmpty" hidden></div>
+          </div>
+        </div>
+        <div class="card card--chart" style="margin-top:16px">
+          <div class="card__head"><h2 class="card__title">Sektör Rotasyonu — Detay</h2><p class="card__sub">Para girişi / çıkışı — günlük, haftalık, aylık yan yana</p></div>
           <div class="card__body">
             <div class="chartwrap chartwrap--sector"><canvas id="sectorChart"></canvas></div>
             <div class="empty" id="sectorEmpty" hidden></div>
@@ -201,8 +211,10 @@
     </main>
   </div>
 
-  <!-- Chart.js v4.4.1 (MIT) lokal vendor — CDN/internet bağımlılığı yok; Pages, file:// ve offline çalışır -->
+  <!-- Chart.js v4.4.1 (MIT) + chartjs-chart-sankey v0.14 (MIT), ikisi de lokal vendor —
+       CDN/internet bağımlılığı yok; Pages, file:// ve offline çalışır. defer sırayı korur. -->
   <script src="./assets/vendor/chart.umd.min.js" defer></script>
+  <script src="./assets/vendor/chartjs-chart-sankey.min.js" defer></script>
   <script src="./assets/app.js" defer></script>
 </body>
 </html>

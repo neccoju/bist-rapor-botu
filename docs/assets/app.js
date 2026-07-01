@@ -44,6 +44,11 @@
     ],
     sectorRotation: [ { sector: "Enerji", dailyPct: 1.4, weeklyPct: 3.8, monthlyPct: 9.2, flow: "giriş" }, { sector: "Ulaştırma", dailyPct: 1.1, weeklyPct: 2.9, monthlyPct: 6.5, flow: "giriş" },
       { sector: "Kimya", dailyPct: -0.5, weeklyPct: -1.1, monthlyPct: -2.4, flow: "çıkış" }, { sector: "Gayrimenkul", dailyPct: -1.3, weeklyPct: -4.0, monthlyPct: -7.8, flow: "çıkış" } ],
+    sectorFlow: [
+      { from: "Gayrimenkul", to: "Enerji", flow: 5.85 }, { from: "Gayrimenkul", to: "Ulaştırma", flow: 4.13 },
+      { from: "Kimya", to: "Enerji", flow: 1.8 }, { from: "Kimya", to: "Ulaştırma", flow: 1.27 }
+    ],
+    sectorFlowBasis: "aylık",
     smartMoney: { commentary: "Akış enerji ve ulaştırmada; gayrimenkulde realizasyon.",
       items: [ { ticker: "DSTKF", type: "Büyük alım", note: "Hacim 3,1x." }, { ticker: "YGGYO", type: "Çıkış", note: "Hacimli satış." } ],
       strengthening: ["DSTKF", "ARASE", "THYAO"], weakening: ["YGGYO", "GUBRF"] },
@@ -223,7 +228,7 @@
   }
 
   /* ---------------- 4) Portföy dağılımı ---------------- */
-  let allocChart = null;
+  let allocPieCharts = [];
   function renderPortfolioTable(report) {
     const host = $("#allocList"); const alert = $("#rebalanceAlert");
     const a = report.allocation || {};
@@ -244,22 +249,6 @@
         }).join("");
       }
     }
-    // pasta
-    const cv = $("#allocChart");
-    if (cv && typeof window.Chart !== "undefined" && holdings.length) {
-      const css = getComputedStyle(document.body);
-      const border = css.getPropertyValue("--surface").trim() || "#141925";
-      if (allocChart) allocChart.destroy();
-      allocChart = new window.Chart(cv.getContext("2d"), {
-        type: "doughnut",
-        data: { labels: holdings.map((h) => h.ticker || "—"),
-          datasets: [{ data: holdings.map((h) => (isNum(h.weightPct) ? h.weightPct : 0)),
-            backgroundColor: holdings.map((_, i) => PALETTE[i % PALETTE.length]), borderColor: border, borderWidth: 2 }] },
-        options: { responsive: true, maintainAspectRatio: false, cutout: "62%",
-          plugins: { legend: { position: "right", labels: { color: css.getPropertyValue("--text-dim").trim(), boxWidth: 10, font: { size: 11 } } } } }
-      });
-    } else if (cv) { const p = cv.parentElement; if (p) p.innerHTML = inlineEmpty("Grafik verisi yok."); }
-
     if (alert) {
       if (a.rebalanceNeeded) {
         alert.innerHTML = '<div class="rebalance-alert"><span class="badge badge--warn"><span class="badge__dot"></span>Dengeleme</span>' +
@@ -268,6 +257,36 @@
         alert.innerHTML = '<div class="rebalance-alert" style="background:var(--pos-soft);border-color:color-mix(in srgb,var(--pos) 30%,transparent)"><span class="badge badge--pos"><span class="badge__dot"></span>Dengede</span><div>Ağırlıklar hedefe yakın; dengeleme gerekmiyor.</div></div>';
       } else { alert.innerHTML = ""; }
     }
+  }
+
+  /* ---------------- 4a-2) Ağırlık dağılımı — TÜM portföyler (her biri kendi pastası) ---------------- */
+  function renderAllocationPies(report) {
+    const host = $("#allocPies"); if (!host) return;
+    allocPieCharts.forEach((c) => { try { c.destroy(); } catch (e) {} });
+    allocPieCharts = [];
+    const list = arr(report.modelPortfolios).filter((p) => arr(p.holdings).length > 0);
+    if (!list.length) { host.innerHTML = inlineEmpty("Model portföy dağılımı verisi yok."); return; }
+    if (typeof window.Chart === "undefined") { host.innerHTML = emptyHTML("Grafik kütüphanesi yüklenemedi"); return; }
+    host.innerHTML = list.map((p, i) =>
+      '<div class="piecard"><h4 class="piecard__title">' + esc(shortPfName(p.name) || p.id || "—") + "</h4>" +
+      '<div class="piecard__body"><canvas id="pie_' + i + '"></canvas></div></div>').join("");
+    const css = getComputedStyle(document.body);
+    const border = css.getPropertyValue("--surface").trim() || "#141925";
+    const textc = css.getPropertyValue("--text-dim").trim();
+    list.forEach((p, i) => {
+      const cv = document.getElementById("pie_" + i); if (!cv) return;
+      const holds = arr(p.holdings);
+      const chart = new window.Chart(cv.getContext("2d"), {
+        type: "doughnut",
+        data: { labels: holds.map((h) => h.ticker || "—"),
+          datasets: [{ data: holds.map((h) => (isNum(h.weightPct) ? h.weightPct : 0)),
+            backgroundColor: holds.map((_, j) => PALETTE[j % PALETTE.length]), borderColor: border, borderWidth: 2 }] },
+        options: { responsive: true, maintainAspectRatio: false, cutout: "58%",
+          plugins: { legend: { position: "bottom", labels: { color: textc, boxWidth: 8, font: { size: 10 }, padding: 8 } },
+            tooltip: { callbacks: { label: (c) => " " + c.label + ": %" + fmtTR(c.parsed) } } } }
+      });
+      allocPieCharts.push(chart);
+    });
   }
 
   /* ---------------- 4b) Model portföyler (hepsi) ---------------- */
@@ -452,6 +471,45 @@
     return '<span class="badge ' + cls + '">' + esc(a) + "</span>";
   }
 
+  /* ---------------- 6a) Sektör rotasyonu — Sankey (tahmini akış) ---------------- */
+  let sectorSankey = null;
+  let sankeyRegistered = false;
+  function renderSectorSankeyChart(report) {
+    const wrap = $("#sectorSankey"), empty = $("#sectorSankeyEmpty"); if (!wrap) return;
+    const flows = arr(report.sectorFlow);
+    const sankeyLib = window["chartjs-chart-sankey"];
+    if (!flows.length || typeof window.Chart === "undefined" || !sankeyLib) {
+      if (empty) { empty.hidden = false; empty.innerHTML = emptyHTML(
+        flows.length ? "Sankey kütüphanesi yüklenemedi" : "Sektör akış verisi yok",
+        "En az bir zayıflayan ve bir güçlenen sektör gerekir."); }
+      wrap.style.display = "none"; return;
+    }
+    if (empty) empty.hidden = true; wrap.style.display = "";
+    if (!sankeyRegistered) { window.Chart.register(sankeyLib.SankeyController, sankeyLib.Flow); sankeyRegistered = true; }
+    const css = getComputedStyle(document.body);
+    const negC = css.getPropertyValue("--neg").trim() || "#e5484d";
+    const posC = css.getPropertyValue("--pos").trim() || "#1db17a";
+    const textc = css.getPropertyValue("--text").trim();
+    if (sectorSankey) sectorSankey.destroy();
+    // colorFrom/colorTo + colorMode:'gradient' her akışı kaynakta kırmızı, hedefte yeşil
+    // olacak şekilde boyar — zayıflayandan güçlenene akış görsel olarak nettir.
+    sectorSankey = new window.Chart(wrap.getContext("2d"), {
+      type: "sankey",
+      data: { datasets: [{
+        label: "Rotasyon",
+        data: flows.map((f) => ({ from: f.from, to: f.to, flow: f.flow })),
+        colorFrom: () => negC, colorTo: () => posC, colorMode: "gradient",
+        borderWidth: 0, nodeWidth: 10, nodePadding: 14,
+        color: textc, font: { size: 12, family: "inherit" }
+      }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false },
+          tooltip: { callbacks: { label: (c) => " " + c.raw.from + " → " + c.raw.to } } }
+      }
+    });
+  }
+
   /* ---------------- 6) Sektör rotasyonu ---------------- */
   let sectorChart = null;
   function renderSectorRotation(report) {
@@ -617,10 +675,12 @@
     try { renderKpiCards(report); } catch (e) { warn("kpi", e); }
     try { renderPerformanceChart(report); } catch (e) { warn("perf", e); }
     try { renderPortfolioTable(report); } catch (e) { warn("alloc", e); }
+    try { renderAllocationPies(report); } catch (e) { warn("allocPies", e); }
     try { renderPortfolioCompareChart(report); } catch (e) { warn("pfCompare", e); }
     try { renderModelPortfolios(report); } catch (e) { warn("modelPortfolios", e); }
     try { renderInstantEntry(report); } catch (e) { warn("instantEntry", e); }
     try { renderPortfolioStocks(report); } catch (e) { warn("stocks", e); }
+    try { renderSectorSankeyChart(report); } catch (e) { warn("sectorSankey", e); }
     try { renderSectorRotation(report); } catch (e) { warn("sector", e); }
     try { renderSmartMoney(report); } catch (e) { warn("smart", e); }
     try { renderTechnicalSignals(report); } catch (e) { warn("tech", e); }
@@ -663,7 +723,7 @@
       document.documentElement.setAttribute("data-theme", cur);
       localStorage.setItem("bist-panel-theme", cur);
       // grafik renkleri temaya bağlı; yeniden çiz
-      if (window.__lastReport__) { try { renderPerformanceChart(window.__lastReport__); renderPortfolioTable(window.__lastReport__); renderPortfolioCompareChart(window.__lastReport__); } catch (e) {} }
+      if (window.__lastReport__) { try { renderPerformanceChart(window.__lastReport__); renderPortfolioTable(window.__lastReport__); renderAllocationPies(window.__lastReport__); renderPortfolioCompareChart(window.__lastReport__); renderSectorSankeyChart(window.__lastReport__); renderSectorRotation(window.__lastReport__); } catch (e) {} }
     };
     const a = $("#themeToggle"), b = $("#themeToggleMobile");
     if (a) a.addEventListener("click", toggle);
