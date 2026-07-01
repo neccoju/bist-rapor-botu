@@ -31,8 +31,23 @@
   "performance": {
     "note": null,
     "series": [
-      { "name": "Portföy", "key": "portfolio", "points": [
-        {"t":"2026-06-11","v":0},{"t":"2026-06-12","v":0.4},{"t":"2026-06-13","v":0.2},{"t":"2026-06-16","v":0.9},{"t":"2026-06-17","v":1.3},{"t":"2026-06-18","v":1.0},{"t":"2026-06-19","v":1.5},{"t":"2026-06-20","v":1.4},{"t":"2026-06-23","v":1.7},{"t":"2026-06-24","v":1.6},{"t":"2026-06-25","v":1.9},{"t":"2026-06-26","v":1.7},{"t":"2026-06-27","v":2.0},{"t":"2026-06-30","v":1.86}
+      { "name": "Dengeli Model Portföy", "key": "pf_Dengeli", "points": [
+        {"t":"2026-06-11","v":0},{"t":"2026-06-17","v":1.3},{"t":"2026-06-24","v":1.6},{"t":"2026-06-30","v":1.86}
+      ]},
+      { "name": "Değer Model Portföyü", "key": "pf_Deger", "points": [
+        {"t":"2026-06-11","v":0},{"t":"2026-06-17","v":3.1},{"t":"2026-06-24","v":5.4},{"t":"2026-06-30","v":7.70}
+      ]},
+      { "name": "Momentum Model Portföyü", "key": "pf_Momentum", "points": [
+        {"t":"2026-06-11","v":0},{"t":"2026-06-17","v":2.4},{"t":"2026-06-24","v":4.8},{"t":"2026-06-30","v":6.59}
+      ]},
+      { "name": "Kalite Model Portföyü", "key": "pf_Kalite", "points": [
+        {"t":"2026-06-11","v":0},{"t":"2026-06-17","v":2.9},{"t":"2026-06-24","v":5.9},{"t":"2026-06-30","v":7.70}
+      ]},
+      { "name": "RFS100 Model Portföyü", "key": "pf_RFS100", "points": [
+        {"t":"2026-06-11","v":0},{"t":"2026-06-17","v":0.6},{"t":"2026-06-24","v":0.2},{"t":"2026-06-30","v":0.45}
+      ]},
+      { "name": "Risk Dengeli Model Portföyü", "key": "pf_RiskDengeli", "points": [
+        {"t":"2026-06-11","v":0},{"t":"2026-06-17","v":-1.1},{"t":"2026-06-24","v":-2.5},{"t":"2026-06-30","v":-3.30}
       ]},
       { "name": "BIST100", "key": "bist100", "points": [
         {"t":"2026-06-11","v":0},{"t":"2026-06-12","v":0.1},{"t":"2026-06-13","v":-0.2},{"t":"2026-06-16","v":0.3},{"t":"2026-06-17","v":0.5},{"t":"2026-06-18","v":0.2},{"t":"2026-06-19","v":0.4},{"t":"2026-06-20","v":0.1},{"t":"2026-06-23","v":0.3},{"t":"2026-06-24","v":0.33},{"t":"2026-06-25","v":0.5},{"t":"2026-06-26","v":0.2},{"t":"2026-06-27","v":0.4},{"t":"2026-06-30","v":0.33}
@@ -101,13 +116,13 @@
     { "ticker": "YGGYO", "company": "Yeşil GYO", "price": 7.34, "dailyPct": -2.1, "weeklyPct": -5.2, "rsi": 31.5, "macd": -0.6, "volume": "12.4M", "signal": "BEKLE", "llmNote": "Aşırı satım; dönüş teyidi yok.", "action": "bekle" }
   ],
   "sectorRotation": [
-    { "sector": "Enerji", "dailyPct": 1.4, "weeklyPct": 3.8, "flow": "giriş" },
-    { "sector": "Ulaştırma", "dailyPct": 1.1, "weeklyPct": 2.9, "flow": "giriş" },
-    { "sector": "Tüketim", "dailyPct": 0.6, "weeklyPct": 1.2, "flow": "giriş" },
-    { "sector": "Holding", "dailyPct": 0.1, "weeklyPct": 0.4, "flow": "nötr" },
-    { "sector": "Kimya", "dailyPct": -0.5, "weeklyPct": -1.1, "flow": "çıkış" },
-    { "sector": "Gayrimenkul", "dailyPct": -1.3, "weeklyPct": -4.0, "flow": "çıkış" },
-    { "sector": "Banka", "dailyPct": -0.2, "weeklyPct": 0.3, "flow": "nötr" }
+    { "sector": "Enerji", "dailyPct": 1.4, "weeklyPct": 3.8, "monthlyPct": 9.2, "flow": "giriş" },
+    { "sector": "Ulaştırma", "dailyPct": 1.1, "weeklyPct": 2.9, "monthlyPct": 6.5, "flow": "giriş" },
+    { "sector": "Tüketim", "dailyPct": 0.6, "weeklyPct": 1.2, "monthlyPct": 2.8, "flow": "giriş" },
+    { "sector": "Holding", "dailyPct": 0.1, "weeklyPct": 0.4, "monthlyPct": 0.9, "flow": "nötr" },
+    { "sector": "Kimya", "dailyPct": -0.5, "weeklyPct": -1.1, "monthlyPct": -2.4, "flow": "çıkış" },
+    { "sector": "Gayrimenkul", "dailyPct": -1.3, "weeklyPct": -4.0, "monthlyPct": -7.8, "flow": "çıkış" },
+    { "sector": "Banka", "dailyPct": -0.2, "weeklyPct": 0.3, "monthlyPct": 1.5, "flow": "nötr" }
   ],
   "smartMoney": {
     "commentary": "Büyük hacim akışı enerji ve ulaştırmada yoğunlaştı; gayrimenkulde kâr realizasyonu görülüyor. Akış henüz geniş tabanlı değil, seçici.",

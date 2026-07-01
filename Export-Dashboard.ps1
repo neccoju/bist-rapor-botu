@@ -116,12 +116,19 @@ function ConvertTo-DashboardReport {
         llmStance  = $null
     }
 
-    # ---- performance (birincil portföy "Portföy" + benchmark serileri) ----
+    # ---- performance (TUM model portfoyler + benchmark serileri) ----
+    # Her portfoyun kendi Id'siyle anahtarlanir (pf_<Id>) ki panel her birini ayri
+    # renk/isimle cizebilsin — yalniz birincil (Dengeli) degil, hepsi karsilastirilsin.
     $series = [System.Collections.Generic.List[object]]::new()
-    $primaryName = Get-DashStr -Object $primary -Name 'Name'
+    $portfolioNameToId = @{}
+    foreach ($p in $portfolios) {
+        $nm = Get-DashStr -Object $p -Name 'Name'; $portfolioId = Get-DashStr -Object $p -Name 'Id'
+        if ($nm -and $portfolioId) { $portfolioNameToId[$nm] = $portfolioId }
+    }
     foreach ($s in @($StrategySeries)) {
-        if ($primaryName -and (Get-DashStr -Object $s -Name 'Name') -eq $primaryName) {
-            [void]$series.Add((ConvertTo-DashSeries -Series $s -Key 'portfolio' -Name 'Portföy')); break
+        $nm = Get-DashStr -Object $s -Name 'Name'
+        if ($nm -and $portfolioNameToId.ContainsKey($nm)) {
+            [void]$series.Add((ConvertTo-DashSeries -Series $s -Key ('pf_' + $portfolioNameToId[$nm]) -Name $nm))
         }
     }
     foreach ($b in @($BenchmarkSeries)) {
@@ -162,16 +169,18 @@ function ConvertTo-DashboardReport {
             }
         })
 
-    # ---- sectorRotation (evrenden türetilmiş: sektör ortalaması) ----
+    # ---- sectorRotation (evrenden türetilmiş: sektör ortalaması — günlük/haftalık/aylık) ----
     $sectorRotation = @()
     try {
         $groups = @($Stocks | Where-Object { Get-DashStr -Object $_ -Name 'SectorTR' } | Group-Object { Get-DashStr -Object $_ -Name 'SectorTR' })
         $sectorRotation = @($groups | ForEach-Object {
             $d = @($_.Group | ForEach-Object { Get-DashNum -Object $_ -Name 'ChangePct' } | Where-Object { $null -ne $_ })
             $w = @($_.Group | ForEach-Object { Get-DashNum -Object $_ -Name 'PerfWeek' } | Where-Object { $null -ne $_ })
+            $m = @($_.Group | ForEach-Object { Get-DashNum -Object $_ -Name 'PerfMonth' } | Where-Object { $null -ne $_ })
             $da = if ($d.Count) { [Math]::Round((($d | Measure-Object -Average).Average), 2) } else { $null }
             $wa = if ($w.Count) { [Math]::Round((($w | Measure-Object -Average).Average), 2) } else { $null }
-            [pscustomobject]@{ sector = $_.Name; dailyPct = $da; weeklyPct = $wa
+            $ma = if ($m.Count) { [Math]::Round((($m | Measure-Object -Average).Average), 2) } else { $null }
+            [pscustomobject]@{ sector = $_.Name; dailyPct = $da; weeklyPct = $wa; monthlyPct = $ma
                 flow = if ($null -ne $wa) { if ($wa -gt 0.3) { 'giriş' } elseif ($wa -lt -0.3) { 'çıkış' } else { 'nötr' } } else { 'nötr' } }
         } | Where-Object { $null -ne $_.weeklyPct } | Sort-Object weeklyPct -Descending | Select-Object -First 12)
     } catch { $sectorRotation = @() }

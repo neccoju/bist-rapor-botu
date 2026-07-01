@@ -186,6 +186,7 @@ button { font-family: inherit; cursor: pointer; }
 .chartwrap { position: relative; height: 340px; }
 .chartwrap--sm { height: 240px; }
 .chartwrap--bar { height: 280px; }
+.chartwrap--sector { height: 460px; }
 .legend { display: flex; gap: var(--sp-3); flex-wrap: wrap; }
 .legend__item { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-dim); cursor: pointer; user-select: none; }
 .legend__item.is-off { opacity: .4; }
@@ -248,16 +249,6 @@ button { font-family: inherit; cursor: pointer; }
 .td-company { color: var(--text-dim); max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
 .td-num { font-family: var(--mono); text-align: right; }
 .td-note { color: var(--text-dim); white-space: normal; min-width: 180px; max-width: 280px; }
-
-/* ---- Sektör ---- */
-.sector { display: flex; flex-direction: column; gap: var(--sp-2); }
-.sector__row { display: grid; grid-template-columns: 130px 1fr 92px; gap: var(--sp-3); align-items: center; }
-.sector__name { font-weight: 600; font-size: 13px; }
-.sector__track { position: relative; height: 22px; background: var(--surface-2); border-radius: var(--r-sm); overflow: hidden; }
-.sector__bar { position: absolute; top: 0; bottom: 0; left: 50%; border-radius: 3px; }
-.sector__bar.pos-bar { background: var(--pos-soft); border-right: 2px solid var(--pos); }
-.sector__bar.neg-bar { background: var(--neg-soft); border-left: 2px solid var(--neg); }
-.sector__vals { text-align: right; font-family: var(--mono); font-size: 12px; }
 
 /* ---- Para akışı ---- */
 .flowlist { display: flex; flex-direction: column; gap: var(--sp-2); }
@@ -355,6 +346,7 @@ button { font-family: inherit; cursor: pointer; }
   .kpi__value { font-size: 20px; }
   .topbar__right { width: 100%; justify-content: space-between; }
   .chartwrap { height: 280px; }
+  .chartwrap--sector { height: 520px; }
 }
 
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }

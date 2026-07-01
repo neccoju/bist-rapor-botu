@@ -18,7 +18,9 @@
       monthlyChangePct: 1.86, bestStock: { ticker: "DSTKF", changePct: 4.83 }, worstStock: { ticker: "YGGYO", changePct: -2.14 },
       riskScore: { value: 38, label: "Orta" }, llmStance: "Nötr" },
     performance: { series: [
-      { name: "Portföy", key: "portfolio", points: [["2026-06-11",0],["2026-06-17",1.3],["2026-06-24",1.6],["2026-06-30",1.86]].map(p=>({t:p[0],v:p[1]})) },
+      { name: "Dengeli Model Portföy", key: "pf_Dengeli", points: [["2026-06-11",0],["2026-06-17",1.3],["2026-06-24",1.6],["2026-06-30",1.86]].map(p=>({t:p[0],v:p[1]})) },
+      { name: "Değer Model Portföyü", key: "pf_Deger", points: [["2026-06-11",0],["2026-06-17",3.1],["2026-06-24",5.4],["2026-06-30",7.70]].map(p=>({t:p[0],v:p[1]})) },
+      { name: "Risk Dengeli Model Portföyü", key: "pf_RiskDengeli", points: [["2026-06-11",0],["2026-06-17",-1.1],["2026-06-24",-2.5],["2026-06-30",-3.30]].map(p=>({t:p[0],v:p[1]})) },
       { name: "BIST100", key: "bist100", points: [["2026-06-11",0],["2026-06-17",0.5],["2026-06-24",0.33],["2026-06-30",0.33]].map(p=>({t:p[0],v:p[1]})) },
       { name: "Nasdaq (TRY)", key: "nasdaq", points: [["2026-06-11",0],["2026-06-20",2.8],["2026-06-30",4.64]].map(p=>({t:p[0],v:p[1]})) },
       { name: "Altın (TRY)", key: "gold", points: [["2026-06-11",0],["2026-06-20",1.4],["2026-06-30",2.46]].map(p=>({t:p[0],v:p[1]})) }
@@ -40,8 +42,8 @@
       { ticker: "THYAO", company: "Türk Hava Yolları", price: 312.2, dailyPct: 1.1, weeklyPct: 3.0, rsi: 60.4, macd: 4.7, volume: "18.9M", signal: "AL", llmNote: "Trend sağlam.", action: "alım bölgesi" },
       { ticker: "YGGYO", company: "Yeşil GYO", price: 7.34, dailyPct: -2.1, weeklyPct: -5.2, rsi: 31.5, macd: -0.6, volume: "12.4M", signal: "BEKLE", llmNote: "Aşırı satım, dönüş teyidi yok.", action: "bekle" }
     ],
-    sectorRotation: [ { sector: "Enerji", dailyPct: 1.4, weeklyPct: 3.8, flow: "giriş" }, { sector: "Ulaştırma", dailyPct: 1.1, weeklyPct: 2.9, flow: "giriş" },
-      { sector: "Kimya", dailyPct: -0.5, weeklyPct: -1.1, flow: "çıkış" }, { sector: "Gayrimenkul", dailyPct: -1.3, weeklyPct: -4.0, flow: "çıkış" } ],
+    sectorRotation: [ { sector: "Enerji", dailyPct: 1.4, weeklyPct: 3.8, monthlyPct: 9.2, flow: "giriş" }, { sector: "Ulaştırma", dailyPct: 1.1, weeklyPct: 2.9, monthlyPct: 6.5, flow: "giriş" },
+      { sector: "Kimya", dailyPct: -0.5, weeklyPct: -1.1, monthlyPct: -2.4, flow: "çıkış" }, { sector: "Gayrimenkul", dailyPct: -1.3, weeklyPct: -4.0, monthlyPct: -7.8, flow: "çıkış" } ],
     smartMoney: { commentary: "Akış enerji ve ulaştırmada; gayrimenkulde realizasyon.",
       items: [ { ticker: "DSTKF", type: "Büyük alım", note: "Hacim 3,1x." }, { ticker: "YGGYO", type: "Çıkış", note: "Hacimli satış." } ],
       strengthening: ["DSTKF", "ARASE", "THYAO"], weakening: ["YGGYO", "GUBRF"] },
@@ -58,8 +60,12 @@
   const fmtTR = (n, d = 2) => new Intl.NumberFormat("tr-TR", { minimumFractionDigits: d, maximumFractionDigits: d }).format(n);
   const isNum = (v) => typeof v === "number" && isFinite(v);
   const has = (v) => v !== null && v !== undefined && v !== "";
-  const SERIES_COLORS = { portfolio: "#6e8bff", bist100: "#e7ecf3", nasdaq: "#1db17a", sp500: "#22a3c0", gold: "#d9a23b", usdtry: "#9a7bff" };
+  const SERIES_COLORS = { bist100: "#e7ecf3", nasdaq: "#1db17a", sp500: "#22a3c0", gold: "#d9a23b", usdtry: "#9a7bff", deposit: "#e5849b" };
   const PALETTE = ["#6e8bff", "#e7ecf3", "#1db17a", "#d9a23b", "#22a3c0", "#9a7bff", "#e5849b"];
+  // Model portföy çizgileri için ayrı, canlı bir palet (BIST100/Altın gibi benchmark
+  // renkleriyle çakışmasın) — portföyler solid+kalın, benchmark'lar dashed+ince çizilir.
+  const PF_PALETTE = ["#6e8bff", "#f0a23c", "#31c48d", "#f4615f", "#a78bfa", "#22c1c3", "#e879b9"];
+  function shortPfName(name) { return String(name || "").replace(/\s*Model Portföyü?\s*$/i, ""); }
 
   function pctText(v) { if (!isNum(v)) return "—"; const s = v > 0 ? "+" : ""; return s + fmtTR(v) + "%"; }
   function pctClass(v) { if (!isNum(v)) return "flat"; return v > 0 ? "pos" : v < 0 ? "neg" : "flat"; }
@@ -170,13 +176,22 @@
     }
     if (empty) empty.hidden = true; wrap.style.display = "";
     const labels = longestLabels(series);
-    const datasets = series.map((s, i) => {
-      const color = SERIES_COLORS[s.key] || PALETTE[i % PALETTE.length];
+    // Model portföyler (pf_*) önce, sonra benchmark'lar — legend'de portföyler öne çıksın.
+    const ordered = series.slice().sort((a, b) => {
+      const ap = a.key && a.key.indexOf("pf_") === 0 ? 0 : 1, bp = b.key && b.key.indexOf("pf_") === 0 ? 0 : 1;
+      return ap - bp;
+    });
+    let pfIdx = 0;
+    const datasets = ordered.map((s) => {
+      const isPf = s.key && s.key.indexOf("pf_") === 0;
+      const color = isPf ? PF_PALETTE[pfIdx % PF_PALETTE.length] : (SERIES_COLORS[s.key] || PALETTE[0]);
+      if (isPf) pfIdx++;
       const map = {}; arr(s.points).forEach((p) => { map[p.t] = p.v; });
-      return { label: s.name || s.key || "Seri " + (i + 1),
+      return { label: isPf ? shortPfName(s.name) : (s.name || s.key || "Seri"),
         data: labels.map((t) => (isNum(map[t]) ? map[t] : null)),
-        borderColor: color, backgroundColor: color, borderWidth: s.key === "portfolio" ? 2.4 : 1.4,
-        tension: 0.28, pointRadius: 0, pointHoverRadius: 4, spanGaps: true, hidden: false };
+        borderColor: color, backgroundColor: color, borderWidth: isPf ? 2.2 : 1.3,
+        borderDash: isPf ? [] : [5, 3],
+        tension: 0.28, pointRadius: 0, pointHoverRadius: 4, spanGaps: true, hidden: false, _isPf: isPf };
     });
     const css = getComputedStyle(document.body);
     const gridc = css.getPropertyValue("--grid-line").trim() || "rgba(255,255,255,.05)";
@@ -438,22 +453,44 @@
   }
 
   /* ---------------- 6) Sektör rotasyonu ---------------- */
+  let sectorChart = null;
   function renderSectorRotation(report) {
-    const host = $("#sectorList"); if (!host) return;
+    const wrap = $("#sectorChart"), empty = $("#sectorEmpty"); if (!wrap) return;
     const rows = arr(report.sectorRotation);
-    if (!rows.length) { host.innerHTML = inlineEmpty("Sektör rotasyonu verisi yok."); return; }
-    const maxAbs = Math.max.apply(null, rows.map((r) => Math.abs(isNum(r.weeklyPct) ? r.weeklyPct : 0)).concat([1]));
-    host.innerHTML = rows.map((r) => {
-      const w = isNum(r.weeklyPct) ? r.weeklyPct : 0;
-      const width = Math.min(50, (Math.abs(w) / maxAbs) * 50);
-      const bar = w >= 0
-        ? '<span class="sector__bar pos-bar" style="left:50%;width:' + width + '%"></span>'
-        : '<span class="sector__bar neg-bar" style="left:' + (50 - width) + '%;width:' + width + '%"></span>';
-      return '<div class="sector__row"><span class="sector__name">' + esc(r.sector || "—") + "</span>" +
-        '<span class="sector__track">' + bar + "</span>" +
-        '<span class="sector__vals"><span class="' + pctClass(r.dailyPct) + '">' + pctText(r.dailyPct) + "</span> · " +
-        '<span class="' + pctClass(r.weeklyPct) + '">' + pctText(r.weeklyPct) + "</span></span></div>";
-    }).join("") + '<div class="card__sub" style="margin-top:10px">Çubuk: haftalık değişim · değerler: günlük · haftalık</div>';
+    if (!rows.length || typeof window.Chart === "undefined") {
+      if (empty) { empty.hidden = false; empty.innerHTML = emptyHTML(
+        rows.length ? "Grafik kütüphanesi yüklenemedi" : "Sektör rotasyonu verisi yok",
+        "Veri biriktikçe grafik otomatik dolacaktır."); }
+      wrap.style.display = "none"; return;
+    }
+    if (empty) empty.hidden = true; wrap.style.display = "";
+    // Backend haftalığa göre azalan sıralı veriyor (en güçlü ilk); Chart.js yatay
+    // çubukta dizinin ilk ögesini en üste çizer, bu yüzden sırayı DEĞİŞTİRMEDEN
+    // kullanıyoruz — en güçlü sektör en üstte görünür (portföy karşılaştırma
+    // grafiğiyle tutarlı).
+    const sorted = rows.slice();
+    const labels = sorted.map((r) => r.sector || "—");
+    const css = getComputedStyle(document.body);
+    const textc = css.getPropertyValue("--text-dim").trim();
+    const gridc = css.getPropertyValue("--grid-line").trim();
+    const hasMonthly = sorted.some((r) => isNum(r.monthlyPct));
+    const datasets = [
+      { label: "Günlük", data: sorted.map((r) => (isNum(r.dailyPct) ? r.dailyPct : null)), backgroundColor: "#6e8bff", borderRadius: 3, maxBarThickness: 14 },
+      { label: "Haftalık", data: sorted.map((r) => (isNum(r.weeklyPct) ? r.weeklyPct : null)), backgroundColor: "#31c48d", borderRadius: 3, maxBarThickness: 14 }
+    ];
+    if (hasMonthly) datasets.push({ label: "Aylık", data: sorted.map((r) => (isNum(r.monthlyPct) ? r.monthlyPct : null)), backgroundColor: "#f0a23c", borderRadius: 3, maxBarThickness: 14 });
+    if (sectorChart) sectorChart.destroy();
+    sectorChart = new window.Chart(wrap.getContext("2d"), {
+      type: "bar",
+      data: { labels: labels, datasets: datasets },
+      options: {
+        indexAxis: "y", responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: true, position: "top", labels: { color: textc, boxWidth: 10, font: { size: 11 } } },
+          tooltip: { callbacks: { label: (c) => " " + c.dataset.label + ": " + (isNum(c.parsed.x) ? (c.parsed.x > 0 ? "+" : "") + fmtTR(c.parsed.x) + "%" : "—") } } },
+        scales: { x: { grid: { color: gridc }, ticks: { color: textc, font: { size: 11 }, callback: (v) => v + "%" } },
+          y: { grid: { display: false }, ticks: { color: textc, font: { size: 11.5, weight: "600" } } } }
+      }
+    });
   }
 
   /* ---------------- 7) Smart money / para akışı ---------------- */
