@@ -9,6 +9,11 @@ $ErrorActionPreference = 'Stop'
 $modulePath = Join-Path $PSScriptRoot 'BistScanner.Core.psm1'
 Import-Module $modulePath -Force
 
+# Web panel köprüsü (ADDITIVE; yalnız docs/data/latest_report.json yazar). Yüklenemezse
+# rapor/mail akışı ETKİLENMEZ — best-effort.
+try { . (Join-Path $PSScriptRoot 'Export-Dashboard.ps1') }
+catch { Write-Warning "Web panel köprüsü yüklenemedi (rapor etkilenmez): $($_.Exception.Message)" }
+
 function Resolve-ReportPath {
     param([string]$Path)
 
@@ -2345,6 +2350,24 @@ try {
         -RiskRules $riskRules
     Save-JsonFile -Path $instantEntryPortfolioPath -Value $updatedInstantEntryPortfolio -Depth 10
     Write-TimingLog -Step 'Anlik firsat portfoyu' -StartedAt $stageStartedAt
+
+    # --- Web panel JSON (best-effort; mevcut rapor/mail/strateji akışını ETKİLEMEZ) ---
+    # Bellekteki çıktıları docs/data/latest_report.json'a yazar; panel bunu okur.
+    if (Get-Command Export-DashboardReport -ErrorAction SilentlyContinue) {
+        try {
+            $dashStrat = Get-Variable -Name strategySeries -ValueOnly -ErrorAction SilentlyContinue
+            $dashBench = Get-Variable -Name benchmarkSeries -ValueOnly -ErrorAction SilentlyContinue
+            if ($null -eq $dashStrat) { $dashStrat = @() }
+            if ($null -eq $dashBench) { $dashBench = @() }
+            [void](Export-DashboardReport -OutPath (Join-Path $PSScriptRoot 'docs/data/latest_report.json') `
+                    -Stocks $scored -PortfolioSet $updatedPortfolioSet -InstantEntryPortfolio $updatedInstantEntryPortfolio `
+                    -StrategySeries $dashStrat -BenchmarkSeries $dashBench -MarketBreadth $marketBreadth `
+                    -PortfolioCommentary (Get-ObjectPropertyValue -Object $updatedPortfolioSet -Name 'MonthlyCommentary') `
+                    -AsOf $runAt -Strategy $strategy -PagesUrl 'https://neccoju.github.io/bist-rapor-botu/')
+            Write-Host 'Web panel JSON guncellendi: docs/data/latest_report.json'
+        }
+        catch { Write-Warning "Web panel JSON uretilemedi (rapor etkilenmez): $($_.Exception.Message)" }
+    }
 
     $stageStartedAt = Get-Date
     $snapshot = New-PointInTimeSnapshot -ScoredStocks $scored -MacroSnapshot $macroSnapshot -ModelPortfolioSet $updatedPortfolioSet -AsOf $runAt -Limit $snapshotMaxStocks
