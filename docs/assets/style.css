@@ -203,6 +203,28 @@ button { font-family: inherit; cursor: pointer; }
 }
 .rebalance-alert b { color: var(--warn); }
 
+/* ---- Model portföyler ---- */
+.pfgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-4); }
+.pf { border: 1px solid var(--border-soft); border-radius: var(--r-md); padding: var(--sp-4); background: var(--bg-elev); display: flex; flex-direction: column; gap: var(--sp-3); transition: border-color var(--t); }
+.pf:hover { border-color: color-mix(in srgb, var(--accent) 30%, var(--border)); }
+.pf__head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
+.pf__name { font-weight: 650; font-size: 14px; letter-spacing: -.2px; }
+.pf__metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-2); }
+.pf__metric { display: flex; flex-direction: column; gap: 2px; }
+.pf__ml { font-size: 10.5px; text-transform: uppercase; letter-spacing: .4px; color: var(--text-faint); }
+.pf__mv { font-size: 15px; font-weight: 650; font-family: var(--mono); }
+.pf__holdings { display: flex; flex-wrap: wrap; gap: 5px; padding-top: var(--sp-2); border-top: 1px solid var(--border-soft); }
+.pf__chip { font-size: 11.5px; font-family: var(--mono); padding: 3px 8px; border-radius: var(--r-sm); background: var(--surface-2); color: var(--text-dim); }
+.pf__chip em { color: var(--text-faint); font-style: normal; }
+
+/* ---- Anlık giriş ---- */
+.ie__kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--sp-3); margin-bottom: var(--sp-4); }
+.ie__kpi { border: 1px solid var(--border-soft); border-radius: var(--r-sm); padding: var(--sp-3); display: flex; flex-direction: column; gap: 3px; background: var(--bg-elev); }
+.ie__kl { font-size: 10.5px; text-transform: uppercase; letter-spacing: .4px; color: var(--text-faint); }
+.ie__kv { font-size: 16px; font-weight: 650; font-family: var(--mono); }
+.ie__subtitle { font-size: 12.5px; text-transform: uppercase; letter-spacing: .5px; color: var(--text-dim); margin: var(--sp-2) 0; }
+.ie__note { margin-top: var(--sp-3); font-size: 12.5px; color: var(--text-dim); background: var(--surface-2); padding: var(--sp-3); border-radius: var(--r-sm); }
+
 /* ---- Tablo ---- */
 .tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 880px; }
@@ -293,7 +315,7 @@ button { font-family: inherit; cursor: pointer; }
 
 @media (max-width: 1080px) {
   .grid2, .twocol, .commentary__grid, .actions { grid-template-columns: 1fr; }
-  .kpigrid { grid-template-columns: repeat(2, 1fr); }
+  .kpigrid, .pfgrid, .ie__kpis { grid-template-columns: repeat(2, 1fr); }
   .signalgrid { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 860px) {
@@ -314,7 +336,8 @@ button { font-family: inherit; cursor: pointer; }
   .topbar__title { font-size: 19px; }
 }
 @media (max-width: 560px) {
-  .kpigrid { grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
+  .kpigrid, .ie__kpis { grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
+  .pfgrid { grid-template-columns: 1fr; }
   .signalgrid { grid-template-columns: 1fr; }
   .kpi__value { font-size: 20px; }
   .topbar__right { width: 100%; justify-content: space-between; }

@@ -26,6 +26,14 @@
     allocation: { rebalanceNeeded: true, rebalanceNote: "CCOLA hedef ağırlığın üzerinde.",
       holdings: [ { ticker: "CCOLA", weightPct: 21.3, targetPct: 20 }, { ticker: "GLYHO", weightPct: 20.1, targetPct: 20 },
         { ticker: "TUPRS", weightPct: 19.8, targetPct: 20 }, { ticker: "AKSA", weightPct: 19.4, targetPct: 20 }, { ticker: "ARASE", weightPct: 19.4, targetPct: 20 } ] },
+    modelPortfolios: [
+      { id: "Dengeli", name: "Dengeli Model Portföy", strategy: "Dengeli", valueTL: 101856.13, returnPct: 1.86, alphaPct: 1.53, holdings: [{ticker:"CCOLA",weightPct:21.3},{ticker:"GLYHO",weightPct:20.1},{ticker:"TUPRS",weightPct:19.8}] },
+      { id: "Momentum", name: "Momentum Model Portföyü", strategy: "Momentum", valueTL: 106592.24, returnPct: 6.59, alphaPct: 6.26, holdings: [{ticker:"GLYHO",weightPct:20},{ticker:"THYAO",weightPct:20},{ticker:"DSTKF",weightPct:20}] },
+      { id: "Deger", name: "Değer Model Portföyü", strategy: "Değer", valueTL: 107704.23, returnPct: 7.70, alphaPct: 7.37, holdings: [{ticker:"NTGAZ",weightPct:20},{ticker:"TUPRS",weightPct:20},{ticker:"TTKOM",weightPct:20}] },
+      { id: "RiskDengeli", name: "Risk Dengeli Model Portföyü", strategy: "Dengeli", valueTL: 96699.26, returnPct: -3.30, alphaPct: -3.95, holdings: [{ticker:"CCOLA",weightPct:24},{ticker:"TUPRS",weightPct:22}] }
+    ],
+    instantEntry: { initialCapitalTL: 100000, dailyBudgetTL: 5000, cashTL: 73428.22, holdingsValueTL: 28427.91, totalValueTL: 101856.13, totalReturnPct: 1.86, totalBoughtTL: 30000, realizedGainTL: 928.22, statusNote: "Bugünkü alım: THYAO 5.000 TL.",
+      holdings: [ {ticker:"THYAO",company:"Türk Hava Yolları",valueTL:5120.5,weightPct:18,gainPct:2.4},{ticker:"ARASE",company:"Aras Elektrik",valueTL:6207,weightPct:21.8,gainPct:5.1},{ticker:"DSTKF",company:"Destek Faktoring",valueTL:5200.2,weightPct:18.3,gainPct:-1.2} ] },
     stocks: [
       { ticker: "CCOLA", company: "Coca-Cola İçecek", price: 612.5, dailyPct: 1.8, weeklyPct: 4.2, rsi: 61.2, macd: 3.4, volume: "4.1M", signal: "AL", llmNote: "Defansif tüketim, güçlü bilanço.", action: "alım bölgesi" },
       { ticker: "DSTKF", company: "Destek Faktoring", price: 14.88, dailyPct: 4.8, weeklyPct: 9.7, rsi: 73.1, macd: 0.9, volume: "31.2M", signal: "AL", llmNote: "Hacim patlaması; kâr-al bölgesi.", action: "riskli" },
@@ -247,6 +255,61 @@
     }
   }
 
+  /* ---------------- 4b) Model portföyler (hepsi) ---------------- */
+  function renderModelPortfolios(report) {
+    const host = $("#modelPortfolios"); if (!host) return;
+    const list = arr(report.modelPortfolios);
+    if (!list.length) { host.innerHTML = inlineEmpty("Model portföy verisi yok."); return; }
+    host.innerHTML = list.map((p) => {
+      const holds = arr(p.holdings).map((h) =>
+        '<span class="pf__chip">' + esc(h.ticker || "—") + (isNum(h.weightPct) ? ' <em>%' + fmtTR(h.weightPct, 0) + "</em>" : "") + "</span>").join("");
+      return '<div class="pf">' +
+        '<div class="pf__head"><span class="pf__name">' + esc(p.name || p.id || "—") + "</span>" +
+          (p.strategy ? '<span class="badge badge--neutral">' + esc(p.strategy) + "</span>" : "") + "</div>" +
+        '<div class="pf__metrics">' +
+          pfMetric("Değer", isNum(p.valueTL) ? fmtTR(p.valueTL, 0) + " TL" : "—", "flat") +
+          pfMetric("Getiri", pctText(p.returnPct), pctClass(p.returnPct)) +
+          pfMetric("Alfa", pctText(p.alphaPct), pctClass(p.alphaPct)) +
+        "</div>" +
+        '<div class="pf__holdings">' + (holds || inlineEmpty("—")) + "</div>" +
+      "</div>";
+    }).join("");
+  }
+  function pfMetric(label, val, cls) {
+    return '<div class="pf__metric"><span class="pf__ml">' + esc(label) + '</span><span class="pf__mv ' + cls + '">' + esc(val) + "</span></div>";
+  }
+
+  /* ---------------- 4c) Anlık giriş portföyü ---------------- */
+  function renderInstantEntry(report) {
+    const host = $("#instantEntry"); if (!host) return;
+    const ie = report.instantEntry;
+    if (!ie || typeof ie !== "object") { host.innerHTML = emptyHTML("Anlık giriş verisi yok", "instantEntry alanı üretilmemiş."); return; }
+    const tl = (v) => (isNum(v) ? fmtTR(v, 0) + " TL" : "—");
+    const kpis = [
+      ["Toplam Sermaye", tl(ie.initialCapitalTL), "flat"],
+      ["Günlük Alım Hakkı", tl(ie.dailyBudgetTL), "flat"],
+      ["Kullanılabilir Nakit", tl(ie.cashTL), "flat"],
+      ["Hissede (Güncel)", tl(ie.holdingsValueTL), "flat"],
+      ["Toplam Girilen", tl(ie.totalBoughtTL), "flat"],
+      ["Kâr-Satışı (Gerçekleşen)", tl(ie.realizedGainTL), pctClass(ie.realizedGainTL)],
+      ["Toplam Değer", tl(ie.totalValueTL), "flat"],
+      ["Getiri", pctText(ie.totalReturnPct), pctClass(ie.totalReturnPct)]
+    ];
+    const holds = arr(ie.holdings);
+    const holdHtml = holds.length
+      ? '<div class="tablewrap"><table class="table"><thead><tr><th>Ticker</th><th>Şirket</th><th style="text-align:right">Değer</th><th style="text-align:right">Ağırlık</th><th style="text-align:right">K/Z %</th></tr></thead><tbody>' +
+        holds.map((h) => "<tr><td class='td-ticker'>" + esc(h.ticker || "—") + "</td><td class='td-company'>" + esc(h.company || "") + "</td>" +
+          "<td class='td-num'>" + (isNum(h.valueTL) ? fmtTR(h.valueTL, 0) : "—") + "</td>" +
+          "<td class='td-num'>" + (isNum(h.weightPct) ? "%" + fmtTR(h.weightPct) : "—") + "</td>" +
+          "<td class='td-num " + pctClass(h.gainPct) + "'>" + pctText(h.gainPct) + "</td></tr>").join("") +
+        "</tbody></table></div>"
+      : inlineEmpty("Açık pozisyon yok.");
+    host.innerHTML =
+      '<div class="ie__kpis">' + kpis.map((k) => '<div class="ie__kpi"><span class="ie__kl">' + esc(k[0]) + '</span><span class="ie__kv ' + k[2] + '">' + esc(k[1]) + "</span></div>").join("") + "</div>" +
+      '<h4 class="ie__subtitle">Açık Pozisyonlar</h4>' + holdHtml +
+      (ie.statusNote ? '<p class="ie__note">' + esc(ie.statusNote) + "</p>" : "");
+  }
+
   /* ---------------- 5) Hisse tablosu ---------------- */
   const STOCK_COLS = [
     { key: "ticker", label: "Ticker", type: "str", cls: "td-ticker" },
@@ -453,6 +516,8 @@
     try { renderKpiCards(report); } catch (e) { warn("kpi", e); }
     try { renderPerformanceChart(report); } catch (e) { warn("perf", e); }
     try { renderPortfolioTable(report); } catch (e) { warn("alloc", e); }
+    try { renderModelPortfolios(report); } catch (e) { warn("modelPortfolios", e); }
+    try { renderInstantEntry(report); } catch (e) { warn("instantEntry", e); }
     try { renderPortfolioStocks(report); } catch (e) { warn("stocks", e); }
     try { renderSectorRotation(report); } catch (e) { warn("sector", e); }
     try { renderSmartMoney(report); } catch (e) { warn("smart", e); }

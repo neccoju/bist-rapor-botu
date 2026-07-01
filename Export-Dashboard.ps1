@@ -222,12 +222,55 @@ function ConvertTo-DashboardReport {
         note = 'Karar destek amaçlıdır, yatırım tavsiyesi değildir.'
     }
 
+    # ---- modelPortfolios (TÜM model portföyler: Dengeli/Değer/Momentum/Kalite/RFS100/... ) ----
+    $modelPortfolios = @($portfolios | ForEach-Object {
+        $ph = @(Get-DashProp -Object $_ -Name 'Holdings')
+        [pscustomobject]@{
+            id                 = (Get-DashStr -Object $_ -Name 'Id')
+            name               = (Get-DashStr -Object $_ -Name 'Name')
+            strategy           = (Get-DashStr -Object $_ -Name 'Strategy')
+            rankBy             = (Get-DashStr -Object $_ -Name 'RankBy')
+            valueTL            = (Get-DashNum -Object $_ -Name 'CurrentValueTL')
+            returnPct          = (Get-DashNum -Object $_ -Name 'TotalReturnPct')
+            benchmarkReturnPct = (Get-DashNum -Object $_ -Name 'BenchmarkReturnPct')
+            alphaPct           = (Get-DashNum -Object $_ -Name 'AlphaPct')
+            holdings = @($ph | ForEach-Object {
+                [pscustomobject]@{ ticker = (Get-DashStr -Object $_ -Name 'Symbol'); weightPct = (Get-DashNum -Object $_ -Name 'WeightPct') }
+            })
+        }
+    })
+
+    # ---- instantEntry (Anlık Giriş — kapalı döngü: 100k sermaye, 5k/gün) ----
+    $ieHoldings = @(Get-DashProp -Object $InstantEntryPortfolio -Name 'Holdings')
+    $instantEntry = if ($null -ne $InstantEntryPortfolio) {
+        [pscustomobject]@{
+            initialCapitalTL = (Get-DashNum -Object $InstantEntryPortfolio -Name 'InitialCapitalTL')
+            cashTL           = (Get-DashNum -Object $InstantEntryPortfolio -Name 'CashTL')
+            holdingsValueTL  = (Get-DashNum -Object $InstantEntryPortfolio -Name 'HoldingsValueTL')
+            totalValueTL     = (Get-DashNum -Object $InstantEntryPortfolio -Name 'TotalValueTL')
+            totalReturnPct   = (Get-DashNum -Object $InstantEntryPortfolio -Name 'TotalReturnPct')
+            totalBoughtTL    = (Get-DashNum -Object $InstantEntryPortfolio -Name 'TotalBoughtTL')
+            realizedGainTL   = (Get-DashNum -Object $InstantEntryPortfolio -Name 'RealizedGainTL')
+            dailyBudgetTL    = (Get-DashNum -Object $InstantEntryPortfolio -Name 'DailyBudgetTL')
+            statusNote       = (Get-DashStr -Object $InstantEntryPortfolio -Name 'StatusNote')
+            holdings = @($ieHoldings | ForEach-Object {
+                [pscustomobject]@{
+                    ticker = (Get-DashStr -Object $_ -Name 'Symbol'); company = (Get-DashStr -Object $_ -Name 'Company')
+                    weightPct = (Get-DashNum -Object $_ -Name 'WeightPct'); valueTL = (Get-DashNum -Object $_ -Name 'CurrentValueTL')
+                    gainPct = (Get-DashNum -Object $_ -Name 'UnrealizedGainPct')
+                }
+            })
+        }
+    } else { $null }
+
     return [pscustomobject][ordered]@{
         meta = [pscustomobject]$meta
         history = @([pscustomobject]@{ date = $meta.reportDate; label = 'Son rapor' })
         summary = [pscustomobject]$summary
         performance = [pscustomobject]$performance
         allocation = [pscustomobject]$allocation
+        modelPortfolios = $modelPortfolios
+        instantEntry = $instantEntry
         stocks = $topRows
         sectorRotation = $sectorRotation
         smartMoney = [pscustomobject]$smartMoney
