@@ -192,21 +192,91 @@ function ConvertTo-DashboardReport {
         weakening = @($weakening | Where-Object { $_ })
     }
 
-    # ---- technicalSignals (RSI/trend türevleri) ----
+    # ---- technicalSignals (RSI/trend/MACD/kırılım — tek anlık görüntüden dürüst türevler) ----
     $ob = @($Stocks | Where-Object { $r = Get-DashNum -Object $_ -Name 'RSI'; $null -ne $r -and $r -ge 70 } | Sort-Object @{ Expression = { Get-DashNum -Object $_ -Name 'RSI' }; Descending = $true } | Select-Object -First 8 | ForEach-Object { [pscustomobject]@{ ticker = (Get-DashStr -Object $_ -Name 'Symbol'); rsi = (Get-DashNum -Object $_ -Name 'RSI') } })
     $os = @($Stocks | Where-Object { $r = Get-DashNum -Object $_ -Name 'RSI'; $null -ne $r -and $r -le 30 } | Sort-Object @{ Expression = { Get-DashNum -Object $_ -Name 'RSI' } } | Select-Object -First 8 | ForEach-Object { [pscustomobject]@{ ticker = (Get-DashStr -Object $_ -Name 'Symbol'); rsi = (Get-DashNum -Object $_ -Name 'RSI') } })
+
+    # MACD kesişimi YAKINDA: MacdLine ile MacdSignal birbirine cok yakinsa (fiyata oranla)
+    # bir kesisim yaklastigi/yeni gerceklestigi anlamina gelir (tek anlik goruntuden dogru
+    # tespit edilebilecek tek durum; "az once kesisti" gecmis veri gerektirir, iddia edilmez).
+    $macdCross = @($Stocks | ForEach-Object {
+            $line = Get-DashNum -Object $_ -Name 'MacdLine'; $sig = Get-DashNum -Object $_ -Name 'MacdSignal'; $price = Get-DashNum -Object $_ -Name 'Price'
+            if ($null -eq $line -or $null -eq $sig -or $null -eq $price -or $price -le 0) { return }
+            $gapPct = [Math]::Abs($line - $sig) / $price * 100.0
+            if ($gapPct -le 0.15) {
+                $crossNote = 'Düşüş kesişimine yakın'
+                if ($line -ge $sig) { $crossNote = 'Yükseliş kesişimine yakın' }
+                [pscustomobject]@{ ticker = (Get-DashStr -Object $_ -Name 'Symbol'); note = $crossNote; _g = $gapPct }
+            }
+        } | Sort-Object _g | Select-Object -First 8 | Select-Object ticker, note)
+
+    # Trend guclenen: fiyat SMA20/50/200'un ustunde (tam boga hizalanmasi) + bugun pozitif.
+    $trendUp = @($Stocks | ForEach-Object {
+            $p = Get-DashNum -Object $_ -Name 'Price'; $s20 = Get-DashNum -Object $_ -Name 'SMA20'; $s50 = Get-DashNum -Object $_ -Name 'SMA50'; $s200 = Get-DashNum -Object $_ -Name 'SMA200'
+            $ch = Get-DashNum -Object $_ -Name 'ChangePct'
+            if ($null -eq $p -or $null -eq $s20 -or $null -eq $s50 -or $null -eq $s200 -or $s200 -le 0) { return }
+            if ($p -gt $s20 -and $s20 -gt $s50 -and $s50 -gt $s200 -and $null -ne $ch -and $ch -gt 0) {
+                $margin = ($p / $s200 - 1) * 100.0
+                [pscustomobject]@{ ticker = (Get-DashStr -Object $_ -Name 'Symbol'); note = ('200g üstünde %{0} — tam boğa hizalanması' -f [Math]::Round($margin, 1)); _m = $margin }
+            }
+        } | Sort-Object _m -Descending | Select-Object -First 8 | Select-Object ticker, note)
+
+    # Momentum kaybeden: orta/uzun vade hala yukarida (SMA50 ustu) ama kisa vadeli momentum (MACD histogram) negatife donmus.
+    $momLosing = @($Stocks | ForEach-Object {
+            $p = Get-DashNum -Object $_ -Name 'Price'; $s50 = Get-DashNum -Object $_ -Name 'SMA50'; $mh = Get-DashNum -Object $_ -Name 'MacdHistogram'
+            if ($null -eq $p -or $null -eq $s50 -or $null -eq $mh -or $s50 -le 0) { return }
+            if ($p -gt $s50 -and $mh -lt 0) {
+                [pscustomobject]@{ ticker = (Get-DashStr -Object $_ -Name 'Symbol'); note = 'Trend hâlâ yukarı (50g üstü) ama MACD momentumu negatife döndü'; _h = $mh }
+            }
+        } | Sort-Object _h | Select-Object -First 8 | Select-Object ticker, note)
+
+    # Kirilim/risk: yuksek goreli hacimle guclu fiyat hareketi (yon belirtilir; hem yukari kirilim hem asagi risk).
+    $breakout = @($Stocks | ForEach-Object {
+            $rv = Get-DashNum -Object $_ -Name 'RelativeVolume'; $ch = Get-DashNum -Object $_ -Name 'ChangePct'
+            if ($null -eq $rv -or $rv -lt 2.0 -or $null -eq $ch -or [Math]::Abs($ch) -lt 3.0) { return }
+            $dirNote = 'aşağı kırılma riski'
+            if ($ch -gt 0) { $dirNote = 'yukarı kırılım' }
+            [pscustomobject]@{ ticker = (Get-DashStr -Object $_ -Name 'Symbol'); note = ('Hacim {0}x + %{1} hareket — {2}' -f [Math]::Round($rv, 1), [Math]::Round($ch, 1), $dirNote); _rv = $rv }
+        } | Sort-Object _rv -Descending | Select-Object -First 8 | Select-Object ticker, note)
+
     $technicalSignals = [ordered]@{
         overbought = $ob; oversold = $os
-        macdCross = @(); trendStrengthening = @(); momentumLosing = @(); breakout = @()
+        macdCross = $macdCross; trendStrengthening = $trendUp; momentumLosing = $momLosing; breakout = $breakout
     }
 
-    # ---- llmCommentary (ay sonu portföy yorumu varsa) ----
+    # ---- llmCommentary (ay sonu portföy yorumu — markdown-lite ayrıştırılır) ----
     $commentText = Get-DashStr -Object $PortfolioCommentary -Name 'Text'
     if (-not $commentText) { $commentText = if ($PortfolioCommentary -is [string]) { [string]$PortfolioCommentary } else { $null } }
+    $commentaryTitle = $null
+    $commentarySections = @()
+    if ($commentText) {
+        $lines = $commentText -split "`n"
+        $curHeading = $null; $curBuf = New-Object System.Collections.Generic.List[string]
+        $flush = {
+            if ($curHeading -or $curBuf.Count -gt 0) {
+                $txt = (($curBuf.ToArray() | Where-Object { $_.Trim() -ne '' }) -join "`n`n").Trim()
+                if ($curHeading -or $txt) {
+                    $commentarySections += [pscustomobject]@{ heading = $curHeading; text = $txt }
+                }
+            }
+        }
+        foreach ($ln in $lines) {
+            if ($ln -match '^#\s+(.*)$') { $commentaryTitle = $Matches[1].Trim() }
+            elseif ($ln -match '^#{2,4}\s+(.*)$') {
+                . $flush
+                $curHeading = $Matches[1].Trim(); $curBuf = New-Object System.Collections.Generic.List[string]
+            }
+            else { [void]$curBuf.Add($ln) }
+        }
+        . $flush
+        $commentarySections = @($commentarySections | Where-Object { $_.text -or $_.heading })
+    }
     $llmCommentary = [ordered]@{
         stance = $null
         marketSummary = $null
         portfolioComment = $commentText
+        portfolioCommentTitle = $commentaryTitle
+        portfolioCommentSections = $commentarySections
         risks = @(); opportunities = @(); levels = @()
         watchNext = $null
     }

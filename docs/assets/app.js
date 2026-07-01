@@ -256,6 +256,46 @@
   }
 
   /* ---------------- 4b) Model portföyler (hepsi) ---------------- */
+  let pfCompareChart = null;
+  function renderPortfolioCompareChart(report) {
+    const wrap = $("#pfCompareChart"), empty = $("#pfCompareEmpty"); if (!wrap) return;
+    const list = arr(report.modelPortfolios).filter((p) => isNum(p.returnPct));
+    if (!list.length || typeof window.Chart === "undefined") {
+      if (empty) { empty.hidden = false; empty.innerHTML = emptyHTML("Karşılaştırma verisi yok", "modelPortfolios alanı üretilmemiş."); }
+      wrap.style.display = "none"; return;
+    }
+    if (empty) empty.hidden = true; wrap.style.display = "";
+    const sorted = list.slice().sort((a, b) => b.returnPct - a.returnPct);
+    // Kısa etiket: "Model Portföy(ü)" son ekini at — dar ekranda Y ekseni etiketi kesilmesin.
+    const labels = sorted.map((p) => (p.name || p.id || "—").replace(/\s*Model Portföyü?\s*$/i, ""));
+    const css = getComputedStyle(document.body);
+    const posC = css.getPropertyValue("--pos").trim() || "#1db17a";
+    const negC = css.getPropertyValue("--neg").trim() || "#e5484d";
+    const accC = css.getPropertyValue("--accent").trim() || "#6e8bff";
+    const gridc = css.getPropertyValue("--grid-line").trim();
+    const textc = css.getPropertyValue("--text-dim").trim();
+    const hasAlpha = sorted.some((p) => isNum(p.alphaPct));
+    const datasets = [{
+      label: "Getiri %", data: sorted.map((p) => p.returnPct),
+      backgroundColor: sorted.map((p) => (p.returnPct >= 0 ? posC : negC)), borderRadius: 4, maxBarThickness: 28
+    }];
+    if (hasAlpha) {
+      datasets.push({ label: "Alfa % (BIST100'e karşı)", data: sorted.map((p) => (isNum(p.alphaPct) ? p.alphaPct : null)), backgroundColor: accC, borderRadius: 4, maxBarThickness: 14 });
+    }
+    if (pfCompareChart) pfCompareChart.destroy();
+    pfCompareChart = new window.Chart(wrap.getContext("2d"), {
+      type: "bar",
+      data: { labels: labels, datasets: datasets },
+      options: {
+        indexAxis: "y", responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: hasAlpha, position: "top", labels: { color: textc, boxWidth: 10, font: { size: 11 } } },
+          tooltip: { callbacks: { label: (c) => " " + c.dataset.label + ": " + (isNum(c.parsed.x) ? (c.parsed.x > 0 ? "+" : "") + fmtTR(c.parsed.x) + "%" : "—") } } },
+        scales: { x: { grid: { color: gridc }, ticks: { color: textc, font: { size: 11 }, callback: (v) => v + "%" } },
+          y: { grid: { display: false }, ticks: { color: textc, font: { size: 12, weight: "600" } } } }
+      }
+    });
+  }
+
   function renderModelPortfolios(report) {
     const host = $("#modelPortfolios"); if (!host) return;
     const list = arr(report.modelPortfolios);
@@ -468,6 +508,10 @@
   }
 
   /* ---------------- 9) YZ yorumu ---------------- */
+  function paragraphsHtml(text) {
+    return String(text).split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean)
+      .map((p) => "<p>" + esc(p).replace(/\n/g, "<br>") + "</p>").join("");
+  }
   function renderLLMCommentary(report) {
     const host = $("#llmCommentary"), stance = $("#llmStance");
     const c = report.llmCommentary || {};
@@ -477,12 +521,32 @@
       stance.textContent = has(st) ? st : "—";
     }
     if (!host) return;
-    const hasAny = has(c.marketSummary) || has(c.portfolioComment) || arr(c.risks).length || arr(c.opportunities).length || arr(c.levels).length || has(c.watchNext);
+    const sections = arr(c.portfolioCommentSections);
+    const hasAny = has(c.marketSummary) || has(c.portfolioComment) || sections.length ||
+      arr(c.risks).length || arr(c.opportunities).length || arr(c.levels).length || has(c.watchNext);
     if (!hasAny) { host.innerHTML = emptyHTML("Yorum henüz üretilmedi", "Yapay zekâ yorumu yalnız üretildiğinde gösterilir."); return; }
     const list = (items) => arr(items).length ? "<ul>" + arr(items).map((x) => "<li>" + esc(x) + "</li>").join("") + "</ul>" : inlineEmpty("—");
+
+    // Portföy yorumu: bölümlere ayrılmışsa (her model portföy için ayrı başlık + metin)
+    // düzenli kartlar olarak göster; yoksa ham metni paragraflara bölerek göster.
+    let portfolioHtml = "";
+    if (sections.length) {
+      portfolioHtml = '<div class="commentary__doc">' +
+        (has(c.portfolioCommentTitle) ? '<h4 class="commentary__doctitle">' + esc(c.portfolioCommentTitle) + "</h4>" : "") +
+        '<div class="commentary__pfgrid">' +
+        sections.map((s) =>
+          '<div class="commentary__pf">' +
+            (has(s.heading) ? '<h5 class="commentary__pfname">' + esc(s.heading) + "</h5>" : "") +
+            paragraphsHtml(s.text || "") +
+          "</div>").join("") +
+        "</div></div>";
+    } else if (has(c.portfolioComment)) {
+      portfolioHtml = '<div class="commentary__box"><h4>Portföy Yorumu</h4>' + paragraphsHtml(c.portfolioComment) + "</div>";
+    }
+
     host.innerHTML =
       (has(c.marketSummary) ? '<p class="commentary__lead">' + esc(c.marketSummary) + "</p>" : "") +
-      (has(c.portfolioComment) ? '<div class="commentary__box"><h4>Portföy Yorumu</h4><p>' + esc(c.portfolioComment) + "</p></div>" : "") +
+      portfolioHtml +
       '<div class="commentary__grid">' +
         '<div class="commentary__box"><h4>Riskler</h4>' + list(c.risks) + "</div>" +
         '<div class="commentary__box"><h4>Fırsatlar</h4>' + list(c.opportunities) + "</div>" +
@@ -516,6 +580,7 @@
     try { renderKpiCards(report); } catch (e) { warn("kpi", e); }
     try { renderPerformanceChart(report); } catch (e) { warn("perf", e); }
     try { renderPortfolioTable(report); } catch (e) { warn("alloc", e); }
+    try { renderPortfolioCompareChart(report); } catch (e) { warn("pfCompare", e); }
     try { renderModelPortfolios(report); } catch (e) { warn("modelPortfolios", e); }
     try { renderInstantEntry(report); } catch (e) { warn("instantEntry", e); }
     try { renderPortfolioStocks(report); } catch (e) { warn("stocks", e); }
@@ -561,7 +626,7 @@
       document.documentElement.setAttribute("data-theme", cur);
       localStorage.setItem("bist-panel-theme", cur);
       // grafik renkleri temaya bağlı; yeniden çiz
-      if (window.__lastReport__) { try { renderPerformanceChart(window.__lastReport__); renderPortfolioTable(window.__lastReport__); } catch (e) {} }
+      if (window.__lastReport__) { try { renderPerformanceChart(window.__lastReport__); renderPortfolioTable(window.__lastReport__); renderPortfolioCompareChart(window.__lastReport__); } catch (e) {} }
     };
     const a = $("#themeToggle"), b = $("#themeToggleMobile");
     if (a) a.addEventListener("click", toggle);

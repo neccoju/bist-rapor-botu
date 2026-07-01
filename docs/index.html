@@ -105,8 +105,15 @@
 
       <!-- 4b) MODEL PORTFÖYLER (hepsi) -->
       <section class="block" id="portfoyler">
-        <div class="card">
-          <div class="card__head"><h2 class="card__title">Model Portföyler</h2><p class="card__sub">Tüm stratejiler — değer, getiri, alfa ve hisseler</p></div>
+        <div class="card card--chart">
+          <div class="card__head"><h2 class="card__title">Portföy Getirisi Karşılaştırması</h2><p class="card__sub">Tüm stratejiler — kuruluştan bugüne getiri ve BIST100'e karşı alfa, yan yana</p></div>
+          <div class="card__body">
+            <div class="chartwrap chartwrap--bar"><canvas id="pfCompareChart"></canvas></div>
+            <div class="empty" id="pfCompareEmpty" hidden></div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <div class="card__head"><h2 class="card__title">Model Portföyler — Detay</h2><p class="card__sub">Her stratejinin değeri ve hisseleri</p></div>
           <div class="card__body"><div id="modelPortfolios" class="pfgrid"></div></div>
         </div>
       </section>

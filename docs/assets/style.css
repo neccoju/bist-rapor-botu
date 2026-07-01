@@ -72,7 +72,9 @@ button { font-family: inherit; cursor: pointer; }
 ::selection { background: var(--accent-soft); }
 
 /* ---- Yerleşim ---- */
-.layout { display: grid; grid-template-columns: 248px 1fr; min-height: 100vh; }
+/* minmax(0,1fr) sart: aksi halde icerik sutunu genis tablo/grafik gibi ogelerin
+   ortuk min-width'ini miras alir ve tum sayfa mobilde yatay tasar (klasik grid tuzagi). */
+.layout { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100vh; }
 
 .sidebar {
   position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column;
@@ -183,6 +185,7 @@ button { font-family: inherit; cursor: pointer; }
 .card--chart .card__body { padding-top: var(--sp-2); }
 .chartwrap { position: relative; height: 340px; }
 .chartwrap--sm { height: 240px; }
+.chartwrap--bar { height: 280px; }
 .legend { display: flex; gap: var(--sp-3); flex-wrap: wrap; }
 .legend__item { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-dim); cursor: pointer; user-select: none; }
 .legend__item.is-off { opacity: .4; }
@@ -283,6 +286,16 @@ button { font-family: inherit; cursor: pointer; }
 .commentary__box ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 5px; }
 .commentary__box li { font-size: 13px; color: var(--text-dim); line-height: 1.5; }
 .commentary__box p { font-size: 13px; color: var(--text-dim); }
+.commentary__box p + p { margin-top: 8px; }
+
+/* YZ yorumu: yapılandırılmış markdown-lite (başlık + her model portföy için ayrı kart) */
+.commentary__doc { border: 1px solid var(--border-soft); border-radius: var(--r-md); padding: var(--sp-4); background: var(--bg-elev); }
+.commentary__doctitle { font-size: 14px; font-weight: 650; letter-spacing: -.2px; margin-bottom: var(--sp-3); color: var(--text); }
+.commentary__pfgrid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4); }
+.commentary__pf { border-top: 1px solid var(--border-soft); padding-top: var(--sp-3); }
+.commentary__pfname { font-size: 12.5px; font-weight: 650; color: var(--accent); margin-bottom: 6px; }
+.commentary__pf p { font-size: 13px; color: var(--text-dim); line-height: 1.6; margin: 0; }
+.commentary__pf p + p { margin-top: 8px; }
 
 /* ---- Aksiyon ---- */
 .actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--sp-4); }
@@ -314,12 +327,12 @@ button { font-family: inherit; cursor: pointer; }
 .iconbtn { background: transparent; border: 0; color: var(--text); font-size: 20px; padding: 6px; border-radius: var(--r-sm); }
 
 @media (max-width: 1080px) {
-  .grid2, .twocol, .commentary__grid, .actions { grid-template-columns: 1fr; }
+  .grid2, .twocol, .commentary__grid, .commentary__pfgrid, .actions { grid-template-columns: 1fr; }
   .kpigrid, .pfgrid, .ie__kpis { grid-template-columns: repeat(2, 1fr); }
   .signalgrid { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 860px) {
-  .layout { grid-template-columns: 1fr; }
+  .layout { grid-template-columns: minmax(0, 1fr); }
   .mobilebar {
     display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3);
     position: sticky; top: 0; z-index: 40; padding: 10px var(--sp-4);
