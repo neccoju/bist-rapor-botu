@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 <#
     Invoke-AutoCalibration.ps1 — KENDI KENDINE OGRENME (kendi icinde suren dongu).
 

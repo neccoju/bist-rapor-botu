@@ -467,7 +467,11 @@
     try {
       const r = await fetch(path, { cache: "no-store" });
       if (!r.ok) return null;
-      const j = await r.json();
+      // BOM-toleranslı: PowerShell (Set-Content -Encoding UTF8) baştaki UTF-8 BOM'unu
+      // ekleyebilir; metni okuyup BOM'u soyarak JSON.parse ile güvenle çözeriz.
+      let text = await r.text();
+      if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
+      const j = JSON.parse(text);
       return j && typeof j === "object" ? j : null;
     } catch (e) { return null; }
   }

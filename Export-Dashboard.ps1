@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 <#
     Export-Dashboard.ps1 — ADDITIVE köprü (mevcut bot mantığına dokunmaz).
 
