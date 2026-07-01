@@ -2,6 +2,9 @@ config/report_settings.json
 config/smtp_credential.xml
 reports/
 data/
+# 'data/' deseni docs/data'yi da yakaliyordu; web panelinin statik verisi izlensin.
+!docs/data/
+!docs/data/**
 
 # Python bytecode cache (enrich_kap.py / collect_kap.py)
 __pycache__/
