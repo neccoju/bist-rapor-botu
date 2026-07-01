@@ -2,8 +2,8 @@
     "meta":  {
                  "schemaVersion":  1,
                  "reportDate":  "2026-07-01",
-                 "generatedAt":  "2026-07-01T12:01:44.6222081Z",
-                 "lastUpdatedText":  "01.07.2026 12:01",
+                 "generatedAt":  "2026-07-01T12:17:26.6193876Z",
+                 "lastUpdatedText":  "01.07.2026 12:17",
                  "marketStatus":  "Açık",
                  "strategy":  "Dengeli",
                  "scannedCount":  608,
@@ -19,21 +19,21 @@
                     }
                 ],
     "summary":  {
-                    "portfolioValueTL":  102960.04,
+                    "portfolioValueTL":  102698.2,
                     "initialCapitalTL":  100000,
                     "dailyChangePct":  null,
                     "weeklyChangePct":  null,
-                    "monthlyChangePct":  2.96,
+                    "monthlyChangePct":  2.7,
                     "bestStock":  {
-                                      "ticker":  "SEGMN",
-                                      "changePct":  9.9817
+                                      "ticker":  "EMPAE",
+                                      "changePct":  10
                                   },
                     "worstStock":  {
                                        "ticker":  "BMSTL",
-                                       "changePct":  -48.9989
+                                       "changePct":  -48.7789
                                    },
                     "riskScore":  {
-                                      "value":  49,
+                                      "value":  50,
                                       "label":  "Orta"
                                   },
                     "llmStance":  null
@@ -360,97 +360,280 @@
                                         {
                                             "ticker":  "CCOLA",
                                             "company":  "COCA-COLA İÇECEK A.Ş.",
-                                            "weightPct":  19.72,
+                                            "weightPct":  19.68,
                                             "targetPct":  20
                                         },
                                         {
                                             "ticker":  "GLYHO",
                                             "company":  "GLOBAL YATIRIM HOLDİNG A.Ş.",
-                                            "weightPct":  19.97,
+                                            "weightPct":  19.98,
                                             "targetPct":  20
                                         },
                                         {
                                             "ticker":  "TUPRS",
                                             "company":  "TÜPRAŞ-TÜRKİYE PETROL RAFİNERİLERİ A.Ş.",
-                                            "weightPct":  20.49,
+                                            "weightPct":  20.52,
                                             "targetPct":  20
                                         },
                                         {
                                             "ticker":  "AKSA",
                                             "company":  "AKSA AKRİLİK KİMYA SANAYİİ A.Ş.",
-                                            "weightPct":  19.97,
+                                            "weightPct":  19.94,
                                             "targetPct":  20
                                         },
                                         {
                                             "ticker":  "ARASE",
                                             "company":  "DOĞU ARAS ENERJİ YATIRIMLARI A.Ş.",
-                                            "weightPct":  19.86,
+                                            "weightPct":  19.89,
                                             "targetPct":  20
                                         }
                                     ]
                    },
+    "modelPortfolios":  [
+                            {
+                                "id":  "Dengeli",
+                                "name":  "Dengeli Model Portföy",
+                                "strategy":  "Dengeli",
+                                "rankBy":  null,
+                                "valueTL":  102698.2,
+                                "returnPct":  2.7,
+                                "benchmarkReturnPct":  -2.14,
+                                "alphaPct":  4.84,
+                                "holdings":  [
+                                                 {
+                                                     "ticker":  "CCOLA",
+                                                     "weightPct":  19.68
+                                                 },
+                                                 {
+                                                     "ticker":  "GLYHO",
+                                                     "weightPct":  19.98
+                                                 },
+                                                 {
+                                                     "ticker":  "TUPRS",
+                                                     "weightPct":  20.52
+                                                 },
+                                                 {
+                                                     "ticker":  "AKSA",
+                                                     "weightPct":  19.94
+                                                 },
+                                                 {
+                                                     "ticker":  "ARASE",
+                                                     "weightPct":  19.89
+                                                 }
+                                             ]
+                            },
+                            {
+                                "id":  "Deger",
+                                "name":  "Değer Model Portföyü",
+                                "strategy":  "Değer",
+                                "rankBy":  null,
+                                "valueTL":  105264.26,
+                                "returnPct":  5.26,
+                                "benchmarkReturnPct":  -2.14,
+                                "alphaPct":  7.41,
+                                "holdings":  [
+                                                 {
+                                                     "ticker":  "NTGAZ",
+                                                     "weightPct":  17.63
+                                                 },
+                                                 {
+                                                     "ticker":  "ARASE",
+                                                     "weightPct":  17.32
+                                                 },
+                                                 {
+                                                     "ticker":  "INDES",
+                                                     "weightPct":  21.45
+                                                 },
+                                                 {
+                                                     "ticker":  "TUPRS",
+                                                     "weightPct":  22.24
+                                                 },
+                                                 {
+                                                     "ticker":  "TTKOM",
+                                                     "weightPct":  21.35
+                                                 }
+                                             ]
+                            },
+                            {
+                                "id":  "Momentum",
+                                "name":  "Momentum Model Portföyü",
+                                "strategy":  "Momentum",
+                                "rankBy":  null,
+                                "valueTL":  98809.06,
+                                "returnPct":  -1.19,
+                                "benchmarkReturnPct":  -2.14,
+                                "alphaPct":  0.95,
+                                "holdings":  [
+                                                 {
+                                                     "ticker":  "GLYHO",
+                                                     "weightPct":  18.16
+                                                 },
+                                                 {
+                                                     "ticker":  "DOFRB",
+                                                     "weightPct":  22.39
+                                                 },
+                                                 {
+                                                     "ticker":  "CCOLA",
+                                                     "weightPct":  22.11
+                                                 },
+                                                 {
+                                                     "ticker":  "THYAO",
+                                                     "weightPct":  22.61
+                                                 },
+                                                 {
+                                                     "ticker":  "DSTKF",
+                                                     "weightPct":  14.75
+                                                 }
+                                             ]
+                            },
+                            {
+                                "id":  "Kalite",
+                                "name":  "Kalite Model Portföyü",
+                                "strategy":  "Kalite",
+                                "rankBy":  null,
+                                "valueTL":  104534.2,
+                                "returnPct":  4.53,
+                                "benchmarkReturnPct":  -2.14,
+                                "alphaPct":  6.68,
+                                "holdings":  [
+                                                 {
+                                                     "ticker":  "CCOLA",
+                                                     "weightPct":  19.8
+                                                 },
+                                                 {
+                                                     "ticker":  "ORGE",
+                                                     "weightPct":  20.03
+                                                 },
+                                                 {
+                                                     "ticker":  "NTGAZ",
+                                                     "weightPct":  20.37
+                                                 },
+                                                 {
+                                                     "ticker":  "GUBRF",
+                                                     "weightPct":  19.81
+                                                 },
+                                                 {
+                                                     "ticker":  "BIMAS",
+                                                     "weightPct":  19.98
+                                                 }
+                                             ]
+                            },
+                            {
+                                "id":  "RFS100",
+                                "name":  "RFS100 Model Portföyü",
+                                "strategy":  "Dengeli",
+                                "rankBy":  "RawFactorScore100",
+                                "valueTL":  97112.5,
+                                "returnPct":  -2.89,
+                                "benchmarkReturnPct":  -2.14,
+                                "alphaPct":  -0.74,
+                                "holdings":  [
+                                                 {
+                                                     "ticker":  "DSTKF",
+                                                     "weightPct":  15
+                                                 },
+                                                 {
+                                                     "ticker":  "YGGYO",
+                                                     "weightPct":  18.25
+                                                 },
+                                                 {
+                                                     "ticker":  "ARASE",
+                                                     "weightPct":  18.18
+                                                 },
+                                                 {
+                                                     "ticker":  "YEOTK",
+                                                     "weightPct":  17.39
+                                                 },
+                                                 {
+                                                     "ticker":  "DOFRB",
+                                                     "weightPct":  31.18
+                                                 }
+                                             ]
+                            },
+                            {
+                                "id":  "RiskDengeli",
+                                "name":  "Risk Dengeli Model Portföyü",
+                                "strategy":  "Dengeli",
+                                "rankBy":  "Score",
+                                "valueTL":  96226.4,
+                                "returnPct":  -3.77,
+                                "benchmarkReturnPct":  -1.84,
+                                "alphaPct":  -1.94,
+                                "holdings":  [
+                                                 {
+                                                     "ticker":  "CCOLA",
+                                                     "weightPct":  27.61
+                                                 },
+                                                 {
+                                                     "ticker":  "GLYHO",
+                                                     "weightPct":  18.1
+                                                 },
+                                                 {
+                                                     "ticker":  "TUPRS",
+                                                     "weightPct":  14.84
+                                                 },
+                                                 {
+                                                     "ticker":  "AKSA",
+                                                     "weightPct":  14.63
+                                                 },
+                                                 {
+                                                     "ticker":  "ARASE",
+                                                     "weightPct":  24.82
+                                                 }
+                                             ]
+                            }
+                        ],
+    "instantEntry":  {
+                         "initialCapitalTL":  100000,
+                         "cashTL":  70435.12,
+                         "holdingsValueTL":  32018.05,
+                         "totalValueTL":  102453.17,
+                         "totalReturnPct":  2.45,
+                         "totalBoughtTL":  45000,
+                         "realizedGainTL":  2935.12,
+                         "dailyBudgetTL":  5000,
+                         "statusNote":  "Bugün çok güçlü anlık giriş sinyali yok; 5,000 TL günlük alım hakkı kullanılmadı.",
+                         "holdings":  [
+                                          {
+                                              "ticker":  "TNZTP",
+                                              "company":  "TAPDİ OKSİJEN ÖZEL SAĞLIK VE EĞİTİM HİZMETLERİ SANAYİ TİCARET A.Ş.",
+                                              "weightPct":  59.24,
+                                              "valueTL":  18966.36,
+                                              "gainPct":  -5.17
+                                          },
+                                          {
+                                              "ticker":  "AKSA",
+                                              "company":  "AKSA AKRİLİK KİMYA SANAYİİ A.Ş.",
+                                              "weightPct":  17.31,
+                                              "valueTL":  5543.78,
+                                              "gainPct":  10.88
+                                          },
+                                          {
+                                              "ticker":  "GEDIK",
+                                              "company":  "GEDİK YATIRIM MENKUL DEĞERLER A.Ş.",
+                                              "weightPct":  15.18,
+                                              "valueTL":  4858.96,
+                                              "gainPct":  -2.82
+                                          },
+                                          {
+                                              "ticker":  "GLYHO",
+                                              "company":  "GLOBAL YATIRIM HOLDİNG A.Ş.",
+                                              "weightPct":  8.27,
+                                              "valueTL":  2648.95,
+                                              "gainPct":  5.96
+                                          }
+                                      ]
+                     },
     "stocks":  [
                    {
                        "ticker":  "CCOLA",
                        "company":  "COCA-COLA İÇECEK A.Ş.",
-                       "price":  81.85,
-                       "dailyPct":  -1.4449,
-                       "weeklyPct":  5.4768,
-                       "rsi":  54.7133,
-                       "macd":  0.2926,
-                       "volume":  "0.32x",
-                       "signal":  "Güçlü İzle",
-                       "llmNote":  null,
-                       "action":  "izle"
-                   },
-                   {
-                       "ticker":  "GLYHO",
-                       "company":  "GLOBAL YATIRIM HOLDİNG A.Ş.",
-                       "price":  18.18,
-                       "dailyPct":  -0.1647,
-                       "weeklyPct":  -0.1099,
-                       "rsi":  63.2294,
-                       "macd":  0.0315,
-                       "volume":  "0.19x",
-                       "signal":  "Güçlü İzle",
-                       "llmNote":  null,
-                       "action":  "izle"
-                   },
-                   {
-                       "ticker":  "TRGYO",
-                       "company":  "TORUNLAR GAYRİMENKUL YATIRIM ORTAKLIĞI A.Ş.",
-                       "price":  99.7,
-                       "dailyPct":  -0.3,
-                       "weeklyPct":  2.8896,
-                       "rsi":  55.8815,
-                       "macd":  0.0744,
-                       "volume":  "0.11x",
-                       "signal":  "Güçlü İzle",
-                       "llmNote":  null,
-                       "action":  "izle"
-                   },
-                   {
-                       "ticker":  "PAGYO",
-                       "company":  "PANORA GAYRİMENKUL YATIRIM ORTAKLIĞI A.Ş.",
-                       "price":  150.4,
-                       "dailyPct":  -0.1991,
-                       "weeklyPct":  8.1237,
-                       "rsi":  61.7306,
-                       "macd":  0.7697,
-                       "volume":  "0.21x",
-                       "signal":  "Güçlü İzle",
-                       "llmNote":  null,
-                       "action":  "izle"
-                   },
-                   {
-                       "ticker":  "ORGE",
-                       "company":  "ORGE ENERJİ ELEKTRİK TAAHHÜT A.Ş.",
-                       "price":  111.5,
-                       "dailyPct":  0.2698,
-                       "weeklyPct":  -10.4418,
-                       "rsi":  49.1759,
-                       "macd":  -2.0905,
-                       "volume":  "0.25x",
+                       "price":  81.5,
+                       "dailyPct":  -1.8663,
+                       "weeklyPct":  5.0258,
+                       "rsi":  53.6791,
+                       "macd":  0.2703,
+                       "volume":  "0.36x",
                        "signal":  "Güçlü İzle",
                        "llmNote":  null,
                        "action":  "izle"
@@ -458,38 +641,77 @@
                    {
                        "ticker":  "TUPRS",
                        "company":  "TÜPRAŞ-TÜRKİYE PETROL RAFİNERİLERİ A.Ş.",
-                       "price":  234.4,
-                       "dailyPct":  3.033,
-                       "weeklyPct":  6.5455,
-                       "rsi":  52.3188,
-                       "macd":  1.409,
-                       "volume":  "0.78x",
-                       "signal":  "İzle",
+                       "price":  234.1,
+                       "dailyPct":  2.9011,
+                       "weeklyPct":  6.4091,
+                       "rsi":  52.0668,
+                       "macd":  1.3898,
+                       "volume":  "0.8x",
+                       "signal":  "Güçlü İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "GLYHO",
+                       "company":  "GLOBAL YATIRIM HOLDİNG A.Ş.",
+                       "price":  18.14,
+                       "dailyPct":  -0.3844,
+                       "weeklyPct":  -0.3297,
+                       "rsi":  62.7239,
+                       "macd":  0.0289,
+                       "volume":  "0.21x",
+                       "signal":  "Güçlü İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "PAGYO",
+                       "company":  "PANORA GAYRİMENKUL YATIRIM ORTAKLIĞI A.Ş.",
+                       "price":  150.2,
+                       "dailyPct":  -0.3318,
+                       "weeklyPct":  7.9799,
+                       "rsi":  61.511,
+                       "macd":  0.7569,
+                       "volume":  "0.23x",
+                       "signal":  "Güçlü İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "TRGYO",
+                       "company":  "TORUNLAR GAYRİMENKUL YATIRIM ORTAKLIĞI A.Ş.",
+                       "price":  99.6,
+                       "dailyPct":  -0.4,
+                       "weeklyPct":  2.7864,
+                       "rsi":  55.5251,
+                       "macd":  0.068,
+                       "volume":  "0.11x",
+                       "signal":  "Güçlü İzle",
                        "llmNote":  null,
                        "action":  "izle"
                    },
                    {
                        "ticker":  "AHGAZ",
                        "company":  "AHLATCI DOĞAL GAZ DAĞITIM ENERJİ VE YATIRIM A.Ş.",
-                       "price":  39.42,
-                       "dailyPct":  -1.45,
-                       "weeklyPct":  8.8349,
-                       "rsi":  75.7258,
-                       "macd":  0.3392,
-                       "volume":  "0.75x",
-                       "signal":  "İzle",
+                       "price":  39.62,
+                       "dailyPct":  -0.95,
+                       "weeklyPct":  9.3871,
+                       "rsi":  77.177,
+                       "macd":  0.352,
+                       "volume":  "0.82x",
+                       "signal":  "Güçlü İzle",
                        "llmNote":  null,
                        "action":  "riskli"
                    },
                    {
-                       "ticker":  "AKSA",
-                       "company":  "AKSA AKRİLİK KİMYA SANAYİİ A.Ş.",
-                       "price":  12.08,
-                       "dailyPct":  -0.1653,
-                       "weeklyPct":  1.6835,
-                       "rsi":  58.2943,
-                       "macd":  0.0011,
-                       "volume":  "0.2x",
+                       "ticker":  "ORGE",
+                       "company":  "ORGE ENERJİ ELEKTRİK TAAHHÜT A.Ş.",
+                       "price":  110.8,
+                       "dailyPct":  -0.3597,
+                       "weeklyPct":  -11.004,
+                       "rsi":  48.4929,
+                       "macd":  -2.1352,
+                       "volume":  "0.26x",
                        "signal":  "İzle",
                        "llmNote":  null,
                        "action":  "izle"
@@ -497,25 +719,12 @@
                    {
                        "ticker":  "AKSGY",
                        "company":  "AKİŞ GAYRİMENKUL YATIRIM ORTAKLIĞI A.Ş.",
-                       "price":  9.43,
-                       "dailyPct":  0.3191,
-                       "weeklyPct":  0.7479,
-                       "rsi":  52.149,
-                       "macd":  0.0019,
-                       "volume":  "0.05x",
-                       "signal":  "İzle",
-                       "llmNote":  null,
-                       "action":  "izle"
-                   },
-                   {
-                       "ticker":  "ARASE",
-                       "company":  "DOĞU ARAS ENERJİ YATIRIMLARI A.Ş.",
-                       "price":  115.5,
-                       "dailyPct":  -0.3451,
-                       "weeklyPct":  0.7853,
-                       "rsi":  51.8024,
-                       "macd":  -0.453,
-                       "volume":  "0.16x",
+                       "price":  9.44,
+                       "dailyPct":  0.4255,
+                       "weeklyPct":  0.8547,
+                       "rsi":  52.4953,
+                       "macd":  0.0025,
+                       "volume":  "0.06x",
                        "signal":  "İzle",
                        "llmNote":  null,
                        "action":  "izle"
@@ -523,12 +732,25 @@
                    {
                        "ticker":  "OZSUB",
                        "company":  "ÖZSU BALIK ÜRETİM A.Ş.",
-                       "price":  31.86,
-                       "dailyPct":  0.9506,
-                       "weeklyPct":  -4.3243,
-                       "rsi":  58.4142,
-                       "macd":  0.0278,
-                       "volume":  "0.09x",
+                       "price":  32.02,
+                       "dailyPct":  1.4575,
+                       "weeklyPct":  -3.8438,
+                       "rsi":  59.116,
+                       "macd":  0.038,
+                       "volume":  "0.14x",
+                       "signal":  "İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "ARASE",
+                       "company":  "DOĞU ARAS ENERJİ YATIRIMLARI A.Ş.",
+                       "price":  115.4,
+                       "dailyPct":  -0.4314,
+                       "weeklyPct":  0.6981,
+                       "rsi":  51.6017,
+                       "macd":  -0.4594,
+                       "volume":  "0.17x",
                        "signal":  "İzle",
                        "llmNote":  null,
                        "action":  "izle"
@@ -536,12 +758,12 @@
                    {
                        "ticker":  "BIMAS",
                        "company":  "BİM BİRLEŞİK MAĞAZALAR A.Ş.",
-                       "price":  365.5,
-                       "dailyPct":  0.0684,
-                       "weeklyPct":  -4.5692,
-                       "rsi":  40.6769,
-                       "macd":  -2.2088,
-                       "volume":  "0.3x",
+                       "price":  366.5,
+                       "dailyPct":  0.3422,
+                       "weeklyPct":  -4.3081,
+                       "rsi":  41.4938,
+                       "macd":  -2.1449,
+                       "volume":  "0.32x",
                        "signal":  "İzle",
                        "llmNote":  null,
                        "action":  "izle"
@@ -554,7 +776,7 @@
                        "weeklyPct":  -0.7042,
                        "rsi":  48.7345,
                        "macd":  -0.062,
-                       "volume":  "0.19x",
+                       "volume":  "0.2x",
                        "signal":  "İzle",
                        "llmNote":  null,
                        "action":  "izle"
@@ -562,28 +784,28 @@
                    {
                        "ticker":  "MTRKS",
                        "company":  "MATRİKS FİNANSAL TEKNOLOJİLER A.Ş.",
-                       "price":  29.42,
-                       "dailyPct":  0.4096,
-                       "weeklyPct":  -3.2237,
-                       "rsi":  57.2999,
-                       "macd":  -0.1541,
-                       "volume":  "0.18x",
+                       "price":  29.3,
+                       "dailyPct":  null,
+                       "weeklyPct":  -3.6184,
+                       "rsi":  56.6841,
+                       "macd":  -0.1618,
+                       "volume":  "0.19x",
                        "signal":  "İzle",
                        "llmNote":  null,
                        "action":  "izle"
                    },
                    {
-                       "ticker":  "AKBNK",
-                       "company":  "AKBANK T.A.Ş.",
-                       "price":  76.8,
-                       "dailyPct":  -0.2597,
-                       "weeklyPct":  -4.6555,
-                       "rsi":  55.3816,
-                       "macd":  0.0131,
-                       "volume":  "0.43x",
+                       "ticker":  "ENERY",
+                       "company":  "Enerya Enerji A.S.",
+                       "price":  11.59,
+                       "dailyPct":  7.814,
+                       "weeklyPct":  18.8718,
+                       "rsi":  78.4383,
+                       "macd":  0.181,
+                       "volume":  "1.24x",
                        "signal":  "İzle",
                        "llmNote":  null,
-                       "action":  "izle"
+                       "action":  "riskli"
                    },
                    {
                        "ticker":  "LIDFA",
@@ -599,14 +821,27 @@
                        "action":  "izle"
                    },
                    {
-                       "ticker":  "THYAO",
-                       "company":  "TÜRK HAVA YOLLARI A.O.",
-                       "price":  329.25,
-                       "dailyPct":  0.9969,
-                       "weeklyPct":  1.2298,
-                       "rsi":  62.4029,
-                       "macd":  0.9387,
-                       "volume":  "0.47x",
+                       "ticker":  "AKBNK",
+                       "company":  "AKBANK T.A.Ş.",
+                       "price":  76.6,
+                       "dailyPct":  -0.5195,
+                       "weeklyPct":  -4.9038,
+                       "rsi":  54.8044,
+                       "macd":  0.0004,
+                       "volume":  "0.45x",
+                       "signal":  "İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "AKSA",
+                       "company":  "AKSA AKRİLİK KİMYA SANAYİİ A.Ş.",
+                       "price":  12.03,
+                       "dailyPct":  -0.5785,
+                       "weeklyPct":  1.2626,
+                       "rsi":  57.5258,
+                       "macd":  -0.002,
+                       "volume":  "0.25x",
                        "signal":  "İzle",
                        "llmNote":  null,
                        "action":  "izle"
@@ -619,20 +854,7 @@
                        "weeklyPct":  -3.8585,
                        "rsi":  55.2636,
                        "macd":  -0.0146,
-                       "volume":  "0.21x",
-                       "signal":  "İzle",
-                       "llmNote":  null,
-                       "action":  "izle"
-                   },
-                   {
-                       "ticker":  "EGPRO",
-                       "company":  "EGE PROFİL TİCARET VE SANAYİ A.Ş.",
-                       "price":  39,
-                       "dailyPct":  null,
-                       "weeklyPct":  -2.2556,
-                       "rsi":  48.5967,
-                       "macd":  -0.0839,
-                       "volume":  "0.12x",
+                       "volume":  "0.22x",
                        "signal":  "İzle",
                        "llmNote":  null,
                        "action":  "izle"
@@ -640,28 +862,15 @@
                    {
                        "ticker":  "SKBNK",
                        "company":  "ŞEKERBANK T.A.Ş.",
-                       "price":  15.89,
-                       "dailyPct":  2.1865,
-                       "weeklyPct":  -4.2771,
-                       "rsi":  61.1571,
-                       "macd":  0.0227,
-                       "volume":  "0.22x",
+                       "price":  15.97,
+                       "dailyPct":  2.701,
+                       "weeklyPct":  -3.7952,
+                       "rsi":  61.7349,
+                       "macd":  0.0278,
+                       "volume":  "0.27x",
                        "signal":  "İzle",
                        "llmNote":  null,
                        "action":  "izle"
-                   },
-                   {
-                       "ticker":  "ENERY",
-                       "company":  "Enerya Enerji A.S.",
-                       "price":  11.53,
-                       "dailyPct":  7.2558,
-                       "weeklyPct":  18.2564,
-                       "rsi":  78.0961,
-                       "macd":  0.1772,
-                       "volume":  "1.17x",
-                       "signal":  "İzle",
-                       "llmNote":  null,
-                       "action":  "riskli"
                    },
                    {
                        "ticker":  "FONET",
@@ -671,7 +880,20 @@
                        "weeklyPct":  -11.2228,
                        "rsi":  45.6205,
                        "macd":  -0.0366,
-                       "volume":  "0.12x",
+                       "volume":  "0.13x",
+                       "signal":  "İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "THYAO",
+                       "company":  "TÜRK HAVA YOLLARI A.O.",
+                       "price":  328.5,
+                       "dailyPct":  0.7669,
+                       "weeklyPct":  0.9992,
+                       "rsi":  61.8745,
+                       "macd":  0.8908,
+                       "volume":  "0.49x",
                        "signal":  "İzle",
                        "llmNote":  null,
                        "action":  "izle"
@@ -679,12 +901,25 @@
                    {
                        "ticker":  "HALKB",
                        "company":  "TÜRKİYE HALK BANKASI A.Ş.",
-                       "price":  43.82,
-                       "dailyPct":  2.0494,
-                       "weeklyPct":  -3.9877,
-                       "rsi":  48.3699,
-                       "macd":  -0.6558,
-                       "volume":  "0.32x",
+                       "price":  43.78,
+                       "dailyPct":  1.9562,
+                       "weeklyPct":  -4.0754,
+                       "rsi":  48.2305,
+                       "macd":  -0.6583,
+                       "volume":  "0.34x",
+                       "signal":  "İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "EGPRO",
+                       "company":  "EGE PROFİL TİCARET VE SANAYİ A.Ş.",
+                       "price":  38.64,
+                       "dailyPct":  -0.9231,
+                       "weeklyPct":  -3.1579,
+                       "rsi":  47.4882,
+                       "macd":  -0.1069,
+                       "volume":  "0.14x",
                        "signal":  "İzle",
                        "llmNote":  null,
                        "action":  "izle"
@@ -692,25 +927,12 @@
                    {
                        "ticker":  "KRSTL",
                        "company":  "KRİSTAL KOLA VE MEŞRUBAT SANAYİ TİCARET A.Ş.",
-                       "price":  11.03,
-                       "dailyPct":  0.1817,
-                       "weeklyPct":  1.4719,
-                       "rsi":  50.8503,
-                       "macd":  -0.0409,
-                       "volume":  "0.12x",
-                       "signal":  "İzle",
-                       "llmNote":  null,
-                       "action":  "izle"
-                   },
-                   {
-                       "ticker":  "AEFES",
-                       "company":  "ANADOLU EFES BİRACILIK VE MALT SANAYİİ A.Ş.",
-                       "price":  21.14,
-                       "dailyPct":  0.4753,
-                       "weeklyPct":  3.7291,
-                       "rsi":  57.2082,
-                       "macd":  -0.0194,
-                       "volume":  "0.32x",
+                       "price":  10.99,
+                       "dailyPct":  -0.1817,
+                       "weeklyPct":  1.104,
+                       "rsi":  50.1664,
+                       "macd":  -0.0435,
+                       "volume":  "0.13x",
                        "signal":  "İzle",
                        "llmNote":  null,
                        "action":  "izle"
@@ -718,12 +940,25 @@
                    {
                        "ticker":  "YKBNK",
                        "company":  "YAPI VE KREDİ BANKASI A.Ş.",
-                       "price":  40.1,
-                       "dailyPct":  -0.0997,
-                       "weeklyPct":  -6.4832,
-                       "rsi":  54.6372,
-                       "macd":  -0.1256,
-                       "volume":  "0.42x",
+                       "price":  40,
+                       "dailyPct":  -0.3488,
+                       "weeklyPct":  -6.7164,
+                       "rsi":  54.1522,
+                       "macd":  -0.132,
+                       "volume":  "0.43x",
+                       "signal":  "İzle",
+                       "llmNote":  null,
+                       "action":  "izle"
+                   },
+                   {
+                       "ticker":  "AEFES",
+                       "company":  "ANADOLU EFES BİRACILIK VE MALT SANAYİİ A.Ş.",
+                       "price":  21.06,
+                       "dailyPct":  0.0951,
+                       "weeklyPct":  3.3366,
+                       "rsi":  56.3685,
+                       "macd":  -0.0245,
+                       "volume":  "0.34x",
                        "signal":  "İzle",
                        "llmNote":  null,
                        "action":  "izle"
@@ -731,12 +966,12 @@
                    {
                        "ticker":  "YGGYO",
                        "company":  "YENİ GİMAT GAYRİMENKUL YATIRIM ORTAKLIĞI A.Ş.",
-                       "price":  236.1,
-                       "dailyPct":  0.0424,
-                       "weeklyPct":  -9.1923,
-                       "rsi":  50.4889,
-                       "macd":  -0.6141,
-                       "volume":  "0.04x",
+                       "price":  236.3,
+                       "dailyPct":  0.1271,
+                       "weeklyPct":  -9.1154,
+                       "rsi":  50.6207,
+                       "macd":  -0.6013,
+                       "volume":  "0.06x",
                        "signal":  "İzle",
                        "llmNote":  null,
                        "action":  "izle"
@@ -744,12 +979,12 @@
                    {
                        "ticker":  "KIMMR",
                        "company":  "ERSAN ALIŞVERİŞ HİZMETLERİ VE GIDA SANAYİ TİCARET A.Ş.",
-                       "price":  15.92,
-                       "dailyPct":  0.7595,
-                       "weeklyPct":  -5.9102,
-                       "rsi":  38.1591,
-                       "macd":  -0.0839,
-                       "volume":  "0.27x",
+                       "price":  15.9,
+                       "dailyPct":  0.6329,
+                       "weeklyPct":  -6.0284,
+                       "rsi":  37.8053,
+                       "macd":  -0.0852,
+                       "volume":  "0.28x",
                        "signal":  "İzle",
                        "llmNote":  null,
                        "action":  "izle"
@@ -757,12 +992,12 @@
                    {
                        "ticker":  "TRALT",
                        "company":  "Turk Altin Isletmeleri A.S.",
-                       "price":  46.58,
-                       "dailyPct":  -0.0858,
-                       "weeklyPct":  -6.4659,
-                       "rsi":  49.4506,
-                       "macd":  -0.2749,
-                       "volume":  "0.21x",
+                       "price":  46.66,
+                       "dailyPct":  0.0858,
+                       "weeklyPct":  -6.3052,
+                       "rsi":  49.6792,
+                       "macd":  -0.2698,
+                       "volume":  "0.23x",
                        "signal":  "İzle",
                        "llmNote":  null,
                        "action":  "izle"
@@ -770,11 +1005,11 @@
                    {
                        "ticker":  "ARMGD",
                        "company":  "Armada Gida Ticaret ve Sanayi Anonim Sirketi",
-                       "price":  171.2,
-                       "dailyPct":  0.7059,
-                       "weeklyPct":  -1.8911,
-                       "rsi":  67.1335,
-                       "macd":  0.7049,
+                       "price":  171.4,
+                       "dailyPct":  0.8235,
+                       "weeklyPct":  -1.7765,
+                       "rsi":  67.2543,
+                       "macd":  0.7176,
                        "volume":  "0.2x",
                        "signal":  "Nötr +",
                        "llmNote":  null,
@@ -784,74 +1019,74 @@
     "sectorRotation":  [
                            {
                                "sector":  "İletişim",
-                               "dailyPct":  1.48,
-                               "weeklyPct":  7,
+                               "dailyPct":  1.51,
+                               "weeklyPct":  7.04,
                                "flow":  "giriş"
                            },
                            {
                                "sector":  "Enerji Hammaddeleri",
-                               "dailyPct":  1.14,
-                               "weeklyPct":  1.9,
+                               "dailyPct":  1.13,
+                               "weeklyPct":  1.88,
                                "flow":  "giriş"
                            },
                            {
                                "sector":  "Endüstriyel Hizmetler",
-                               "dailyPct":  1.99,
-                               "weeklyPct":  0.12,
-                               "flow":  "nötr"
-                           },
-                           {
-                               "sector":  "Ticari Hizmetler",
-                               "dailyPct":  0.89,
-                               "weeklyPct":  -0.19,
+                               "dailyPct":  2.34,
+                               "weeklyPct":  0.23,
                                "flow":  "nötr"
                            },
                            {
                                "sector":  "Çeşitli",
-                               "dailyPct":  0.94,
-                               "weeklyPct":  -0.48,
-                               "flow":  "çıkış"
+                               "dailyPct":  1.12,
+                               "weeklyPct":  -0.3,
+                               "flow":  "nötr"
                            },
                            {
-                               "sector":  "Enerji Dışı Mineraller",
-                               "dailyPct":  0.48,
-                               "weeklyPct":  -1.13,
+                               "sector":  "Ticari Hizmetler",
+                               "dailyPct":  0.73,
+                               "weeklyPct":  -0.4,
                                "flow":  "çıkış"
                            },
                            {
                                "sector":  "Sağlık Teknolojisi",
-                               "dailyPct":  0.69,
-                               "weeklyPct":  -1.15,
+                               "dailyPct":  0.64,
+                               "weeklyPct":  -1.26,
+                               "flow":  "çıkış"
+                           },
+                           {
+                               "sector":  "Enerji Dışı Mineraller",
+                               "dailyPct":  0.3,
+                               "weeklyPct":  -1.31,
                                "flow":  "çıkış"
                            },
                            {
                                "sector":  "Finans",
-                               "dailyPct":  0.67,
-                               "weeklyPct":  -1.29,
-                               "flow":  "çıkış"
-                           },
-                           {
-                               "sector":  "Elektronik Teknoloji",
-                               "dailyPct":  0.91,
-                               "weeklyPct":  -1.58,
+                               "dailyPct":  0.57,
+                               "weeklyPct":  -1.37,
                                "flow":  "çıkış"
                            },
                            {
                                "sector":  "Dağıtım Hizmetleri",
-                               "dailyPct":  0.31,
-                               "weeklyPct":  -1.71,
+                               "dailyPct":  0.2,
+                               "weeklyPct":  -1.72,
                                "flow":  "çıkış"
                            },
                            {
-                               "sector":  "Teknoloji Hizmetleri",
-                               "dailyPct":  0.43,
+                               "sector":  "Elektronik Teknoloji",
+                               "dailyPct":  0.73,
                                "weeklyPct":  -1.76,
                                "flow":  "çıkış"
                            },
                            {
+                               "sector":  "Teknoloji Hizmetleri",
+                               "dailyPct":  0.15,
+                               "weeklyPct":  -2.02,
+                               "flow":  "çıkış"
+                           },
+                           {
                                "sector":  "Dayanıklı Tüketim",
-                               "dailyPct":  0.49,
-                               "weeklyPct":  -2.56,
+                               "dailyPct":  0.43,
+                               "weeklyPct":  -2.6,
                                "flow":  "çıkış"
                            }
                        ],
@@ -864,21 +1099,23 @@
                                              "DENGE",
                                              "RALYH",
                                              "BURCE",
-                                             "KONYA"
+                                             "KONYA",
+                                             "BINHO"
                                          ],
                        "weakening":  [
-                                         "AKCNS"
+                                         "AKCNS",
+                                         "TABGD"
                                      ]
                    },
     "technicalSignals":  {
                              "overbought":  [
                                                 {
                                                     "ticker":  "IEYHO",
-                                                    "rsi":  94.6677
+                                                    "rsi":  91.9682
                                                 },
                                                 {
                                                     "ticker":  "HEDEF",
-                                                    "rsi":  91.7096
+                                                    "rsi":  91.8973
                                                 },
                                                 {
                                                     "ticker":  "MRSHL",
@@ -890,25 +1127,25 @@
                                                 },
                                                 {
                                                     "ticker":  "DSTKF",
-                                                    "rsi":  86.5857
+                                                    "rsi":  86.5206
                                                 },
                                                 {
                                                     "ticker":  "EUKYO",
-                                                    "rsi":  84.8967
+                                                    "rsi":  85.0938
                                                 },
                                                 {
                                                     "ticker":  "TEHOL",
-                                                    "rsi":  83.9608
+                                                    "rsi":  83.7203
                                                 },
                                                 {
                                                     "ticker":  "KOCMT",
-                                                    "rsi":  82.5053
+                                                    "rsi":  82.2568
                                                 }
                                             ],
                              "oversold":  [
                                               {
                                                   "ticker":  "BMSTL",
-                                                  "rsi":  16.1069
+                                                  "rsi":  16.1583
                                               },
                                               {
                                                   "ticker":  "KONTR",
@@ -920,7 +1157,7 @@
                                               },
                                               {
                                                   "ticker":  "OTTO",
-                                                  "rsi":  21.8349
+                                                  "rsi":  21.1244
                                               },
                                               {
                                                   "ticker":  "LMKDC",
@@ -932,11 +1169,11 @@
                                               },
                                               {
                                                   "ticker":  "TABGD",
-                                                  "rsi":  23.2022
+                                                  "rsi":  23.8129
                                               },
                                               {
-                                                  "ticker":  "BMSCH",
-                                                  "rsi":  24.4142
+                                                  "ticker":  "MACKO",
+                                                  "rsi":  24.1626
                                               }
                                           ],
                              "macdCross":  [
@@ -970,10 +1207,10 @@
     "actionItems":  {
                         "watch":  [
                                       "CCOLA",
+                                      "TUPRS",
                                       "GLYHO",
-                                      "TRGYO",
                                       "PAGYO",
-                                      "ORGE"
+                                      "TRGYO"
                                   ],
                         "rebalance":  {
 
