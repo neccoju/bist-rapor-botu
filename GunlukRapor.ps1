@@ -3001,7 +3001,7 @@ $observationSectionHtml
 <b>Karar mekanizması:</b> makro zemin (TCMB EVDS faiz/TÜFE + CDS/DXY/VIX) → sektör rotasyonu → bilanço gücü (USD bazlı) → çok-zamanlı teknik teyit → kademeli giriş. Buna ek olarak <b>RawFactorScore100</b> (kesitsel ham-faktör; backtestte botun ~2 katı IC) bağımsız bir sıralama sinyali olarak raporlanır.<br>
 CDS, DXY, VIX izleme metrikleri ücretsiz/gecikmeli kaynaklardandır. İşlem kararı öncesi TCMB, Borsa İstanbul/MKK/KAP ve lisanslı veri kaynaklarıyla doğrulayın.
 </div>
-<div class="footer mono">BIST Kantitatif Rapor Motoru · $($runAt.ToString('yyyy-MM-dd HH:mm')) · otomatik üretildi</div>
+<div class="footer mono">BIST Kantitatif Rapor Motoru · $($runAt.ToString('yyyy-MM-dd HH:mm')) · otomatik üretildi · <a href="https://neccoju.github.io/bist-rapor-botu/" style="color:#6e8bff;text-decoration:none">Web panelinde aç →</a></div>
 </div>
 </body>
 </html>
