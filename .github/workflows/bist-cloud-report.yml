@@ -116,7 +116,9 @@ jobs:
           $pass = $env:BIST_SMTP_PASSWORD
           $server = $env:BIST_SMTP_SERVER
           $port = $env:BIST_SMTP_PORT
-          if ([string]::IsNullOrWhiteSpace($to) -or [string]::IsNullOrWhiteSpace($server) -or [string]::IsNullOrWhiteSpace($user)) {
+          # Ana scriptteki varsayilanla ayni: server secret'i bos birakilabilir (yan bulgu duzeltmesi).
+          if ([string]::IsNullOrWhiteSpace($server)) { $server = 'smtp.gmail.com' }
+          if ([string]::IsNullOrWhiteSpace($to) -or [string]::IsNullOrWhiteSpace($user)) {
             Write-Host 'SMTP ayarlari eksik; uyari maili atlandi.'
             exit 0
           }
