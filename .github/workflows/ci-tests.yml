@@ -39,6 +39,12 @@ jobs:
           powershell -NoProfile -ExecutionPolicy Bypass -File .\Test-BacktestEngine.ps1
           if ($LASTEXITCODE -ne 0) { exit 1 }
 
+      - name: Panel JS sozdizimi (node --check)
+        shell: powershell
+        run: |
+          node --check docs/assets/app.js
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
       - name: PSScriptAnalyzer (yalniz Error seviyesi kapi)
         shell: powershell
         run: |

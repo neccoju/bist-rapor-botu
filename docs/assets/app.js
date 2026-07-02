@@ -84,7 +84,11 @@
   function pctText(v) { if (!isNum(v)) return "—"; const s = v > 0 ? "+" : ""; return s + fmtTR(v) + "%"; }
   function pctClass(v) { if (!isNum(v)) return "flat"; return v > 0 ? "pos" : v < 0 ? "neg" : "flat"; }
   function tlText(v, d = 0) { return isNum(v) ? fmtTR(v, d) + " TL" : "—"; }
-  function esc(s) { const d = document.createElement("div"); d.textContent = s == null ? "" : String(s); return d.innerHTML; }
+  function esc(s) {
+    // Guvenlik: attribute baglaminda da guvenli olmasi icin TIRNAKLAR DA kacirilir
+    // (title="..."/data-tk='...' icine dis kaynakli KAP metinleri giriyor).
+    return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
   function emptyHTML(title, msg) {
     return '<div class="empty"><span class="empty__title">' + esc(title || "Veri bulunamadı") + "</span>" +
       (msg ? "<span>" + esc(msg) + "</span>" : "") + "</div>";

@@ -574,6 +574,14 @@ $rmShort = Get-DashRiskMetrics -PfPoints (New-RiskPts @(0, 1, 2, 3, 4)) -BenchPo
 if (-not $rmShort.insufficient) { throw "4 getiri ile insufficient=true dönmeliydi." }
 Write-Host "Panel risk metrikleri testi başarılı (MaksDD=-5.00, beta=1, korel=1, TE=0; kısa seri veri-kapılı)."
 
+# --- Panel JSON şema sözleşmesi (boş girdiyle bile anahtarlar mevcut olmalı) ---
+$schemaR = ConvertTo-DashboardReport -Stocks @() -AsOf ([datetime]'2026-07-01T12:00:00')
+$mustKeys = @('meta','summary','performance','allocation','modelPortfolios','instantEntry','stocks','sectorRotation','sectorFlow','riskMetrics','macro','kapNews','heatmap','smartMoney','technicalSignals','llmCommentary','actionItems')
+$missingK = @($mustKeys | Where-Object { $null -eq $schemaR.PSObject.Properties[$_] })
+if ($missingK.Count) { throw "Panel şemasında eksik anahtar: $($missingK -join ', ')" }
+Write-Host "Panel JSON şema testi başarılı ($($mustKeys.Count) zorunlu anahtar mevcut)."
+
+
 # --- D/E oran ölçeği (denetim düzeltmesi #1) ---
 $coreMod = Get-Module 'BistScanner.Core'
 $deLow  = & $coreMod { Get-DebtComponentScore -Value 0.3 -Sector 'Industrial' }
