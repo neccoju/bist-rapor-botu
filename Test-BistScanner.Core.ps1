@@ -585,8 +585,8 @@ if ($deHigh -ne 15) { throw "D/E 5.0 (yüksek kaldıraç) 15 olmalı: $deHigh" }
 Write-Host "D/E oran ölçeği testi başarılı (0.3→85, 1.5→50, 5.0→15; yüksek kaldıraç artık cezalı)."
 
 # --- Hacim yön duyarlılığı (denetim düzeltmesi #4) ---
-$vUp   = & $coreMod { Get-VolumeConfirmationComponentScore -Value 2.0 -ChangePct 2.5 }
-$vDown = & $coreMod { Get-VolumeConfirmationComponentScore -Value 2.0 -ChangePct -2.5 }
+$vUp   = & $coreMod { Get-VolumeConfirmationComponentScore -Value 2.0 -ChangePct (2.5) }
+$vDown = & $coreMod { Get-VolumeConfirmationComponentScore -Value 2.0 -ChangePct (-2.5) }
 $vNull = & $coreMod { Get-VolumeConfirmationComponentScore -Value 2.0 }
 if ($vUp -ne 92) { throw "Yüksek hacimli yükseliş 92 olmalı: $vUp" }
 if ($vDown -ne 25) { throw "Yüksek hacimli DÜŞÜŞ (dağıtım) 25 olmalı: $vDown" }

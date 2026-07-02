@@ -1570,6 +1570,8 @@ function Get-VolumeConfirmationComponentScore {
     param($Value, $ChangePct = $null)
 
     if ($null -eq $Value) { return 45 }
+    # PS 5.1 guvenligi: parametre baglama/tip farklarina karsi acik double donusumu.
+    $ChangePct = ConvertTo-DoubleOrNull $ChangePct
     # YON DUYARLILIGI (denetim #4): yuksek hacim yalniz YUKARI gunlerde "talep teyidi"dir.
     # Yuksek hacimli DUSUS dagitim sinyalidir — eskiden 92 puan aliyordu, artik cezali.
     if ($null -ne $ChangePct -and $ChangePct -lt 0) {
