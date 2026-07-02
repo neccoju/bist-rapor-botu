@@ -49,8 +49,10 @@ jobs:
         shell: powershell
         run: |
           Install-Module PSScriptAnalyzer -Force -Scope CurrentUser -SkipPublisherCheck
+          # PSAvoidUsingConvertToSecureStringWithPlainText: SMTP parolasi GitHub Secret'tan
+          # env ile gelir; PSCredential kurmak icin donusum zorunlu (repoda duz metin yok).
           $results = Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error `
-            -ExcludeRule PSAvoidUsingWriteHost, PSUseShouldProcessForStateChangingFunctions
+            -ExcludeRule PSAvoidUsingWriteHost, PSUseShouldProcessForStateChangingFunctions, PSAvoidUsingConvertToSecureStringWithPlainText
           if ($results) {
             $results | Format-Table RuleName, ScriptName, Line, Message -AutoSize | Out-String | Write-Host
             Write-Error ("PSScriptAnalyzer {0} Error buldu." -f @($results).Count)
