@@ -41,10 +41,10 @@ foreach ($variant in @('/serieList/type=json&code=bie_mknethar', '/serieList/fe/
 }
 
 Write-Host ''
-Write-Host '=== 2) Ilk serinin son 8 haftalik verisi (deneme cekimi) ==='
-$probe = Inv ("{0}/series=TP.MKNETHAREKET.H1&startDate=01-05-2026&endDate=02-07-2026&type=json&formulas=0" -f $base)
+Write-Host '=== 2) TP.MKNETHAR.M7 son haftalik veriler (canli dogrulama) ==='
+$probe = Inv ("{0}/series=TP.MKNETHAR.M7&startDate=01-05-2026&endDate=02-07-2026&type=json&frequency=3&aggregationTypes=sum&formulas=0" -f $base)
 if ($null -ne $probe) {
     $json = ($probe | ConvertTo-Json -Depth 4)
-    Write-Host $json.Substring(0, [Math]::Min(1500, $json.Length))
+    Write-Host $json.Substring(0, [Math]::Min(1800, $json.Length))
 }
-Write-Host '=== EVDS3 kesif v6 tamam ==='
+Write-Host '=== EVDS3 kesif v7 tamam ==='
