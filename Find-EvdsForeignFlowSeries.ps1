@@ -28,26 +28,23 @@ function Inv($url, $timeout = 45) {
     catch { Write-Host "  ! istek hatasi: $url -> $($_.Exception.Message)"; return $null }
 }
 
-Write-Host '=== 1) searchResults ham dokumler (alan adlari + seri kodlari) ==='
-foreach ($term in @('yabanci', 'yurt disi yerlesik', 'menkul kiymet istatistikleri', 'hisse senedi')) {
-    Write-Host ("--- arama: '{0}' ---" -f $term)
-    $res = Inv ("{0}/searchResults?searchVal={1}" -f $base, [uri]::EscapeDataString($term))
-    if ($null -eq $res) { continue }
-    $json = ($res | ConvertTo-Json -Depth 4)
-    Write-Host $json.Substring(0, [Math]::Min(3000, $json.Length))
-    Write-Host ''
+# v5 bulgusu: bie_mknethar = "Yurt Disi Yerlesikler Menkul Kiymet Portfoyu"
+# (HAFTALIK CUMA; TCMB/TAKASBANK/MKK). Simdi bu grubun serileri dokulur.
+Write-Host '=== 1) bie_mknethar seri listesi (tam dokum) ==='
+foreach ($variant in @('/serieList/type=json&code=bie_mknethar', '/serieList/fe/type=json&code=bie_mknethar')) {
+    $series = Inv ("{0}{1}" -f $base, $variant)
+    if ($null -eq $series) { continue }
+    foreach ($s in @($series)) {
+        Write-Host ("  SERI: {0}  |  {1}  |  freq={2} agg={3}" -f $s.SERIE_CODE, $s.SERIE_NAME, $s.FREQUENCY_STR, $s.DEFAULT_AGG_METHOD)
+    }
+    break
 }
 
-Write-Host '=== 2) Kategori agaci (uzun timeout ile tek deneme) ==='
-$tree = Inv ("{0}/categories/withDatagroups/type=json" -f $base) 110
-if ($null -ne $tree) {
-    $gkw = 'YABANCI|YURT DI|YURTDI|SAKLAMA|MENKUL KIY|NON-RESIDENT|CUSTODY|SECURITIES'
-    foreach ($c in @($tree)) {
-        foreach ($g in @($c.DATAGROUPS)) {
-            if ("$($g.DATAGROUP_NAME) $($g.DATAGROUP_NAME_ENG)" -match $gkw) {
-                Write-Host ("  [{0}] {1}  |  {2}" -f $g.DATAGROUP_CODE, $g.DATAGROUP_NAME, $c.TOPIC_TITLE_TR)
-            }
-        }
-    }
+Write-Host ''
+Write-Host '=== 2) Ilk serinin son 8 haftalik verisi (deneme cekimi) ==='
+$probe = Inv ("{0}/series=TP.MKNETHAREKET.H1&startDate=01-05-2026&endDate=02-07-2026&type=json&formulas=0" -f $base)
+if ($null -ne $probe) {
+    $json = ($probe | ConvertTo-Json -Depth 4)
+    Write-Host $json.Substring(0, [Math]::Min(1500, $json.Length))
 }
-Write-Host '=== EVDS3 kesif v5 tamam ==='
+Write-Host '=== EVDS3 kesif v6 tamam ==='
