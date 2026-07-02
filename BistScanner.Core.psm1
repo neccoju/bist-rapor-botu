@@ -6134,6 +6134,42 @@ function Get-EvdsSeries {
     }
 }
 
+function Get-EvdsForeignEquityFlow {
+    <#
+        Yurt disi yerlesiklerin HAFTALIK net hisse senedi islemleri (mn USD).
+        Kaynak: TCMB EVDS bie_mknethar grubu, seri TP.MKNETHAR.M7
+        ("2.1.1. Hisse Senedi Net Degisim", HAFTALIK CUMA, agg=sum; veri
+        TCMB/Takasbank/MKK derlemesi). Piyasa GENELI yabanci akis gostergesi —
+        hisse bazli degil; panel foreignFlow kartinin ust seridini besler.
+        Anahtar yoksa/veri alinamazsa $null (cagiran best-effort kullanir).
+    #>
+    [CmdletBinding()]
+    param(
+        [int]$WeeksBack = 10,
+        [int]$TimeoutSec = 10
+    )
+    if ([string]::IsNullOrWhiteSpace($env:BIST_EVDS_API_KEY)) { return $null }
+    $series = Get-EvdsSeries -Series 'TP.MKNETHAR.M7' -Frequency 3 -Aggregation 'sum' `
+        -StartDate (Get-Date).AddDays(-7 * ($WeeksBack + 2)) -EndDate (Get-Date) -TimeoutSec $TimeoutSec
+    if ($null -eq $series) { return $null }
+    $pts = @(Get-ObjectPropertyValue -Object $series -Name 'Points')
+    if ($pts.Count -eq 0) { return $null }
+    $last = $pts[$pts.Count - 1]
+    $tailCount = [Math]::Min(4, $pts.Count)
+    $sum4 = 0.0
+    for ($i = $pts.Count - $tailCount; $i -lt $pts.Count; $i++) { $sum4 += [double]$pts[$i].Value }
+    $recent = @($pts | Select-Object -Last 8 | ForEach-Object { [pscustomobject]@{ t = [string]$_.Date; v = [Math]::Round([double]$_.Value, 1) } })
+    return [pscustomobject]@{
+        netUsdMn   = [Math]::Round([double]$last.Value, 1)
+        date       = [string]$last.Date
+        prevUsdMn  = if ($null -ne $series.Previous) { [Math]::Round([double]$series.Previous, 1) } else { $null }
+        sum4wUsdMn = [Math]::Round($sum4, 1)
+        unit       = 'milyon $'
+        source     = 'TCMB EVDS (TP.MKNETHAR.M7, haftalık Cuma)'
+        points     = $recent
+    }
+}
+
 function Get-EvdsInflationBenchmark {
     <#
         TCMB EVDS TUFE endeksinden (TP.FG.J0, 2003=100) 1Y/3Y/5Y birikimli
@@ -7046,6 +7082,7 @@ Export-ModuleMember -Function `
     Get-StaticFactorWeights, `
     Get-RawFactorVector, `
     Get-EvdsSeries, `
+    Get-EvdsForeignEquityFlow, `
     Get-ModelPortfolioDefinitions, `
     Get-ModelPortfolioSelection, `
     Get-LastModelPortfolioTradingDay, `

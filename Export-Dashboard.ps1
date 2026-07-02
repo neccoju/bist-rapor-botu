@@ -268,7 +268,8 @@ function ConvertTo-DashboardReport {
         [string]$PagesUrl = $null,
         $MacroSnapshot = $null,
         [string]$DataDir = $null,
-        [object[]]$StructureSignals = @()
+        [object[]]$StructureSignals = @(),
+        $ForeignMarketFlow = $null
     )
 
     # ---- meta ----
@@ -368,6 +369,16 @@ function ConvertTo-DashboardReport {
 
     # ---- tefasFlow (TEFAS hisse fonu net akisi — dosyadan best-effort) ----
     $tefasFlow = Get-DashTefasFlow -DataDir $DataDir
+
+    # foreignFlow paneli: hisse bazli MKK verisi + piyasa geneli TCMB haftalik
+    # net seri (EVDS TP.MKNETHAR.M7) tek blokta birlesir; ikisi de best-effort.
+    $foreignFlowPanel = if ($null -ne $ffData) { $ffData.panel } else { $null }
+    if ($null -ne $ForeignMarketFlow) {
+        if ($null -eq $foreignFlowPanel) {
+            $foreignFlowPanel = [pscustomobject]@{ updatedAt = $null; note = $null; count = $null; risers = @(); fallers = @() }
+        }
+        $foreignFlowPanel | Add-Member -NotePropertyName market -NotePropertyValue $ForeignMarketFlow -Force
+    }
 
     # ---- stocks (en yüksek skorlu TopStocks) ----
     $topRows = @($Stocks |
@@ -656,7 +667,7 @@ function ConvertTo-DashboardReport {
         riskNote = $riskNote
         macro = $macro
         kapNews = $kapNews
-        foreignFlow = if ($null -ne $ffData) { $ffData.panel } else { $null }
+        foreignFlow = $foreignFlowPanel
         tefasFlow = $tefasFlow
         heatmap = $heatmap
         sectorRotation = $sectorRotation
@@ -709,13 +720,14 @@ function Export-DashboardReport {
         [int]$TopStocks = 30,
         [string]$PagesUrl = $null,
         $MacroSnapshot = $null,
-        [object[]]$StructureSignals = @()
+        [object[]]$StructureSignals = @(),
+        $ForeignMarketFlow = $null
     )
     $report = ConvertTo-DashboardReport -Stocks $Stocks -PortfolioSet $PortfolioSet -InstantEntryPortfolio $InstantEntryPortfolio `
         -StrategySeries $StrategySeries -BenchmarkSeries $BenchmarkSeries -MarketBreadth $MarketBreadth `
         -PortfolioCommentary $PortfolioCommentary -AsOf $AsOf -Strategy $Strategy -PrimaryPortfolioId $PrimaryPortfolioId `
         -TopStocks $TopStocks -PagesUrl $PagesUrl -MacroSnapshot $MacroSnapshot -DataDir (Join-Path $PSScriptRoot 'data') `
-        -StructureSignals $StructureSignals
+        -StructureSignals $StructureSignals -ForeignMarketFlow $ForeignMarketFlow
     $dir = Split-Path -Parent $OutPath
     if ($dir -and -not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
     $report | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $OutPath -Encoding UTF8

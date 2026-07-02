@@ -58,6 +58,7 @@
       items: [ { name: "BIST100", value: 14539.8, changePct: 0.4, unit: "puan", status: "Destekleyici" }, { name: "USD/TRY", value: 41.25, changePct: 0.1, unit: "TL", status: "Nötr" } ] },
     kapNews: [ { symbol: "TUPRS", title: "Pay Geri Alım İşlemleri", date: "18.06.2026 18:10:00", impact: "pozitif", summary: "Geri alım programı kapsamında alım." } ],
     foreignFlow: { updatedAt: "2026-06-29T05:24:00Z", note: "MKK kaynaklı cari yabancı oranı; yayın gecikmeli olabilir.", count: 591,
+      market: { netUsdMn: 184.3, sum4wUsdMn: -412.5, date: "26-06-2026", source: "TCMB EVDS (TP.MKNETHAR.M7, haftalık Cuma)" },
       risers: [ { ticker: "THYAO", pct: 23.8, chg: 1.59 }, { ticker: "CCOLA", pct: 38.6, chg: 0.84 } ],
       fallers: [ { ticker: "ASELS", pct: 55.0, chg: -1.45 }, { ticker: "YGGYO", pct: 0.4, chg: -0.31 } ] },
     tefasFlow: { asOf: "2026-07-02", note: "TEFAS hisse senedi fonları; net akış pay bazlı (fiyat etkisiz).",
@@ -746,7 +747,8 @@
     if (!host) return;
     const ff = report.foreignFlow || null;
     const risers = ff ? arr(ff.risers) : [], fallers = ff ? arr(ff.fallers) : [];
-    if (!ff || (!risers.length && !fallers.length)) {
+    const mkt = ff && ff.market ? ff.market : null;
+    if (!ff || (!risers.length && !fallers.length && !mkt)) {
       host.innerHTML = inlineEmpty("Yabancı takas verisi yok — haftalık MKK collector'ı henüz veri üretmemiş.");
       return;
     }
@@ -754,15 +756,25 @@
       sub.textContent = ff.note + (ff.count ? " · " + ff.count + " hisse" : "") +
         (ff.updatedAt ? " · güncelleme: " + String(ff.updatedAt).slice(0, 10) : "");
     }
+    let html = "";
+    if (mkt && isNum(mkt.netUsdMn)) {
+      const usd = (v) => (v < 0 ? "−" : "+") + fmtTR(Math.abs(v), 0) + " mn $";
+      html += '<div class="chiprow" style="grid-column:1/-1;margin-bottom:10px">' +
+        '<span class="badge ' + (mkt.netUsdMn >= 0 ? "badge--pos" : "badge--neg") + '">Piyasa geneli 1H net ' + esc(usd(mkt.netUsdMn)) + "</span>" +
+        (isNum(mkt.sum4wUsdMn) ? '<span class="badge ' + (mkt.sum4wUsdMn >= 0 ? "badge--pos" : "badge--neg") + '">4H ' + esc(usd(mkt.sum4wUsdMn)) + "</span>" : "") +
+        (mkt.date ? '<span class="badge badge--neutral">' + esc(mkt.date) + "</span>" : "") +
+        (mkt.source ? '<span class="flat" style="font-size:11px">' + esc(mkt.source) + "</span>" : "") + "</div>";
+    }
     const item = (x, cls) =>
       '<li><b>' + esc(x.ticker || "—") + "</b> <span class='badge " + cls + "'>" +
       (isNum(x.chg) ? (x.chg > 0 ? "+" : "") + fmtTR(x.chg, 2) + " pt" : "—") + "</span>" +
       (isNum(x.pct) ? " <span class='flat'>oran %" + fmtTR(x.pct, 2) + "</span>" : "") + "</li>";
-    host.innerHTML =
+    html +=
       '<div><h4>Yabancı Girişi (1H)</h4>' +
       (risers.length ? "<ul class='plainlist'>" + risers.map((x) => item(x, "badge--pos")).join("") + "</ul>" : inlineEmpty("—")) + "</div>" +
       '<div><h4>Yabancı Çıkışı (1H)</h4>' +
       (fallers.length ? "<ul class='plainlist'>" + fallers.map((x) => item(x, "badge--neg")).join("") + "</ul>" : inlineEmpty("—")) + "</div>";
+    host.innerHTML = html;
   }
 
   /* ---------------- 7d) Yerli fon akışı (TEFAS) ---------------- */

@@ -2366,11 +2366,17 @@ try {
                 try { $structureSignals = @(Get-PriceStructureSignals -Stocks $scored -Top 20) }
                 catch { $structureSignals = @() }
             }
+            # Piyasa geneli yabanci net hisse alimi (TCMB EVDS haftalik; anahtar yoksa null).
+            $foreignMarketFlow = $null
+            if (Get-Command Get-EvdsForeignEquityFlow -ErrorAction SilentlyContinue) {
+                try { $foreignMarketFlow = Get-EvdsForeignEquityFlow }
+                catch { $foreignMarketFlow = $null }
+            }
             [void](Export-DashboardReport -OutPath (Join-Path $PSScriptRoot 'docs/data/latest_report.json') `
                     -Stocks $scored -PortfolioSet $updatedPortfolioSet -InstantEntryPortfolio $updatedInstantEntryPortfolio `
                     -StrategySeries $dashStrat -BenchmarkSeries $dashBench -MarketBreadth $marketBreadth `
                     -PortfolioCommentary (Get-ObjectPropertyValue -Object $updatedPortfolioSet -Name 'MonthlyCommentary') `
-                    -MacroSnapshot $macroSnapshot -StructureSignals $structureSignals `
+                    -MacroSnapshot $macroSnapshot -StructureSignals $structureSignals -ForeignMarketFlow $foreignMarketFlow `
                     -AsOf $runAt -Strategy $strategy -PagesUrl 'https://neccoju.github.io/bist-rapor-botu/')
             Write-Host 'Web panel JSON guncellendi: docs/data/latest_report.json'
         }
