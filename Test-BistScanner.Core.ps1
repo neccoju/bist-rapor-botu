@@ -824,11 +824,27 @@ try {
         ($sample | Select-Object *),
         ([pscustomobject]@{ Symbol = 'TEST2'; Price = 50.0; MarketCap = 5e9; PE = 7.0; PB = 1.0; ROE = 18.0; DebtToEquity = 30.0; DividendYield = 1.0; Sector = 'Finance'; VolatilityD = 3.0; AverageVolume10D = 1e6; LatestReportDate = $null; NextEarningsDate = $null; FiscalPeriodEnd = $null })
     )
-    $savedPath = Save-PitSnapshot -Stocks $pitStocks -Directory $pitDir -AsOf ([datetime]'2026-06-16')
+    # Macro: Get-MacroSnapshot sekli (degerler Metrics[] icinde Id ile) — regresyon kilidi:
+    # onceki surum yalniz duz alan okudugu icin Macro dugumune hep null yaziyordu.
+    $pitMacro = [pscustomobject]@{
+        Status = 'Nötr'; SupportiveCount = 3; PressureCount = 2
+        Metrics = @(
+            [pscustomobject]@{ Id = 'USDTRY_Tcmb'; Name = 'USD/TRY'; Value = 41.25 },
+            [pscustomobject]@{ Id = 'TR_10Y'; Name = 'TR 10Y'; Value = 29.8 },
+            [pscustomobject]@{ Id = 'VIX'; Name = 'VIX'; Value = 15.2 },
+            [pscustomobject]@{ Id = 'XU100'; Name = 'BIST100'; Value = 14539.8 }
+        )
+    }
+    $savedPath = Save-PitSnapshot -Stocks $pitStocks -Directory $pitDir -AsOf ([datetime]'2026-06-16') -Macro $pitMacro
     if (-not (Test-Path -LiteralPath $savedPath)) { throw 'PIT anlik goruntu dosyasi yazilmadi.' }
     $pitRead = Get-PitSnapshot -Date ([datetime]'2026-06-16') -Directory $pitDir
     if ($pitRead.UniverseCount -ne 2) { throw "PIT evren sayisi yanlis: $($pitRead.UniverseCount)" }
     if (@($pitRead.Constituents | Where-Object { $_.Symbol -eq 'TEST' }).Count -ne 1) { throw 'PIT bilesen kaybi.' }
+    if ([Math]::Abs([double]$pitRead.Macro.UsdTry - 41.25) -gt 0.001) { throw "PIT Macro.UsdTry Metrics'ten cozulmedi: $($pitRead.Macro.UsdTry)" }
+    if ([Math]::Abs([double]$pitRead.Macro.Vix - 15.2) -gt 0.001) { throw "PIT Macro.Vix Metrics'ten cozulmedi: $($pitRead.Macro.Vix)" }
+    if ([Math]::Abs([double]$pitRead.Macro.Bist100 - 14539.8) -gt 0.001) { throw "PIT Macro.Bist100 cozulmedi: $($pitRead.Macro.Bist100)" }
+    if ($null -ne $pitRead.Macro.Dxy) { throw 'PIT Macro.Dxy: verilmedi, null kalmaliydi.' }
+    if ([string]$pitRead.Macro.Status -ne 'Nötr') { throw "PIT Macro.Status yanlis: $($pitRead.Macro.Status)" }
     $pitMissing = Get-PitSnapshot -Date ([datetime]'2026-06-10') -Directory $pitDir
     if ($null -ne $pitMissing) { throw 'PIT exact-eslesme yoksa null donmeliydi.' }
     $pitBefore = Get-PitSnapshot -Date ([datetime]'2026-06-20') -Directory $pitDir -OnOrBefore

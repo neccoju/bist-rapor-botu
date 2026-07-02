@@ -6358,11 +6358,30 @@ function Save-PitSnapshot {
 
     $macroNote = $null
     if ($null -ne $Macro) {
+        # Get-MacroSnapshot degerleri Metrics[] icinde Id ile tasir; duz alanli
+        # (UsdTry/Tr10Y/...) obje de desteklenir. Onceki surum yalniz duz alan
+        # okudugu icin Macro dugumu hep null yaziliyordu (2026-07-02 arsivinde goruldu).
+        $metricList = @(Get-ObjectPropertyValue -Object $Macro -Name 'Metrics')
+        $metricById = @{}
+        foreach ($mm in $metricList) {
+            $mid = [string](Get-ObjectPropertyValue -Object $mm -Name 'Id')
+            if ($mid -and -not $metricById.ContainsKey($mid)) { $metricById[$mid] = Get-ObjectPropertyValue -Object $mm -Name 'Value' }
+        }
+        $pickMacro = {
+            param($flatName, $metricId)
+            $v = Get-ObjectPropertyValue -Object $Macro -Name $flatName
+            if ($null -ne $v) { return $v }
+            if ($metricById.ContainsKey($metricId)) { return $metricById[$metricId] }
+            return $null
+        }
         $macroNote = [pscustomobject][ordered]@{
-            UsdTry = Get-ObjectPropertyValue -Object $Macro -Name 'UsdTry'
-            Tr10Y  = Get-ObjectPropertyValue -Object $Macro -Name 'Tr10Y'
-            Dxy    = Get-ObjectPropertyValue -Object $Macro -Name 'Dxy'
-            Vix    = Get-ObjectPropertyValue -Object $Macro -Name 'Vix'
+            UsdTry  = & $pickMacro 'UsdTry' 'USDTRY_Tcmb'
+            Tr10Y   = & $pickMacro 'Tr10Y' 'TR_10Y'
+            Dxy     = & $pickMacro 'Dxy' 'DXY'
+            Vix     = & $pickMacro 'Vix' 'VIX'
+            Cds5Y   = & $pickMacro 'Cds5Y' 'TR_CDS_5Y'
+            Bist100 = & $pickMacro 'Bist100' 'XU100'
+            Status  = [string](Get-ObjectPropertyValue -Object $Macro -Name 'Status')
         }
     }
 
