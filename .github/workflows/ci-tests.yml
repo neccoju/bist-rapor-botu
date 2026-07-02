@@ -1,0 +1,53 @@
+name: CI Tests (birim + statik analiz)
+
+# Denetim #6: her push'ta birim testler + PSScriptAnalyzer (Error seviyesi) kapisi.
+# Gunluk rapor akisina EK sigorta — rapor workflow'undaki hizli smoke kapisindan
+# bagimsiz, kod degisikliklerinde tam dogrulama. Elle de tetiklenebilir.
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**.ps1'
+      - '**.psm1'
+      - '.github/workflows/ci-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: windows-2025
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Birim testler (Core)
+        shell: powershell
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\Test-BistScanner.Core.ps1
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - name: Birim testler (BacktestEngine)
+        shell: powershell
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\Test-BacktestEngine.ps1
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - name: PSScriptAnalyzer (yalniz Error seviyesi kapi)
+        shell: powershell
+        run: |
+          Install-Module PSScriptAnalyzer -Force -Scope CurrentUser -SkipPublisherCheck
+          $results = Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error `
+            -ExcludeRule PSAvoidUsingWriteHost, PSUseShouldProcessForStateChangingFunctions
+          if ($results) {
+            $results | Format-Table RuleName, ScriptName, Line, Message -AutoSize | Out-String | Write-Host
+            Write-Error ("PSScriptAnalyzer {0} Error buldu." -f @($results).Count)
+            exit 1
+          }
+          Write-Host 'PSScriptAnalyzer: Error yok.'

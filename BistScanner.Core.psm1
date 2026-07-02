@@ -55,7 +55,25 @@ $script:TradingViewColumns = @(
     'enterprise_value_ebitda_ttm',
     'ebitda_fq',
     'ebitda_fq_h',
-    'ebitda_ttm'
+    'ebitda_ttm',
+    # --- Denetim #3 genisletmesi (APPEND-ONLY: eslestirme indeks-tabanli, sona ekleme
+    # mevcut alanlari bozmaz; ayni tek ucretsiz HTTP istegi). Teknik + temel: ---
+    'ATR',                     # 54: ortalama gercek aralik (stop/pozisyon boyutlama)
+    'ADX',                     # 55: trend gucu
+    'EMA20',                   # 56
+    'EMA50',                   # 57
+    'EMA200',                  # 58
+    'price_52_week_high',      # 59
+    'price_52_week_low',       # 60
+    'Stoch.K',                 # 61: asiri alim/satim capraz teyit
+    'MoneyFlow',               # 62: MFI (para akisi)
+    'BBPower',                 # 63
+    'gap',                     # 64: acilis boslugu %
+    'return_on_assets_fq',     # 65: ROA
+    'gross_margin',            # 66
+    'operating_margin',        # 67
+    'after_tax_margin',        # 68: net marj
+    'current_ratio'            # 69: cari oran
 )
 
 $script:BenchmarkColumns = @(
@@ -1501,11 +1519,15 @@ function Get-DebtComponentScore {
     )
 
     if ($Sector -eq 'Finance' -or $null -eq $Value) { return 50 }
+    # OLCEK DUZELTMESI: TradingView debt_to_equity_fq ORAN dondurur (0.02-3.7 araligi
+    # PIT arsivinden dogrulandi), yuzde DEGIL. Eski esikler (50/100/200/400) yuzde
+    # olcegi varsaydigi icin neredeyse tum hisseler 80-85 aliyor, yuksek kaldirac hic
+    # cezalanmiyordu. Esikler oran olcegine cekildi: 0.5/1/2/4.
     if ($Value -le 0) { return 80 }
-    if ($Value -le 50) { return 85 }
-    if ($Value -le 100) { return 70 }
-    if ($Value -le 200) { return 50 }
-    if ($Value -le 400) { return 30 }
+    if ($Value -le 0.5) { return 85 }
+    if ($Value -le 1.0) { return 70 }
+    if ($Value -le 2.0) { return 50 }
+    if ($Value -le 4.0) { return 30 }
     return 15
 }
 
@@ -1545,9 +1567,16 @@ function Get-RelativeVolumeComponentScore {
 }
 
 function Get-VolumeConfirmationComponentScore {
-    param($Value)
+    param($Value, $ChangePct = $null)
 
     if ($null -eq $Value) { return 45 }
+    # YON DUYARLILIGI (denetim #4): yuksek hacim yalniz YUKARI gunlerde "talep teyidi"dir.
+    # Yuksek hacimli DUSUS dagitim sinyalidir — eskiden 92 puan aliyordu, artik cezali.
+    if ($null -ne $ChangePct -and $ChangePct -lt 0) {
+        if ($Value -ge 1.5) { return 25 }   # yogun dagitim
+        if ($Value -ge 1.2) { return 35 }
+        return 45                            # dusuk hacimli dusus: notr
+    }
     if ($Value -ge 1.5) { return 92 }
     if ($Value -ge 1.2) { return 75 }
     if ($Value -ge 1.0) { return 62 }
@@ -1760,8 +1789,11 @@ function Get-ConfirmationProfile {
             -Line (Get-ObjectPropertyValue -Object $Stock -Name 'MacdLineMonthly') `
             -Signal (Get-ObjectPropertyValue -Object $Stock -Name 'MacdSignalMonthly') `
             -Histogram (Get-ObjectPropertyValue -Object $Stock -Name 'MacdHistogramMonthly')
-        VolumeConfirmed = $null -ne $Stock.RelativeVolume -and $Stock.RelativeVolume -ge 1.0
-        VolumeStrong = $null -ne $Stock.RelativeVolume -and $Stock.RelativeVolume -ge 1.5
+        # Yon duyarliligi (denetim #4): dusus gununde yuksek hacim teyit DEGIL, dagitimdir.
+        VolumeConfirmed = $null -ne $Stock.RelativeVolume -and $Stock.RelativeVolume -ge 1.0 -and
+            ($null -eq (Get-ObjectPropertyValue -Object $Stock -Name 'ChangePct') -or (Get-ObjectPropertyValue -Object $Stock -Name 'ChangePct') -ge 0)
+        VolumeStrong = $null -ne $Stock.RelativeVolume -and $Stock.RelativeVolume -ge 1.5 -and
+            ($null -eq (Get-ObjectPropertyValue -Object $Stock -Name 'ChangePct') -or (Get-ObjectPropertyValue -Object $Stock -Name 'ChangePct') -ge 0)
     }
 
     $technicalKeys = @('PriceAboveSma200', 'DailyRsiHealthy', 'WeeklyRsiHealthy', 'MonthlyRsiHealthy', 'DailyMacdBuy', 'WeeklyMacdBuy', 'MonthlyMacdBuy', 'VolumeConfirmed')
@@ -2432,6 +2464,26 @@ function ConvertFrom-TradingViewItem {
         EbitdaHistory = @(ConvertTo-DoubleArray $mapped[52])
         EbitdaTtmTRY = ConvertTo-DoubleOrNull $mapped[53]
         EbitdaTtmTRYBn = if ($null -ne (ConvertTo-DoubleOrNull $mapped[53])) { (ConvertTo-DoubleOrNull $mapped[53]) / 1000000000 } else { $null }
+        # --- Denetim #3 genisletmesi: yeni scanner kolonlari (indeks 54-69) ---
+        ATR = ConvertTo-DoubleOrNull $mapped[54]
+        ADX = ConvertTo-DoubleOrNull $mapped[55]
+        EMA20 = ConvertTo-DoubleOrNull $mapped[56]
+        EMA50 = ConvertTo-DoubleOrNull $mapped[57]
+        EMA200 = ConvertTo-DoubleOrNull $mapped[58]
+        High52W = ConvertTo-DoubleOrNull $mapped[59]
+        Low52W = ConvertTo-DoubleOrNull $mapped[60]
+        StochK = ConvertTo-DoubleOrNull $mapped[61]
+        MFI = ConvertTo-DoubleOrNull $mapped[62]
+        BBPower = ConvertTo-DoubleOrNull $mapped[63]
+        GapPct = ConvertTo-DoubleOrNull $mapped[64]
+        ROA = ConvertTo-DoubleOrNull $mapped[65]
+        GrossMargin = ConvertTo-DoubleOrNull $mapped[66]
+        OperatingMargin = ConvertTo-DoubleOrNull $mapped[67]
+        NetMargin = ConvertTo-DoubleOrNull $mapped[68]
+        CurrentRatio = ConvertTo-DoubleOrNull $mapped[69]
+        # 52 hafta bandi turevleri (tum evren, sifir ek istek):
+        Dist52WHighPct = if ($null -ne (ConvertTo-DoubleOrNull $mapped[2]) -and $null -ne (ConvertTo-DoubleOrNull $mapped[59]) -and (ConvertTo-DoubleOrNull $mapped[59]) -gt 0) { [Math]::Round(((ConvertTo-DoubleOrNull $mapped[2]) / (ConvertTo-DoubleOrNull $mapped[59]) - 1) * 100, 2) } else { $null }
+        Range52PositionPct = if ($null -ne (ConvertTo-DoubleOrNull $mapped[2]) -and $null -ne (ConvertTo-DoubleOrNull $mapped[59]) -and $null -ne (ConvertTo-DoubleOrNull $mapped[60]) -and ((ConvertTo-DoubleOrNull $mapped[59]) - (ConvertTo-DoubleOrNull $mapped[60])) -gt 0) { [Math]::Round(((ConvertTo-DoubleOrNull $mapped[2]) - (ConvertTo-DoubleOrNull $mapped[60])) / ((ConvertTo-DoubleOrNull $mapped[59]) - (ConvertTo-DoubleOrNull $mapped[60])) * 100, 1) } else { $null }
     }
 }
 
@@ -2565,7 +2617,7 @@ function Get-BistScore {
     $weekScore = Get-PerformanceComponentScore -Value $Stock.PerfWeek -Multiplier 3
     $monthScore = Get-PerformanceComponentScore -Value $Stock.PerfMonth -Multiplier 2
     $macdScore = Get-MacdComponentScore -Stock $Stock
-    $volumeConfirmationScore = Get-VolumeConfirmationComponentScore -Value $Stock.RelativeVolume
+    $volumeConfirmationScore = Get-VolumeConfirmationComponentScore -Value $Stock.RelativeVolume -ChangePct (Get-ObjectPropertyValue -Object $Stock -Name 'ChangePct')
     $momentumScore = (0.35 * $rsiScore) + (0.25 * $monthScore) + (0.15 * $weekScore) + (0.15 * $macdScore) + (0.10 * $volumeConfirmationScore)
 
     $relativeVolumeScore = Get-RelativeVolumeComponentScore -Value $Stock.RelativeVolume
@@ -5091,7 +5143,22 @@ function Get-WalkForwardFactorWeights {
     )
     $factorNames = @($PriorWeights.Keys)
     $valid = @($Periods | Where-Object { @($_).Count -ge $MinObsPerPeriod })
-    $diag = [ordered]@{ PeriodsGiven = @($Periods).Count; PeriodsUsed = $valid.Count; MeanIC = @{}; Applied = $false }
+    $diag = [ordered]@{ PeriodsGiven = @($Periods).Count; PeriodsUsed = $valid.Count; MeanIC = @{}; TStat = @{}; Applied = $false }
+
+    # HIJYEN #1 (denetim #5): ileri getirileri donem icinde WINSORIZE et (p05/p95).
+    # Tek bir tavan/taban ucu (spekulatif +%100 gunler) IC'yi domine edemesin.
+    $prepped = @(foreach ($period in $valid) {
+            $rets = @(@($period) | ForEach-Object { ConvertTo-DoubleOrNull $_.FwdRet } | Where-Object { $null -ne $_ } | Sort-Object)
+            if ($rets.Count -lt 3) { , @($period); continue }
+            $lo = [double]$rets[[Math]::Floor(0.05 * ($rets.Count - 1))]
+            $hi = [double]$rets[[Math]::Ceiling(0.95 * ($rets.Count - 1))]
+            , @(@($period) | ForEach-Object {
+                    $r = ConvertTo-DoubleOrNull $_.FwdRet
+                    if ($null -ne $r) { if ($r -lt $lo) { $r = $lo } elseif ($r -gt $hi) { $r = $hi } }
+                    [pscustomobject]@{ Factors = $_.Factors; FwdRet = $r }
+                })
+        })
+    $valid = $prepped
 
     if ($valid.Count -lt $MinPeriods) {
         $diag.Reason = "Yetersiz donem ($($valid.Count) < $MinPeriods); prior korundu."
@@ -5116,7 +5183,20 @@ function Get-WalkForwardFactorWeights {
             if ($null -ne $ic) { [void]$ics.Add([double]$ic) }
         }
         $meanIC[$fn] = if ($ics.Count -gt 0) { ($ics | Measure-Object -Average).Average } else { 0.0 }
+        # HIJYEN #2 (denetim #5): IC ANLAMLILIK KAPISI — donemler arasi t-istatistigi
+        # zayifsa (|t|<2) o faktorun IC'si orantili sondurulur (damp=|t|/2, en cok 1).
+        # Boylece gurultuyle "ogrenilmis" gibi gorunen faktorler agirligi suruklemez.
+        $tStat = 0.0
+        if ($ics.Count -ge 2) {
+            $icMean = [double]$meanIC[$fn]
+            $icVar = 0.0; foreach ($ic in $ics) { $icVar += ($ic - $icMean) * ($ic - $icMean) }
+            $icSd = [Math]::Sqrt($icVar / ($ics.Count - 1))
+            $tStat = if ($icSd -gt 1e-12) { $icMean / ($icSd / [Math]::Sqrt($ics.Count)) } else { [Math]::Sign($icMean) * 99.0 }
+            $damp = [Math]::Min(1.0, [Math]::Abs($tStat) / 2.0)
+            $meanIC[$fn] = $icMean * $damp
+        }
         $diag.MeanIC[$fn] = [Math]::Round([double]$meanIC[$fn], 4)
+        $diag.TStat[$fn] = [Math]::Round([double]$tStat, 2)
     }
 
     # IC vektorunu prior'un L2 normuna olcekle (bot skor olcegiyle uyum).

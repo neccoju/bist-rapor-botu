@@ -574,6 +574,25 @@ $rmShort = Get-DashRiskMetrics -PfPoints (New-RiskPts @(0, 1, 2, 3, 4)) -BenchPo
 if (-not $rmShort.insufficient) { throw "4 getiri ile insufficient=true dönmeliydi." }
 Write-Host "Panel risk metrikleri testi başarılı (MaksDD=-5.00, beta=1, korel=1, TE=0; kısa seri veri-kapılı)."
 
+# --- D/E oran ölçeği (denetim düzeltmesi #1) ---
+$coreMod = Get-Module 'BistScanner.Core'
+$deLow  = & $coreMod { Get-DebtComponentScore -Value 0.3 -Sector 'Industrial' }
+$deMid  = & $coreMod { Get-DebtComponentScore -Value 1.5 -Sector 'Industrial' }
+$deHigh = & $coreMod { Get-DebtComponentScore -Value 5.0 -Sector 'Industrial' }
+if ($deLow -ne 85) { throw "D/E 0.3 (düşük kaldıraç) 85 olmalı: $deLow" }
+if ($deMid -ne 50) { throw "D/E 1.5 50 olmalı: $deMid" }
+if ($deHigh -ne 15) { throw "D/E 5.0 (yüksek kaldıraç) 15 olmalı: $deHigh" }
+Write-Host "D/E oran ölçeği testi başarılı (0.3→85, 1.5→50, 5.0→15; yüksek kaldıraç artık cezalı)."
+
+# --- Hacim yön duyarlılığı (denetim düzeltmesi #4) ---
+$vUp   = & $coreMod { Get-VolumeConfirmationComponentScore -Value 2.0 -ChangePct 2.5 }
+$vDown = & $coreMod { Get-VolumeConfirmationComponentScore -Value 2.0 -ChangePct -2.5 }
+$vNull = & $coreMod { Get-VolumeConfirmationComponentScore -Value 2.0 }
+if ($vUp -ne 92) { throw "Yüksek hacimli yükseliş 92 olmalı: $vUp" }
+if ($vDown -ne 25) { throw "Yüksek hacimli DÜŞÜŞ (dağıtım) 25 olmalı: $vDown" }
+if ($vNull -ne 92) { throw "Yön bilinmiyorsa eski davranış korunmalı: $vNull" }
+Write-Host "Hacim yön duyarlılığı testi başarılı (2x hacim: yükselişte 92, düşüşte 25 — dağıtım cezalı)."
+
 # --- Eksik temel veri CEZALI olmalı (nötr 45 değil) ---
 $peGood = & (Get-Module 'BistScanner.Core') { Get-PEComponentScore -Value 10 }
 $peNull = & (Get-Module 'BistScanner.Core') { Get-PEComponentScore -Value $null }

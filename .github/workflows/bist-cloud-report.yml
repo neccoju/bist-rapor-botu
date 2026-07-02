@@ -92,6 +92,10 @@ jobs:
         shell: powershell
         run: |
           powershell -NoProfile -ExecutionPolicy Bypass -File .\Test-BistScanner.Core.ps1
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          # Denetim #6: backtest motoru da kapida — para-matematigi regresyonu maili engellesin.
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\Test-BacktestEngine.ps1
+          if ($LASTEXITCODE -ne 0) { exit 1 }
 
       - name: Run full daily report
         shell: powershell

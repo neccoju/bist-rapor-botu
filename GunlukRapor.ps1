@@ -2175,17 +2175,6 @@ try {
         }) -Depth 8
     Write-TimingLog -Step 'Son tarama state kaydi' -StartedAt $stageStartedAt
 
-    # Point-in-time (PIT) anlik goruntu arsivi: o gun gozlenen evren + temel veriyi
-    # tarihli olarak biriktirir (ileri-bakis yok). Zamanla gercek bir as-observed PIT
-    # arsivi olusur ve backtest'ler temel veriyle beslenebilir hale gelir. Best-effort.
-    $stageStartedAt = Get-Date
-    try {
-        $pitPath = Save-PitSnapshot -Stocks $stocks -Directory (Join-Path $PSScriptRoot 'data\pit') -AsOf $runAt
-        Write-Host "PIT anlik goruntu kaydedildi: $pitPath"
-    }
-    catch { Write-Warning "PIT anlik goruntu kaydedilemedi: $($_.Exception.Message)" }
-    Write-TimingLog -Step 'PIT anlik goruntu kaydi' -StartedAt $stageStartedAt
-
     # Kendi kendini degerlendiren geri-besleme: onceki kosunun yuksek-skorlu
     # secilerinin gerceklesen getirisi, skorun isabet oranini (hit-rate) olcer.
     $stageStartedAt = Get-Date
@@ -2312,6 +2301,18 @@ try {
     $stageStartedAt = Get-Date
     $macroSnapshot = Get-MacroSnapshot -IndexSnapshot $indexSnapshot -AsOf $runAt -TimeoutSec $macroTimeoutSec
     Write-TimingLog -Step 'Makro gorunum' -StartedAt $stageStartedAt
+
+    # Point-in-time (PIT) anlik goruntu arsivi: o gun gozlenen evren + temel veri +
+    # MAKRO REJIM tarihli olarak biriktirilir (ileri-bakis yok). Blok makro asamasinin
+    # SONRASINA tasindi ki Save-PitSnapshot'in -Macro parametresi baglanabilsin —
+    # makro rejim arsivi bugunden birikmeye baslar (denetim bulgusu #2). Best-effort.
+    $stageStartedAt = Get-Date
+    try {
+        $pitPath = Save-PitSnapshot -Stocks $stocks -Directory (Join-Path $PSScriptRoot 'data\pit') -AsOf $runAt -Macro $macroSnapshot
+        Write-Host "PIT anlik goruntu kaydedildi: $pitPath"
+    }
+    catch { Write-Warning "PIT anlik goruntu kaydedilemedi: $($_.Exception.Message)" }
+    Write-TimingLog -Step 'PIT anlik goruntu kaydi' -StartedAt $stageStartedAt
 
     # KAP son bildirimleri. Birincil kaynak: ayri is (kap-collector.yml, borsapy)
     # ile uretilip repoya commit edilen data/kap_disclosures.json. O dosya yoksa
