@@ -1,61 +1,105 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""collect_mkk.py — Yabancı saklama oranı toplayıcı (probe + collect, tek dosya).
+"""collect_mkk.py — Yabancı saklama oranı toplayıcı (İş Yatırım screener, stdlib-only).
 
 Amaç (Smart Money denetimi #10): hisse bazında yabancı yatırımcı oranını ücretsiz
-kaynaktan toplayıp data/mkk_foreign.json'a yazmak. İki aday kaynak sırayla denenir:
+kaynaktan toplu çekip data/mkk_foreign.json'a yazmak.
 
-  1) İş Yatırım 'Yabancı Oranları' JSON'u (MKK verisinin yeniden yayını; hisse
-     bazında, herkese açık, T-gecikmeli). Uzun süredir stabil bilinen endpoint.
-  2) MKK VAP (vap.org.tr) sayfa-arkası XHR — biçimi değişkense probe logu yol gösterir.
+Kaynak: İş Yatırım "Gelişmiş Hisse Arama" ekranının XHR'ı (getScreenerDataNEW).
+MKK kaynaklı "Cari Yabancı Oranı" tüm hisseler için tek POST ile gelir; ayrıca
+1 haftalık / 1 aylık değişim (baz puan) kriterleri de istenir. Endpoint session
+cookie + XHR header ister; önce arama sayfası GET edilip cookie alınır.
+(Kriter kimlikleri 40/44/45 borsapy isyatirim_screener sağlayıcısından doğrulandı.)
 
-Dürüstlük: veri MKK kaynaklı ve ~10 iş günü gecikmeli olabilir; dosyaya asOfNote
-olarak yazılır ve panelde bu etiketle gösterilmelidir. Kaynak erişilemezse script
-exit 0 ile 'veri yok' üretir (akışı bozmaz) ama logda nedenini açıkça söyler.
+Dürüstlük: veri MKK kaynaklı ve yayın gecikmeli olabilir; dosyaya asOfNote olarak
+yazılır ve panelde bu etiketle gösterilmelidir. Kaynak erişilemezse script exit 0
+ile 'veri yok' üretir (akışı bozmaz) ama logda nedenini açıkça söyler.
 
 Çıktı şeması:
-{ "generatedAt": iso, "source": "isyatirim|vap", "asOfNote": "...T-gecikmeli...",
-  "count": N, "items": { "SYM": {"foreignPct": f, "prevPct": f|null } } }
+{ "generatedAt": iso, "source": "isyatirim-screener", "asOfNote": "...",
+  "count": N, "items": { "SYM": {"foreignPct": f, "prevPct": f|null,
+                                  "chg1wBps": f|null, "chg1mBps": f|null } } }
 prevPct: bir önceki koşunun değeri (delta/trend için; ilk koşuda null).
 """
-import json, sys, time, urllib.request, urllib.error
+import json, re, sys, time, urllib.request, urllib.error
 from datetime import datetime, timezone
+from http.cookiejar import CookieJar
 
 OUT = "data/mkk_foreign.json"
-UA = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) BIST-Rapor-Botu/1.0",
-      "Accept": "application/json, text/plain, */*"}
+BASE = "https://www.isyatirim.com.tr"
+PAGE_URL = f"{BASE}/tr-tr/analiz/hisse/Sayfalar/gelismis-hisse-arama.aspx"
+SCREENER_URL = f"{BASE}/tr-tr/analiz/_Layouts/15/IsYatirim.Website/StockInfo/CompanyInfoAjax.aspx/getScreenerDataNEW"
+UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36"
+CRIT_FOREIGN, CRIT_CHG_1W, CRIT_CHG_1M = "40", "44", "45"  # Cari Yabancı Oranı (%), 1H/1A değişim (baz)
 
-def http_json(url, timeout=25):
-    req = urllib.request.Request(url, headers=UA)
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        return json.loads(r.read().decode("utf-8", "replace"))
 
-def try_isyatirim():
-    """İş Yatırım: tüm hisselerin yabancı oranı (tarih aralıklı sorgu, son değer alınır)."""
-    from datetime import date, timedelta
-    end = date.today(); start = end - timedelta(days=25)
-    url = ("https://www.isyatirim.com.tr/_layouts/15/IsYatirim.Website/Common/Data.aspx/"
-           f"YabanciOranlar?startdate={start:%d-%m-%Y}&enddate={end:%d-%m-%Y}")
-    d = http_json(url)
-    rows = d.get("value") if isinstance(d, dict) else d
-    if not rows: raise RuntimeError(f"isyatirim bos yanit: {str(d)[:200]}")
+def to_float(v):
+    if v is None: return None
+    try:
+        return float(str(v).replace(",", "."))
+    except ValueError:
+        return None
+
+
+def fetch_screener():
+    """Cookie al, screener'a POST at, ham satır listesini döndür."""
+    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(CookieJar()))
+    req = urllib.request.Request(PAGE_URL, headers={
+        "User-Agent": UA,
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"})
+    digest = None
+    with opener.open(req, timeout=30) as r:
+        m = re.search(r'id="__REQUESTDIGEST"[^>]*value="([^"]+)"', r.read().decode("utf-8", "replace"))
+        if m: digest = m.group(1)
+    payload = {"sektor": "", "endeks": "", "takip": "", "oneri": "",
+               "criterias": [[CRIT_FOREIGN, "0", "100", "False"],
+                             [CRIT_CHG_1W, "-10000", "10000", "False"],
+                             [CRIT_CHG_1M, "-10000", "10000", "False"]],
+               "lang": "1055"}
+    headers = {"User-Agent": UA,
+               "Content-Type": "application/json; charset=UTF-8",
+               "X-Requested-With": "XMLHttpRequest",
+               "Accept": "application/json, text/javascript, */*; q=0.01",
+               "Origin": BASE, "Referer": PAGE_URL}
+    if digest: headers["X-RequestDigest"] = digest
+    req = urllib.request.Request(SCREENER_URL, data=json.dumps(payload).encode(), headers=headers)
+    with opener.open(req, timeout=40) as r:
+        outer = json.loads(r.read().decode("utf-8", "replace"))
+    rows = json.loads(outer.get("d", "[]"))
+    if not rows:
+        raise RuntimeError(f"screener bos yanit: {str(outer)[:300]}")
+    return rows
+
+
+def parse_rows(rows):
+    """Satırları {SYM: (foreignPct, chg1wBps, chg1mBps)} yap; alan adları savunmacı çözülür."""
+    sample = rows[0]
+    keys = [k for k in sample.keys() if k != "Hisse"]
+    # Beklenen: kriter id'leri anahtar olarak döner ("40"/"44"/"45").
+    # Dönmüyorsa istenen kriter sırasına göre Hisse-dışı sayısal alanlar eşlenir.
+    if CRIT_FOREIGN in sample:
+        kf, kw, km = CRIT_FOREIGN, CRIT_CHG_1W, CRIT_CHG_1M
+    else:
+        num_keys = [k for k in keys if to_float(sample.get(k)) is not None]
+        if len(num_keys) < 1:
+            raise RuntimeError(f"screener satirinda sayisal alan yok; ornek: {str(sample)[:400]}")
+        print(f"[uyari] kriter id anahtari yok; alan sirasi varsayildi: {num_keys}", flush=True)
+        kf = num_keys[0]
+        kw = num_keys[1] if len(num_keys) > 1 else None
+        km = num_keys[2] if len(num_keys) > 2 else None
     items = {}
-    for row in rows:  # beklenen alanlar: HISSE_KODU / YAB_ORAN / TARIH (probe logu dogrular)
-        sym = (row.get("HISSE_KODU") or row.get("Code") or "").strip().upper()
-        val = row.get("YAB_ORAN", row.get("YabanciOran"))
-        dt = row.get("TARIH") or row.get("Date") or ""
-        if not sym or val is None: continue
-        cur = items.get(sym)
-        if cur is None or str(dt) >= str(cur[1]):
-            items[sym] = (float(val), str(dt))
-    if not items: raise RuntimeError(f"isyatirim parse 0 kayit; ilk satir: {str(rows[0])[:300]}")
-    return "isyatirim", {k: v[0] for k, v in items.items()}
+    for row in rows:
+        hisse = str(row.get("Hisse", ""))
+        sym = hisse.split(" - ", 1)[0].strip().upper()
+        pct = to_float(row.get(kf))
+        if not sym or pct is None: continue
+        items[sym] = (pct,
+                      to_float(row.get(kw)) if kw else None,
+                      to_float(row.get(km)) if km else None)
+    if not items:
+        raise RuntimeError(f"screener parse 0 kayit; ilk satir: {str(sample)[:400]}")
+    return items
 
-def try_vap():
-    """VAP: yerli-yabanci analiz sayfasinin XHR'i (bicim degisebilir; probe amacli)."""
-    url = "https://www.vap.org.tr/api/PaySenediAnaliz/YerliYabanci"
-    d = http_json(url)
-    raise RuntimeError(f"vap yanit alindi ama parser tanimsiz; ornek: {str(d)[:400]}")
 
 def main():
     prev = {}
@@ -64,26 +108,25 @@ def main():
             prev = {k: v.get("foreignPct") for k, v in json.load(f).get("items", {}).items()}
     except Exception:
         pass
-    source, data, errs = None, None, []
-    for name, fn in (("isyatirim", try_isyatirim), ("vap", try_vap)):
-        try:
-            source, data = fn(); break
-        except Exception as e:
-            errs.append(f"{name}: {type(e).__name__}: {e}")
-            print(f"[probe] {name} basarisiz -> {e}", flush=True)
-            time.sleep(1)
-    if not data:
-        print("[sonuc] hicbir kaynak calismadi; dosya degistirilmedi. Nedenler:", *errs, sep="\n  ")
-        return 0  # akisi bozma; probe logu yol gosterir
+    try:
+        rows = fetch_screener()
+        data = parse_rows(rows)
+    except Exception as e:
+        print(f"[probe] isyatirim-screener basarisiz -> {type(e).__name__}: {e}", flush=True)
+        print("[sonuc] kaynak calismadi; dosya degistirilmedi.")
+        return 0  # akisi bozma; log yol gosterir
     out = {"generatedAt": datetime.now(timezone.utc).isoformat(),
-           "source": source,
-           "asOfNote": "MKK kaynakli yabanci saklama orani; ~10 is gunu gecikmeli olabilir.",
+           "source": "isyatirim-screener",
+           "asOfNote": "MKK kaynakli cari yabanci orani (Is Yatirim yeniden yayini); yayin gecikmeli olabilir.",
            "count": len(data),
-           "items": {s: {"foreignPct": round(p, 2), "prevPct": prev.get(s)} for s, p in sorted(data.items())}}
+           "items": {s: {"foreignPct": round(p, 2), "prevPct": prev.get(s),
+                         "chg1wBps": w, "chg1mBps": m}
+                     for s, (p, w, m) in sorted(data.items())}}
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=1)
-    print(f"[sonuc] {source} kaynagi ile {len(data)} hisse yazildi -> {OUT}")
+    print(f"[sonuc] isyatirim-screener ile {len(data)} hisse yazildi -> {OUT}")
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())
