@@ -93,9 +93,9 @@ jobs:
             --engine "${{ github.event.inputs.engine || 'github' }}" \
             --fallback "${{ github.event.inputs.fallback || 'auto' }}" \
             --model "${{ github.event.inputs.model || '' }}" \
-            --max-items "${{ github.event.inputs.max_items || '25' }}" \
+            --max-items "${{ github.event.inputs.max_items || '40' }}" \
             --max-age-days "${{ github.event.inputs.max_age_days || '1' }}" \
-            --importance "${{ github.event.inputs.importance || 'high' }}" \
+            --importance "${{ github.event.inputs.importance || 'high,earnings,insider' }}" \
             --max-seconds 960 $FORCE $SCOPE
       - name: Commit enrichment to repo
         shell: bash

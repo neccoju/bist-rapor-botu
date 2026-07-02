@@ -2808,6 +2808,14 @@ function Get-YahooDailyCloseSeries {
     $ticker = if ($AsRawTicker) { $Symbol } else { Get-YahooFinanceSymbol -Symbol $Symbol }
     if ([string]::IsNullOrWhiteSpace($ticker)) { return @() }
 
+    # Dayaniklilik: kosu-ici bellek cache (ayni sembol+aralik tekrar istenmez) +
+    # istekler arasi kucuk throttle (429 riskini dusurur). Runner ephemeral;
+    # dogru cache katmani disk degil bellek.
+    if (-not (Get-Variable -Name YahooSeriesCache -Scope Script -ErrorAction SilentlyContinue)) { $script:YahooSeriesCache = @{} }
+    $cacheKey = "$ticker|$Range"
+    if ($script:YahooSeriesCache.ContainsKey($cacheKey)) { return @($script:YahooSeriesCache[$cacheKey]) }
+    Start-Sleep -Milliseconds 150
+
     $url = 'https://query1.finance.yahoo.com/v8/finance/chart/{0}?range={1}&interval=1d' -f ([Uri]::EscapeDataString($ticker)), $Range
     $headers = @{
         'User-Agent' = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -2819,7 +2827,14 @@ function Get-YahooDailyCloseSeries {
             Invoke-RestMethod -Uri $url -Headers $headers -TimeoutSec $TimeoutSec -ErrorAction Stop
         }
     }
-    catch { return @() }
+    catch {
+        # 429 (rate limit) icin tek ek bekleme + son deneme; digerinde bos don.
+        $is429 = ($_.Exception.Message -match '429') -or ($_.Exception.Response -and [int]$_.Exception.Response.StatusCode -eq 429)
+        if (-not $is429) { return @() }
+        Start-Sleep -Seconds 3
+        try { $response = Invoke-RestMethod -Uri $url -Headers $headers -TimeoutSec $TimeoutSec -ErrorAction Stop }
+        catch { return @() }
+    }
 
     $chart = Get-ObjectPropertyValue -Object $response -Name 'chart'
     $results = @(Get-ObjectPropertyValue -Object $chart -Name 'result')
@@ -2841,7 +2856,9 @@ function Get-YahooDailyCloseSeries {
         }
     }
 
-    return @($series.ToArray())
+    $seriesResult = @($series.ToArray())
+    if ($seriesResult.Count -gt 0) { $script:YahooSeriesCache[$cacheKey] = $seriesResult }
+    return $seriesResult
 }
 
 function Get-YahooDailyOhlcSeries {
