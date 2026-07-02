@@ -5965,15 +5965,31 @@ function Get-EvdsSeries {
     )
     $apiKey = $env:BIST_EVDS_API_KEY
     if ([string]::IsNullOrWhiteSpace($apiKey)) { return $null }
-    $url = 'https://evds2.tcmb.gov.tr/service/evds/series={0}&startDate={1}&endDate={2}&type=json&frequency={3}&aggregationTypes={4}&formulas=0' -f `
+    # EVDS gec-2025'te evds3.tcmb.gov.tr/igmevdsms-dis'e tasindi; evds2 uclari
+    # SPA HTML donduruyor (sessiz kirilma). Once evds3, olmadi evds2 denenir.
+    $qs = 'series={0}&startDate={1}&endDate={2}&type=json&frequency={3}&aggregationTypes={4}&formulas=0' -f `
         $Series, $StartDate.ToString('dd-MM-yyyy'), $EndDate.ToString('dd-MM-yyyy'), $Frequency, $Aggregation
-    try {
-        $resp = Invoke-WithRetry -OperationName "EVDS $Series" -MaxAttempts 2 -BaseDelaySec 1 -ScriptBlock {
-            Invoke-RestMethod -Uri $url -Headers @{ key = $apiKey } -TimeoutSec $TimeoutSec -ErrorAction Stop
-        }
+    $evdsHeaders = @{
+        key = $apiKey
+        'User-Agent' = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36'
+        Accept = 'application/json, text/plain, */*'
+        Origin = 'https://evds3.tcmb.gov.tr'
+        Referer = 'https://evds3.tcmb.gov.tr/tumSeriler'
     }
-    catch { return $null }
-    $items = Get-ObjectPropertyValue -Object $resp -Name 'items'
+    $items = $null
+    foreach ($endpointBase in @('https://evds3.tcmb.gov.tr/igmevdsms-dis/', 'https://evds2.tcmb.gov.tr/service/evds/')) {
+        $url = $endpointBase + $qs
+        try {
+            $resp = Invoke-WithRetry -OperationName "EVDS $Series" -MaxAttempts 2 -BaseDelaySec 1 -ScriptBlock {
+                Invoke-RestMethod -Uri $url -Headers $evdsHeaders -TimeoutSec $TimeoutSec -ErrorAction Stop
+            }
+        }
+        catch { continue }
+        # SPA HTML'i Invoke-RestMethod'da string olarak gelir — JSON nesnesi degilse atla.
+        if ($resp -is [string]) { continue }
+        $items = Get-ObjectPropertyValue -Object $resp -Name 'items'
+        if ($null -ne $items) { break }
+    }
     if ($null -eq $items) { return $null }
     $col = ($Series -replace '[\.\-]', '_')
     $points = New-Object System.Collections.Generic.List[object]

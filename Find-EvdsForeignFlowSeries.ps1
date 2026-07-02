@@ -1,79 +1,53 @@
 #requires -Version 5.1
 <#
-    TCMB EVDS metadata kesfi #2: yurt disi yerlesiklerin HISSE SENEDI net islem /
-    saklama serilerinin gercek kodlarini bulur (Smart Money: piyasa geneli yabanci
-    akis gostergesi icin). Metadata uclari icin iki varyant denenir (anahtar
-    header'da / path'te) ve ham yanit ozeti loglanir — onceki kosuda path'li
-    varyant bos dondugu icin taniya oncelik verildi. Sonuclar LOGA yazilir;
-    rapor/state'e dokunmaz.
+    TCMB EVDS metadata kesfi #2 (EVDS3): yurt disi yerlesiklerin HISSE SENEDI
+    saklama / net islem serilerinin gercek kodlarini bulur. EVDS gec-2025'te
+    evds3.tcmb.gov.tr'ye tasindi (evds2 uclari SPA'ya yonleniyor; onceki iki
+    kosuda HTML donmesinin nedeni bu). Yeni sozlesme:
+      - Taban: https://evds3.tcmb.gov.tr/igmevdsms-dis  (anahtar 'key' header'inda)
+      - serieList: /serieList/type=json&code=<datagrup>   (path-style)
+      - searchResults: /searchResults?searchVal=<terim>   (tam metin arama)
+    Sonuclar LOGA yazilir; rapor/state'e dokunmaz.
 #>
 $ErrorActionPreference = 'Continue'
 $key = $env:BIST_EVDS_API_KEY
 if ([string]::IsNullOrWhiteSpace($key)) { Write-Host 'EVDS anahtari yok (BIST_EVDS_API_KEY).'; return }
-$headers = @{ key = $key; 'User-Agent' = 'Mozilla/5.0' }
+$base = 'https://evds3.tcmb.gov.tr/igmevdsms-dis'
+$headers = @{
+    key = $key
+    'User-Agent' = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36'
+    Accept = 'application/json, text/plain, */*'
+    Origin = 'https://evds3.tcmb.gov.tr'
+    Referer = 'https://evds3.tcmb.gov.tr/tumSeriler'
+}
 
-function Inv-Raw($url) {
+function Inv($url) {
     try {
-        $r = Invoke-WebRequest -Uri $url -Headers $headers -TimeoutSec 20 -UseBasicParsing -ErrorAction Stop
-        return [string]$r.Content
+        $r = Invoke-WebRequest -Uri $url -Headers $headers -TimeoutSec 25 -UseBasicParsing -ErrorAction Stop
+        $raw = [string]$r.Content
+        if ($raw -match '^\s*<') { Write-Host ("  [tani] HTML dondu: {0}" -f $url); return $null }
+        return ($raw | ConvertFrom-Json)
     }
     catch { Write-Host "  ! istek hatasi: $url -> $($_.Exception.Message)"; return $null }
 }
 
-function Inv-Json($urls) {
-    # Ilk JSON parse edilebilen ve bos olmayan yaniti dondurur; hepsi bosarsa tani yazar.
-    foreach ($u in @($urls)) {
-        $raw = Inv-Raw $u
-        if ([string]::IsNullOrWhiteSpace($raw)) { Write-Host "  [tani] bos govde: $u"; continue }
-        try { $j = $raw | ConvertFrom-Json } catch { Write-Host ("  [tani] JSON degil ({0}): {1}" -f $u, $raw.Substring(0, [Math]::Min(200, $raw.Length))); continue }
-        if ($null -eq $j -or (@($j)).Count -eq 0) { Write-Host "  [tani] bos JSON: $u"; continue }
-        Write-Host "  [ok] $u"
-        return $j
-    }
-    return $null
-}
-
-function Show-SeriesOfGroup([string]$gcode, [string]$filter = '') {
-    $series = Inv-Json @(
-        ("https://evds2.tcmb.gov.tr/service/evds/serieList/type=json&code={0}" -f $gcode),
-        ("https://evds2.tcmb.gov.tr/service/evds/serieList/key={0}/type=json/code={1}" -f $key, $gcode)
-    )
-    if ($null -eq $series) { return }
-    foreach ($s in @($series)) {
-        $name = "$($s.SERIE_NAME) $($s.SERIE_NAME_ENG)"
-        if ($filter -and $name -notmatch $filter) { continue }
-        Write-Host ("      SERI: {0}  |  {1}  |  freq={2}" -f $s.SERIE_CODE, $s.SERIE_NAME, $s.FREQUENCY_STR)
-    }
-}
-
-Write-Host '=== 1) Bilinen aday veri gruplari (tum seriler) ==='
-foreach ($gcode in @('bie_yssk')) {
-    Write-Host ("  VeriGrubu [{0}]" -f $gcode)
-    Show-SeriesOfGroup $gcode
+Write-Host '=== 1) bie_yssk seri listesi (yurt disi yerlesik saklama bakiyeleri) ==='
+$series = Inv ("{0}/serieList/type=json&code=bie_yssk" -f $base)
+foreach ($s in @($series)) {
+    Write-Host ("  SERI: {0}  |  {1}  |  freq={2}" -f $s.SERIE_CODE, $s.SERIE_NAME, $s.FREQUENCY_STR)
 }
 
 Write-Host ''
-Write-Host '=== 2) Kategori taramasi (yabanci/menkul/saklama/portfoy) ==='
-$cats = Inv-Json @(
-    'https://evds2.tcmb.gov.tr/service/evds/categories/type=json',
-    ("https://evds2.tcmb.gov.tr/service/evds/categories/key={0}/type=json" -f $key)
-)
-if ($null -eq $cats) { Write-Host 'Kategori metadata alinamadi (iki varyant da bos).'; return }
-$gkw = 'YABANCI|YURT DI|YURTDI|SAKLAMA|MENKUL|SECURIT|NON-RESIDENT|PORTF|CUSTODY'
-$skw = 'HISSE|HİSSE|EQUITY|NET'
-foreach ($c in @($cats)) {
-    $ctitle = "$($c.TOPIC_TITLE_TR) $($c.TOPIC_TITLE_ENG)"
-    if ($ctitle -notmatch 'Menkul|Securit|Odemeler|Ödemeler|Payment|Dis |Dış|Finans|Piyasa|Market') { continue }
-    Write-Host ("--- Kategori [{0}] {1} ---" -f $c.CATEGORY_ID, $c.TOPIC_TITLE_TR)
-    $groups = Inv-Json @(
-        ("https://evds2.tcmb.gov.tr/service/evds/datagroups/mode=2&code={0}&type=json" -f $c.CATEGORY_ID),
-        ("https://evds2.tcmb.gov.tr/service/evds/datagroups/key={0}/mode=2/code={1}/type=json" -f $key, $c.CATEGORY_ID)
-    )
-    if ($null -eq $groups) { continue }
-    foreach ($g in @($groups)) {
-        if ("$($g.DATAGROUP_NAME) $($g.DATAGROUP_NAME_ENG)" -notmatch $gkw) { continue }
-        Write-Host ("  VeriGrubu [{0}] {1}" -f $g.DATAGROUP_CODE, $g.DATAGROUP_NAME)
-        Show-SeriesOfGroup $g.DATAGROUP_CODE $skw
+Write-Host '=== 2) Tam metin arama ==='
+foreach ($term in @('yurt disi yerlesik hisse', 'hisse senedi net', 'saklama hisse')) {
+    Write-Host ("--- arama: '{0}' ---" -f $term)
+    $res = Inv ("{0}/searchResults?searchVal={1}" -f $base, [uri]::EscapeDataString($term))
+    if ($null -eq $res) { continue }
+    foreach ($g in @($res.veriGruplari) | Select-Object -First 8) {
+        Write-Host ("  GRUP: {0}  |  {1}" -f $g.DATAGROUP_CODE, $g.DATAGROUP_NAME)
+    }
+    foreach ($s in @($res.seriler) | Select-Object -First 15) {
+        Write-Host ("  SERI: {0}  |  {1}" -f $s.SERIE_CODE, $s.SERIE_NAME)
     }
 }
-Write-Host '=== EVDS yabanci-akis kesfi tamam ==='
+Write-Host '=== EVDS3 yabanci-akis kesfi tamam ==='
