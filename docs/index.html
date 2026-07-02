@@ -30,12 +30,15 @@
       <nav class="nav" id="nav">
         <a class="nav__item is-active" href="#ozet" data-section="ozet">Özet</a>
         <a class="nav__item" href="#performans" data-section="performans">Performans</a>
+        <a class="nav__item" href="#makro" data-section="makro">Makro Görünüm</a>
         <a class="nav__item" href="#dagilim" data-section="dagilim">Portföy Dağılımı</a>
         <a class="nav__item" href="#portfoyler" data-section="portfoyler">Model Portföyler</a>
         <a class="nav__item" href="#anlikgiris" data-section="anlikgiris">Anlık Giriş</a>
+        <a class="nav__item" href="#isi" data-section="isi">Isı Haritası</a>
         <a class="nav__item" href="#hisseler" data-section="hisseler">Hisseler</a>
         <a class="nav__item" href="#sektor" data-section="sektor">Sektör Rotasyonu</a>
         <a class="nav__item" href="#akis" data-section="akis">Para Akışı</a>
+        <a class="nav__item" href="#haberler" data-section="haberler">Haberler</a>
         <a class="nav__item" href="#teknik" data-section="teknik">Teknik Sinyaller</a>
         <a class="nav__item" href="#yorum" data-section="yorum">Yapay Zekâ Yorumu</a>
         <a class="nav__item" href="#aksiyon" data-section="aksiyon">Aksiyon Listesi</a>
@@ -88,6 +91,17 @@
         </div>
       </section>
 
+      <!-- 3b) MAKRO GÖRÜNÜM -->
+      <section class="block" id="makro">
+        <div class="card">
+          <div class="card__head">
+            <div><h2 class="card__title">Makro Görünüm</h2><p class="card__sub">BIST100/BIST30/XBANK, USD/TRY, CDS, faiz, DXY, VIX — risk iştahı kompoziti</p></div>
+            <div id="macroBadge"></div>
+          </div>
+          <div class="card__body"><div id="macroCard"></div></div>
+        </div>
+      </section>
+
       <!-- 4) PORTFÖY DAĞILIMI -->
       <section class="block" id="dagilim">
         <div class="card">
@@ -111,6 +125,14 @@
           </div>
         </div>
         <div class="card" style="margin-top:16px">
+          <div class="card__head"><h2 class="card__title">Risk Metrikleri</h2><p class="card__sub">Günlük getiri serilerinden — volatilite, Sharpe, Sortino, Calmar, maks. düşüş, beta, alfa, izleme hatası, bilgi oranı</p></div>
+          <div class="card__body">
+            <div class="tablewrap"><table class="table" id="riskTable"><thead></thead><tbody></tbody></table></div>
+            <p class="ie__note" id="riskNote" hidden></p>
+            <div class="empty" id="riskEmpty" hidden></div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px">
           <div class="card__head"><h2 class="card__title">Model Portföyler — Detay</h2><p class="card__sub">Her stratejinin değeri ve hisseleri</p></div>
           <div class="card__body"><div id="modelPortfolios" class="pfgrid"></div></div>
         </div>
@@ -124,12 +146,23 @@
         </div>
       </section>
 
+      <!-- 4d) PİYASA ISI HARİTASI -->
+      <section class="block" id="isi">
+        <div class="card">
+          <div class="card__head"><h2 class="card__title">Piyasa Isı Haritası</h2><p class="card__sub">Tüm evren — sektör gruplu, günlük % değişim; hücreye tıklayınca hisse tablosunda aranır</p></div>
+          <div class="card__body"><div id="heatmapHost" class="hm"></div></div>
+        </div>
+      </section>
+
       <!-- 5) HİSSE TABLOSU -->
       <section class="block" id="hisseler">
         <div class="card">
           <div class="card__head card__head--table">
-            <div><h2 class="card__title">Hisseler</h2><p class="card__sub">Tarama evreninden seçili kayıtlar</p></div>
-            <input class="search" id="stockSearch" type="search" placeholder="Hisse ara…" aria-label="Hisse ara" />
+            <div><h2 class="card__title">Hisseler</h2><p class="card__sub">Tarama evreninden seçili kayıtlar · ★ ile favorilere ekleyin</p></div>
+            <div class="tablectl">
+              <button class="chipbtn" id="favToggle" type="button" title="Sadece favorileri göster">★ Favoriler</button>
+              <input class="search" id="stockSearch" type="search" placeholder="Hisse ara…" aria-label="Hisse ara" />
+            </div>
           </div>
           <div class="card__body card__body--flush">
             <div class="tablewrap">
@@ -177,6 +210,14 @@
             <div class="card__head"><h2 class="card__title">Güçlenen / Zayıflayan</h2></div>
             <div class="card__body"><div id="strengthLists" class="twocol"></div></div>
           </div>
+        </div>
+      </section>
+
+      <!-- 7b) KAP HABERLERİ -->
+      <section class="block" id="haberler">
+        <div class="card">
+          <div class="card__head"><h2 class="card__title">KAP Haberleri</h2><p class="card__sub">Yapay zekâ ile özetlenmiş son bildirimler — etki rozeti: pozitif / negatif / nötr / belirsiz</p></div>
+          <div class="card__body"><div id="kapNewsList" class="news"></div></div>
         </div>
       </section>
 

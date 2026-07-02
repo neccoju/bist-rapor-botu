@@ -49,6 +49,15 @@
       { from: "Kimya", to: "Enerji", flow: 1.8 }, { from: "Kimya", to: "Ulaştırma", flow: 1.27 }
     ],
     sectorFlowBasis: "aylık",
+    riskMetrics: [
+      { id: "Dengeli", name: "Dengeli Model Portföy", metrics: { days: 13, insufficient: false, annVolPct: 14.2, annReturnPct: 46.9, sharpe: 1.9, sortino: 2.6, maxDrawdownPct: -2.1, calmar: 22.3, beta: 0.64, alphaAnnPct: 38.7, trackingErrorPct: 11.8, infoRatio: 1.5, correlation: 0.58 } },
+      { id: "RiskDengeli", name: "Risk Dengeli Model Portföyü", metrics: { days: 8, insufficient: true } }
+    ],
+    riskNote: "Varsayımlar: rf=0, 252 gün yıllıklaştırma, BIST100 benchmark.",
+    macro: { status: "Nötr", supportiveCount: 4, pressureCount: 3, riskAppetite: 57, note: "",
+      items: [ { name: "BIST100", value: 14539.8, changePct: 0.4, unit: "puan", status: "Destekleyici" }, { name: "USD/TRY", value: 41.25, changePct: 0.1, unit: "TL", status: "Nötr" } ] },
+    kapNews: [ { symbol: "TUPRS", title: "Pay Geri Alım İşlemleri", date: "18.06.2026 18:10:00", impact: "pozitif", summary: "Geri alım programı kapsamında alım." } ],
+    heatmap: [ { t: "CCOLA", s: "Tüketim", d: 1.8 }, { t: "TUPRS", s: "Enerji", d: 0.9 }, { t: "DSTKF", s: "Finans", d: 4.8 }, { t: "YGGYO", s: "Gayrimenkul", d: -2.1 } ],
     smartMoney: { commentary: "Akış enerji ve ulaştırmada; gayrimenkulde realizasyon.",
       items: [ { ticker: "DSTKF", type: "Büyük alım", note: "Hacim 3,1x." }, { ticker: "YGGYO", type: "Çıkış", note: "Hacimli satış." } ],
       strengthening: ["DSTKF", "ARASE", "THYAO"], weakening: ["YGGYO", "GUBRF"] },
@@ -384,6 +393,138 @@
       (ie.statusNote ? '<p class="ie__note">' + esc(ie.statusNote) + "</p>" : "");
   }
 
+  /* ---------------- 3b) Makro görünüm ---------------- */
+  function macroStatusClass(st) {
+    const s = String(st || "").toLowerCase();
+    if (s.includes("destek") || s.includes("pozitif") || s.includes("olumlu")) return "badge--pos";
+    if (s.includes("bask") || s.includes("negatif") || s.includes("olumsuz")) return "badge--neg";
+    return "badge--neutral";
+  }
+  function renderMacro(report) {
+    const host = $("#macroCard"), badge = $("#macroBadge"); if (!host) return;
+    const m = report.macro;
+    if (!m || typeof m !== "object") {
+      if (badge) badge.innerHTML = "";
+      host.innerHTML = emptyHTML("Makro veri henüz üretilmedi", "macro alanı bir sonraki rapor koşusunda dolar.");
+      return;
+    }
+    if (badge) badge.innerHTML = '<span class="badge ' + macroStatusClass(m.status) + '"><span class="badge__dot"></span>' + esc(has(m.status) ? m.status : "—") + "</span>";
+    const ra = isNum(m.riskAppetite) ? m.riskAppetite : null;
+    const meter = ra != null
+      ? '<div class="macro__meter"><div class="macro__meterhead"><span>Risk İştahı</span><b class="' + (ra >= 60 ? "pos" : ra <= 40 ? "neg" : "flat") + '">' + fmtTR(ra, 0) + "/100</b></div>" +
+        '<div class="macro__track"><span class="macro__fill" style="width:' + Math.max(2, Math.min(100, ra)) + '%"></span></div>' +
+        '<div class="macro__sub">' + fmtTR(m.supportiveCount || 0, 0) + " destekleyici · " + fmtTR(m.pressureCount || 0, 0) + " baskılayıcı gösterge</div></div>"
+      : "";
+    const items = arr(m.items);
+    const chips = items.length ? '<div class="macro__grid">' + items.map((it) => {
+        const ch = isNum(it.changePct) ? it.changePct : null;
+        return '<div class="macro__chip" title="' + esc(it.note || "") + '">' +
+          '<span class="macro__name">' + esc(it.name || "—") + "</span>" +
+          '<span class="macro__val mono">' + (isNum(it.value) ? fmtTR(it.value) : "—") + (it.unit && it.unit !== "puan" ? " " + esc(it.unit) : "") + "</span>" +
+          '<span class="macro__chg mono ' + pctClass(ch) + '">' + pctText(ch) + "</span>" +
+          (has(it.status) ? '<span class="badge ' + macroStatusClass(it.status) + '" style="margin-top:4px">' + esc(it.status) + "</span>" : "") +
+        "</div>";
+      }).join("") + "</div>" : inlineEmpty("Makro gösterge listesi boş.");
+    host.innerHTML = meter + chips + (has(m.note) ? '<p class="ie__note">' + esc(m.note) + "</p>" : "");
+  }
+
+  /* ---------------- 4b-2) Risk metrikleri tablosu ---------------- */
+  const RISK_COLS = [
+    ["annReturnPct", "Yıl. Getiri", "%", true], ["annVolPct", "Yıl. Vol", "%", false],
+    ["sharpe", "Sharpe", "", true], ["sortino", "Sortino", "", true], ["calmar", "Calmar", "", true],
+    ["maxDrawdownPct", "Maks. DD", "%", true], ["beta", "Beta", "", false],
+    ["alphaAnnPct", "Alfa (yıl.)", "%", true], ["trackingErrorPct", "TE", "%", false],
+    ["infoRatio", "IR", "", true], ["correlation", "Korel.", "", false],
+  ];
+  function renderRiskMetrics(report) {
+    const table = $("#riskTable"), note = $("#riskNote"), empty = $("#riskEmpty"); if (!table) return;
+    const list = arr(report.riskMetrics);
+    const thead = table.querySelector("thead"), tbody = table.querySelector("tbody");
+    if (!list.length) {
+      thead.innerHTML = ""; tbody.innerHTML = "";
+      if (empty) { empty.hidden = false; empty.innerHTML = emptyHTML("Risk metrikleri henüz üretilmedi", "Günlük seri biriktikçe otomatik hesaplanır."); }
+      if (note) note.hidden = true; return;
+    }
+    if (empty) empty.hidden = true;
+    thead.innerHTML = "<tr><th class='no-sort'>Portföy</th><th class='no-sort'>Gün</th>" +
+      RISK_COLS.map((c) => "<th class='no-sort' style='text-align:right'>" + esc(c[1]) + "</th>").join("") + "</tr>";
+    tbody.innerHTML = list.map((r) => {
+      const m = r.metrics || {};
+      const nm = esc(shortPfName(r.name) || r.id || "—");
+      if (m.insufficient) {
+        return "<tr><td class='td-ticker'>" + nm + "</td><td class='td-num'>" + fmtTR(m.days || 0, 0) + "</td>" +
+          "<td colspan='" + RISK_COLS.length + "' class='flat'>yetersiz veri — en az 10 ortak günlük getiri gerekli</td></tr>";
+      }
+      return "<tr><td class='td-ticker'>" + nm + "</td><td class='td-num'>" + fmtTR(m.days || 0, 0) + "</td>" +
+        RISK_COLS.map((c) => {
+          const v = m[c[0]];
+          if (!isNum(v)) return "<td class='td-num flat'>—</td>";
+          const cls = c[3] ? pctClass(v) : "";
+          return "<td class='td-num " + cls + "'>" + fmtTR(v) + c[2] + "</td>";
+        }).join("") + "</tr>";
+    }).join("");
+    if (note) { note.hidden = !has(report.riskNote); note.textContent = report.riskNote || ""; }
+  }
+
+  /* ---------------- 4d) Piyasa ısı haritası ---------------- */
+  function hexToRgb(hex) {
+    const h = String(hex || "").replace("#", "");
+    if (h.length !== 6) return null;
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+  }
+  function renderHeatmap(report) {
+    const host = $("#heatmapHost"); if (!host) return;
+    const cells = arr(report.heatmap).length ? arr(report.heatmap)
+      : arr(report.stocks).map((s) => ({ t: s.ticker, s: "Genel", d: s.dailyPct })).filter((c) => c.t && isNum(c.d));
+    if (!cells.length) { host.innerHTML = emptyHTML("Isı haritası verisi yok", "heatmap alanı bir sonraki koşuda dolar."); return; }
+    const css = getComputedStyle(document.body);
+    const posRgb = hexToRgb(css.getPropertyValue("--pos").trim()) || [29, 177, 122];
+    const negRgb = hexToRgb(css.getPropertyValue("--neg").trim()) || [229, 72, 77];
+    const groups = {};
+    cells.forEach((c) => { (groups[c.s] = groups[c.s] || []).push(c); });
+    const ordered = Object.keys(groups).map((k) => {
+      const g = groups[k]; const avg = g.reduce((a, c) => a + (isNum(c.d) ? c.d : 0), 0) / g.length;
+      return { name: k, avg: avg, items: g.slice().sort((a, b) => b.d - a.d) };
+    }).sort((a, b) => b.avg - a.avg);
+    host.innerHTML = ordered.map((g) =>
+      '<div class="hm__group"><div class="hm__label"><span>' + esc(g.name) + "</span>" +
+      '<b class="' + pctClass(g.avg) + '">' + pctText(Math.round(g.avg * 100) / 100) + "</b></div>" +
+      '<div class="hm__tiles">' + g.items.map((c) => {
+        const d = isNum(c.d) ? c.d : 0;
+        const rgb = d >= 0 ? posRgb : negRgb;
+        const a = Math.min(0.92, 0.14 + Math.abs(d) / 6);
+        return '<button type="button" class="hm__tile" data-tk="' + esc(c.t) + '" ' +
+          'style="background:rgba(' + rgb[0] + "," + rgb[1] + "," + rgb[2] + "," + a.toFixed(2) + ')" ' +
+          'title="' + esc(c.t) + " " + pctText(d) + '">' + esc(c.t) + "<span>" + pctText(d) + "</span></button>";
+      }).join("") + "</div></div>").join("");
+    host.querySelectorAll(".hm__tile").forEach((el) => el.addEventListener("click", () => {
+      const tk = el.dataset.tk || "";
+      const inp = $("#stockSearch"); if (inp) inp.value = tk;
+      stockState.q = tk; drawStockRows();
+      const sec = document.getElementById("hisseler"); if (sec) sec.scrollIntoView({ behavior: "smooth" });
+    }));
+  }
+
+  /* ---------------- 7b) KAP haberleri ---------------- */
+  function impactBadge(imp) {
+    const s = String(imp || "").toLowerCase();
+    let cls = "badge--neutral";
+    if (s === "pozitif") cls = "badge--pos"; else if (s === "negatif") cls = "badge--neg"; else if (s === "belirsiz") cls = "badge--warn";
+    return '<span class="badge ' + cls + '">' + esc(imp || "—") + "</span>";
+  }
+  function renderKapNews(report) {
+    const host = $("#kapNewsList"); if (!host) return;
+    const items = arr(report.kapNews);
+    if (!items.length) { host.innerHTML = emptyHTML("KAP haberi yok", "kapNews alanı KAP enrich koşusundan sonra dolar."); return; }
+    host.innerHTML = items.map((n) =>
+      '<article class="news__item"><header class="news__head">' +
+        '<span class="badge badge--accent">' + esc(n.symbol || "—") + "</span>" + impactBadge(n.impact) +
+        '<span class="news__date mono">' + esc(n.date || "") + "</span></header>" +
+        '<h4 class="news__title">' + esc(n.title || "") + "</h4>" +
+        (has(n.summary) ? '<p class="news__summary">' + esc(n.summary) + "</p>" : "") +
+      "</article>").join("");
+  }
+
   /* ---------------- 5) Hisse tablosu ---------------- */
   const STOCK_COLS = [
     { key: "ticker", label: "Ticker", type: "str", cls: "td-ticker" },
@@ -398,7 +539,10 @@
     { key: "llmNote", label: "YZ Yorum", type: "str", noSort: true, cls: "td-note" },
     { key: "action", label: "Aksiyon", type: "str", noSort: true }
   ];
-  let stockState = { rows: [], sortKey: null, sortDir: 1, q: "" };
+  const FAVKEY = "bist-panel-favs";
+  function loadFavs() { try { return new Set(JSON.parse(localStorage.getItem(FAVKEY) || "[]")); } catch (e) { return new Set(); } }
+  function saveFavs(s) { try { localStorage.setItem(FAVKEY, JSON.stringify(Array.from(s))); } catch (e) {} }
+  let stockState = { rows: [], sortKey: null, sortDir: 1, q: "", favOnly: false, favs: loadFavs() };
   function renderPortfolioStocks(report) { // 5. bölüm tablo
     const thead = $("#stockThead"), tbody = $("#stockTbody"), empty = $("#stockEmpty");
     if (!thead || !tbody) return;
@@ -409,7 +553,7 @@
       return;
     }
     if (empty) empty.hidden = true;
-    thead.innerHTML = "<tr>" + STOCK_COLS.map((c) =>
+    thead.innerHTML = "<tr><th class='no-sort' style='width:34px'>★</th>" + STOCK_COLS.map((c) =>
       '<th class="' + (c.noSort ? "no-sort" : "") + '" data-key="' + c.key + '" data-type="' + c.type + '">' +
       esc(c.label) + (c.noSort ? "" : '<span class="arrow">▲</span>') + "</th>").join("") + "</tr>";
     thead.querySelectorAll("th").forEach((th) => {
@@ -427,6 +571,7 @@
     let rows = stockState.rows.slice();
     const q = stockState.q.trim().toLowerCase();
     if (q) rows = rows.filter((r) => ((r.ticker || "") + " " + (r.company || "")).toLowerCase().includes(q));
+    if (stockState.favOnly) rows = rows.filter((r) => stockState.favs.has(r.ticker));
     if (stockState.sortKey) {
       const col = STOCK_COLS.find((c) => c.key === stockState.sortKey);
       rows.sort((a, b) => {
@@ -439,8 +584,10 @@
       th.classList.remove("sort-asc", "sort-desc");
       if (th.dataset.key === stockState.sortKey) th.classList.add(stockState.sortDir === 1 ? "sort-asc" : "sort-desc");
     });
-    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="' + STOCK_COLS.length + '">' + inlineEmpty("Eşleşen hisse yok.") + "</td></tr>"; return; }
-    tbody.innerHTML = rows.map((r) => "<tr>" + STOCK_COLS.map((c) => {
+    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="' + (STOCK_COLS.length + 1) + '">' + inlineEmpty(stockState.favOnly ? "Favori listesi boş — ★ ile ekleyin." : "Eşleşen hisse yok.") + "</td></tr>"; return; }
+    tbody.innerHTML = rows.map((r) => {
+      const isFav = stockState.favs.has(r.ticker);
+      return "<tr><td class='td-star'><button type='button' class='starbtn" + (isFav ? " is-on" : "") + "' data-tk='" + esc(r.ticker || "") + "' aria-label='Favori'>" + (isFav ? "★" : "☆") + "</button></td>" + STOCK_COLS.map((c) => {
       const v = r[c.key];
       if (c.key === "signal") return "<td>" + signalBadge(v) + "</td>";
       if (c.key === "action") return "<td>" + actionBadge(v) + "</td>";
@@ -450,7 +597,8 @@
         return '<td class="td-num">' + fmtTR(v) + "</td>";
       }
       return '<td class="' + (c.cls || "") + '">' + (has(v) ? esc(v) : '<span class="flat">—</span>') + "</td>";
-    }).join("") + "</tr>").join("");
+    }).join("") + "</tr>";
+    }).join("");
   }
   function signalBadge(s) {
     if (!has(s)) return '<span class="badge badge--neutral">—</span>';
@@ -674,6 +822,10 @@
     try { renderHeader(report); } catch (e) { warn("header", e); }
     try { renderKpiCards(report); } catch (e) { warn("kpi", e); }
     try { renderPerformanceChart(report); } catch (e) { warn("perf", e); }
+    try { renderMacro(report); } catch (e) { warn("macro", e); }
+    try { renderRiskMetrics(report); } catch (e) { warn("risk", e); }
+    try { renderHeatmap(report); } catch (e) { warn("heatmap", e); }
+    try { renderKapNews(report); } catch (e) { warn("kapNews", e); }
     try { renderPortfolioTable(report); } catch (e) { warn("alloc", e); }
     try { renderAllocationPies(report); } catch (e) { warn("allocPies", e); }
     try { renderPortfolioCompareChart(report); } catch (e) { warn("pfCompare", e); }
@@ -723,7 +875,7 @@
       document.documentElement.setAttribute("data-theme", cur);
       localStorage.setItem("bist-panel-theme", cur);
       // grafik renkleri temaya bağlı; yeniden çiz
-      if (window.__lastReport__) { try { renderPerformanceChart(window.__lastReport__); renderPortfolioTable(window.__lastReport__); renderAllocationPies(window.__lastReport__); renderPortfolioCompareChart(window.__lastReport__); renderSectorSankeyChart(window.__lastReport__); renderSectorRotation(window.__lastReport__); } catch (e) {} }
+      if (window.__lastReport__) { try { renderPerformanceChart(window.__lastReport__); renderPortfolioTable(window.__lastReport__); renderAllocationPies(window.__lastReport__); renderPortfolioCompareChart(window.__lastReport__); renderSectorSankeyChart(window.__lastReport__); renderSectorRotation(window.__lastReport__); renderHeatmap(window.__lastReport__); } catch (e) {} }
     };
     const a = $("#themeToggle"), b = $("#themeToggleMobile");
     if (a) a.addEventListener("click", toggle);
@@ -753,6 +905,20 @@
   function initSearch() {
     const s = $("#stockSearch");
     if (s) s.addEventListener("input", () => { stockState.q = s.value || ""; drawStockRows(); });
+    // Yildiz (favori) tiklamalari: delegasyon — satirlar her cizimde yeniden olusur.
+    const tb = $("#stockTbody");
+    if (tb) tb.addEventListener("click", (e) => {
+      const b = e.target.closest(".starbtn"); if (!b) return;
+      const tk = b.dataset.tk || "";
+      if (stockState.favs.has(tk)) stockState.favs.delete(tk); else stockState.favs.add(tk);
+      saveFavs(stockState.favs); drawStockRows();
+    });
+    const ft = $("#favToggle");
+    if (ft) ft.addEventListener("click", () => {
+      stockState.favOnly = !stockState.favOnly;
+      ft.classList.toggle("is-on", stockState.favOnly);
+      drawStockRows();
+    });
   }
 
   /* ---------------- Başlat ---------------- */

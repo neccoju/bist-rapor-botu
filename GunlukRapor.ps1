@@ -2363,6 +2363,7 @@ try {
                     -Stocks $scored -PortfolioSet $updatedPortfolioSet -InstantEntryPortfolio $updatedInstantEntryPortfolio `
                     -StrategySeries $dashStrat -BenchmarkSeries $dashBench -MarketBreadth $marketBreadth `
                     -PortfolioCommentary (Get-ObjectPropertyValue -Object $updatedPortfolioSet -Name 'MonthlyCommentary') `
+                    -MacroSnapshot $macroSnapshot `
                     -AsOf $runAt -Strategy $strategy -PagesUrl 'https://neccoju.github.io/bist-rapor-botu/')
             Write-Host 'Web panel JSON guncellendi: docs/data/latest_report.json'
         }

@@ -236,6 +236,51 @@ button { font-family: inherit; cursor: pointer; }
 .ie__subtitle { font-size: 12.5px; text-transform: uppercase; letter-spacing: .5px; color: var(--text-dim); margin: var(--sp-2) 0; }
 .ie__note { margin-top: var(--sp-3); font-size: 12.5px; color: var(--text-dim); background: var(--surface-2); padding: var(--sp-3); border-radius: var(--r-sm); }
 
+/* ---- Makro görünüm ---- */
+.macro__meter { max-width: 420px; margin-bottom: var(--sp-4); }
+.macro__meterhead { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--text-dim); margin-bottom: 6px; }
+.macro__track { height: 8px; border-radius: var(--r-pill); background: var(--surface-2); overflow: hidden; }
+.macro__fill { display: block; height: 100%; border-radius: var(--r-pill); background: linear-gradient(90deg, var(--neg), var(--warn), var(--pos)); }
+.macro__sub { font-size: 11.5px; color: var(--text-faint); margin-top: 6px; }
+.macro__grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--sp-3); }
+.macro__chip { border: 1px solid var(--border-soft); border-radius: var(--r-md); padding: var(--sp-3); background: var(--bg-elev); display: flex; flex-direction: column; gap: 2px; }
+.macro__name { font-size: 11px; text-transform: uppercase; letter-spacing: .4px; color: var(--text-faint); font-weight: 600; }
+.macro__val { font-size: 16px; font-weight: 650; }
+.macro__chg { font-size: 12px; }
+
+/* ---- Isı haritası ---- */
+.hm { display: flex; flex-direction: column; gap: var(--sp-4); }
+.hm__label { display: flex; justify-content: space-between; align-items: baseline; font-size: 12.5px; font-weight: 650; margin-bottom: 6px; color: var(--text-dim); }
+.hm__tiles { display: flex; flex-wrap: wrap; gap: 4px; }
+.hm__tile {
+  border: 0; border-radius: 5px; padding: 5px 7px; min-width: 62px; cursor: pointer;
+  font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--text);
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1px; transition: transform var(--t);
+}
+.hm__tile span { font-weight: 500; font-size: 10px; opacity: .85; }
+.hm__tile:hover { transform: scale(1.06); outline: 1px solid var(--text-dim); }
+
+/* ---- KAP haberleri ---- */
+.news { display: flex; flex-direction: column; gap: var(--sp-3); }
+.news__item { border: 1px solid var(--border-soft); border-radius: var(--r-md); padding: var(--sp-3) var(--sp-4); background: var(--bg-elev); }
+.news__head { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; margin-bottom: 6px; }
+.news__date { margin-left: auto; font-size: 11px; color: var(--text-faint); }
+.news__title { font-size: 13.5px; font-weight: 650; margin-bottom: 4px; }
+.news__summary { font-size: 12.5px; color: var(--text-dim); line-height: 1.55; margin: 0; }
+
+/* ---- Tablo kontrolleri (favori + arama) ---- */
+.tablectl { display: flex; align-items: center; gap: var(--sp-2); }
+.chipbtn {
+  background: var(--surface); border: 1px solid var(--border); color: var(--text-dim);
+  padding: 7px var(--sp-3); border-radius: var(--r-pill); font-size: 12.5px; font-weight: 600; transition: var(--t);
+}
+.chipbtn:hover { color: var(--text); border-color: var(--accent); }
+.chipbtn.is-on { color: var(--warn); border-color: var(--warn); background: var(--warn-soft); }
+.td-star { width: 34px; text-align: center; }
+.starbtn { background: transparent; border: 0; font-size: 15px; color: var(--text-faint); cursor: pointer; padding: 2px 6px; }
+.starbtn:hover { color: var(--warn); }
+.starbtn.is-on { color: var(--warn); }
+
 /* ---- Tablo ---- */
 .tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 880px; }
@@ -326,7 +371,7 @@ button { font-family: inherit; cursor: pointer; }
 
 @media (max-width: 1080px) {
   .grid2, .twocol, .commentary__grid, .commentary__pfgrid, .actions { grid-template-columns: 1fr; }
-  .kpigrid, .pfgrid, .ie__kpis, .piegrid { grid-template-columns: repeat(2, 1fr); }
+  .kpigrid, .pfgrid, .ie__kpis, .piegrid, .macro__grid { grid-template-columns: repeat(2, 1fr); }
   .signalgrid { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 860px) {

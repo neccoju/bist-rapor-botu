@@ -137,6 +137,34 @@
     { "from": "Kimya", "to": "Holding", "flow": 0.103 }
   ],
   "sectorFlowBasis": "aylık",
+  "riskMetrics": [
+    { "id": "Dengeli", "name": "Dengeli Model Portföy", "metrics": { "days": 13, "insufficient": false, "annVolPct": 14.2, "annReturnPct": 46.9, "sharpe": 1.9, "sortino": 2.6, "maxDrawdownPct": -2.1, "calmar": 22.3, "beta": 0.64, "alphaAnnPct": 38.7, "trackingErrorPct": 11.8, "infoRatio": 1.5, "correlation": 0.58 } },
+    { "id": "Deger", "name": "Değer Model Portföyü", "metrics": { "days": 13, "insufficient": false, "annVolPct": 16.8, "annReturnPct": 19.4, "sharpe": 1.1, "sortino": 1.5, "maxDrawdownPct": -3.4, "calmar": 5.7, "beta": 0.71, "alphaAnnPct": 10.2, "trackingErrorPct": 13.5, "infoRatio": 0.7, "correlation": 0.61 } },
+    { "id": "RiskDengeli", "name": "Risk Dengeli Model Portföyü", "metrics": { "days": 8, "insufficient": true } }
+  ],
+  "riskNote": "Varsayımlar: risksiz faiz=0, 252 gün yıllıklaştırma, BIST100 benchmark. Kısa geçmişte metrikler gürültülüdür.",
+  "macro": {
+    "status": "Nötr", "supportiveCount": 4, "pressureCount": 3, "riskAppetite": 57,
+    "note": "Makro görünüm; BIST trendi, USD/TRY, CDS, TR10Y, DXY ve VIX ile izlenir.",
+    "items": [
+      { "id": "XU100", "name": "BIST100", "value": 14539.83, "changePct": 0.4, "unit": "puan", "status": "Destekleyici", "note": "SMA200 üstü" },
+      { "id": "USDTRY", "name": "USD/TRY", "value": 41.25, "changePct": 0.1, "unit": "TL", "status": "Nötr", "note": "" },
+      { "id": "CDS", "name": "Türkiye 5Y CDS", "value": 262, "changePct": -1.2, "unit": "bps", "status": "Destekleyici", "note": "" },
+      { "id": "VIX", "name": "VIX", "value": 17.4, "changePct": 3.1, "unit": "puan", "status": "Baskılayıcı", "note": "" }
+    ]
+  },
+  "kapNews": [
+    { "symbol": "TCELL", "title": "Özel Durum Açıklaması (Genel)", "date": "18.06.2026 21:55:08", "impact": "nötr", "summary": "Belarus bağlı ortaklığında sermaye artırımı; konsolide etkisi sınırlı." },
+    { "symbol": "TUPRS", "title": "Pay Geri Alım İşlemleri", "date": "18.06.2026 18:10:00", "impact": "pozitif", "summary": "Şirket geri alım programı kapsamında alım yaptı; hisse başına değer desteği." },
+    { "symbol": "GUBRF", "title": "Üretim Duruşu Bildirimi", "date": "17.06.2026 14:32:00", "impact": "negatif", "summary": "Bakım nedeniyle geçici üretim duruşu; çeyrek hacmine sınırlı olumsuz etki." }
+  ],
+  "heatmap": [
+    { "t": "CCOLA", "s": "Tüketim", "d": 1.8 }, { "t": "BIMAS", "s": "Tüketim", "d": -0.4 },
+    { "t": "TUPRS", "s": "Enerji", "d": 0.9 }, { "t": "ARASE", "s": "Enerji", "d": 2.4 },
+    { "t": "THYAO", "s": "Ulaştırma", "d": 1.1 }, { "t": "DSTKF", "s": "Finans", "d": 4.8 },
+    { "t": "AKBNK", "s": "Finans", "d": -0.5 }, { "t": "GUBRF", "s": "Kimya", "d": -1.2 },
+    { "t": "YGGYO", "s": "Gayrimenkul", "d": -2.1 }
+  ],
   "smartMoney": {
     "commentary": "Büyük hacim akışı enerji ve ulaştırmada yoğunlaştı; gayrimenkulde kâr realizasyonu görülüyor. Akış henüz geniş tabanlı değil, seçici.",
     "items": [

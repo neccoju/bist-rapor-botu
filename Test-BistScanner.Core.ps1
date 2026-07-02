@@ -554,6 +554,26 @@ $ieCash2 = Get-InstantEntryCashTL -InitialCapitalTL 10000 -Transactions @([pscus
 if ([Math]::Abs([double]$ieCash2.CashTL) -gt 0.01) { throw "Sermaye tükenince nakit 0 olmalı: $($ieCash2.CashTL)" }
 Write-Host "Anlık fırsat kapalı döngü nakit testi başarılı (nakit=96000; kâr recycle; sermaye bitince nakit=0)."
 
+# --- Panel risk metrikleri (Get-DashRiskMetrics, Export-Dashboard.ps1) ---
+. (Join-Path $PSScriptRoot 'Export-Dashboard.ps1')
+function New-RiskPts([double[]]$Cum) {
+    $d = [datetime]'2026-06-01'; $i = 0
+    @($Cum | ForEach-Object { $p = [pscustomobject]@{ t = $d.AddDays($i).ToString('yyyy-MM-dd'); v = $_ }; $i++; $p })
+}
+# 15 nokta: 10 -> 4.5 dususu maksDD = 1.045/1.10-1 = -%5.0 (sonraki dusseler daha kucuk)
+$cum = @(0, 10, 4.5, 15, 20, 18, 25, 24, 30, 29, 35, 34, 40, 39, 45)
+$pfPts = New-RiskPts $cum
+$rm = Get-DashRiskMetrics -PfPoints $pfPts -BenchPoints $pfPts
+if ($rm.insufficient) { throw "Risk metrikleri: 14 getiri yeterli olmalıydı." }
+if ([Math]::Abs([double]$rm.maxDrawdownPct - (-5.0)) -gt 0.01) { throw "MaksDD yanlış: $($rm.maxDrawdownPct) (beklenen -5.00)" }
+if ([Math]::Abs([double]$rm.beta - 1.0) -gt 0.01) { throw "Benchmark=portföy iken beta 1 olmalı: $($rm.beta)" }
+if ([Math]::Abs([double]$rm.correlation - 1.0) -gt 0.01) { throw "Korelasyon 1 olmalı: $($rm.correlation)" }
+if ([Math]::Abs([double]$rm.trackingErrorPct) -gt 0.01) { throw "TE 0 olmalı: $($rm.trackingErrorPct)" }
+if ($null -eq $rm.sharpe -or [double]$rm.sharpe -le 0) { throw "Pozitif trendde Sharpe > 0 olmalı: $($rm.sharpe)" }
+$rmShort = Get-DashRiskMetrics -PfPoints (New-RiskPts @(0, 1, 2, 3, 4)) -BenchPoints (New-RiskPts @(0, 1, 2, 3, 4))
+if (-not $rmShort.insufficient) { throw "4 getiri ile insufficient=true dönmeliydi." }
+Write-Host "Panel risk metrikleri testi başarılı (MaksDD=-5.00, beta=1, korel=1, TE=0; kısa seri veri-kapılı)."
+
 # --- Eksik temel veri CEZALI olmalı (nötr 45 değil) ---
 $peGood = & (Get-Module 'BistScanner.Core') { Get-PEComponentScore -Value 10 }
 $peNull = & (Get-Module 'BistScanner.Core') { Get-PEComponentScore -Value $null }

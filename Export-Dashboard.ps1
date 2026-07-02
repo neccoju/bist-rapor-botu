@@ -54,6 +54,132 @@ function Get-DashSeriesKey {
     return 'series'
 }
 
+function Get-DashRiskMetrics {
+    <#
+        Kurumsal portfoy risk metrikleri — panelin gunluk kumulatif % serilerinden
+        ({t,v} noktalari) SAF MATEMATIKLE hesaplanir; ek veri kaynagi gerektirmez.
+        Varsayimlar (durustluk): risksiz faiz = 0, yillikastirma 252 is gunu,
+        getiriler ORTAK tarihlerde hizalanir. En az 10 ortak gunluk getiri yoksa
+        insufficient=true doner (kisa gecmiste metrik uydurulmaz).
+    #>
+    param($PfPoints, $BenchPoints)
+
+    $pfMap = @{}
+    foreach ($p in @($PfPoints)) {
+        $t = [string](Get-DashProp -Object $p -Name 't'); $v = Get-DashNum -Object $p -Name 'v'
+        if ($t -and $null -ne $v) { $pfMap[$t] = 1.0 + $v / 100.0 }
+    }
+    $bMap = @{}
+    foreach ($p in @($BenchPoints)) {
+        $t = [string](Get-DashProp -Object $p -Name 't'); $v = Get-DashNum -Object $p -Name 'v'
+        if ($t -and $null -ne $v) { $bMap[$t] = 1.0 + $v / 100.0 }
+    }
+    $hasBench = $bMap.Count -gt 1
+    $dates = if ($hasBench) { @($pfMap.Keys | Where-Object { $bMap.ContainsKey($_) } | Sort-Object) } else { @($pfMap.Keys | Sort-Object) }
+
+    $rp = New-Object System.Collections.Generic.List[double]
+    $rb = New-Object System.Collections.Generic.List[double]
+    $peak = $null; $maxDD = 0.0
+    for ($i = 0; $i -lt $dates.Count; $i++) {
+        $lvl = [double]$pfMap[$dates[$i]]
+        if ($null -eq $peak -or $lvl -gt $peak) { $peak = $lvl }
+        elseif ($peak -gt 0) { $dd = ($lvl / $peak - 1.0) * 100.0; if ($dd -lt $maxDD) { $maxDD = $dd } }
+        if ($i -gt 0) {
+            $prev = [double]$pfMap[$dates[$i - 1]]
+            if ($prev -gt 0) { [void]$rp.Add($lvl / $prev - 1.0) }
+            if ($hasBench) {
+                $bPrev = [double]$bMap[$dates[$i - 1]]; $bCur = [double]$bMap[$dates[$i]]
+                if ($bPrev -gt 0) { [void]$rb.Add($bCur / $bPrev - 1.0) }
+            }
+        }
+    }
+    $n = $rp.Count
+    if ($n -lt 10) { return [pscustomobject]@{ days = $n; insufficient = $true } }
+
+    $ann = [Math]::Sqrt(252.0)
+    $meanP = 0.0; foreach ($r in $rp) { $meanP += $r }; $meanP /= $n
+    $varP = 0.0; foreach ($r in $rp) { $varP += ($r - $meanP) * ($r - $meanP) }
+    $sdP = if ($n -gt 1) { [Math]::Sqrt($varP / ($n - 1)) } else { 0.0 }
+    $ddSum = 0.0; foreach ($r in $rp) { if ($r -lt 0) { $ddSum += $r * $r } }
+    $downDev = [Math]::Sqrt($ddSum / $n)
+    $annRetPct = $meanP * 252.0 * 100.0
+
+    $sharpe = if ($sdP -gt 1e-12) { [Math]::Round($meanP / $sdP * $ann, 2) } else { $null }
+    $sortino = if ($downDev -gt 1e-12) { [Math]::Round($meanP / $downDev * $ann, 2) } else { $null }
+    $calmar = if ($maxDD -lt -0.01) { [Math]::Round($annRetPct / [Math]::Abs($maxDD), 2) } else { $null }
+
+    $beta = $null; $alphaPct = $null; $tePct = $null; $ir = $null; $corr = $null
+    if ($hasBench -and $rb.Count -eq $n -and $n -gt 1) {
+        $meanB = 0.0; foreach ($r in $rb) { $meanB += $r }; $meanB /= $n
+        $cov = 0.0; $varB = 0.0; $teVar = 0.0; $teMean = 0.0
+        for ($i = 0; $i -lt $n; $i++) {
+            $dp = $rp[$i] - $meanP; $db = $rb[$i] - $meanB
+            $cov += $dp * $db; $varB += $db * $db
+            $teMean += ($rp[$i] - $rb[$i])
+        }
+        $cov /= ($n - 1); $varB /= ($n - 1); $teMean /= $n
+        for ($i = 0; $i -lt $n; $i++) { $d = ($rp[$i] - $rb[$i]) - $teMean; $teVar += $d * $d }
+        $teSd = [Math]::Sqrt($teVar / ($n - 1))
+        if ($varB -gt 1e-12) {
+            $beta = [Math]::Round($cov / $varB, 2)
+            $alphaPct = [Math]::Round(($meanP - ($cov / $varB) * $meanB) * 252.0 * 100.0, 2)
+        }
+        $tePct = [Math]::Round($teSd * $ann * 100.0, 2)
+        if ($teSd -gt 1e-12) { $ir = [Math]::Round($teMean / $teSd * $ann, 2) }
+        $sdB = [Math]::Sqrt($varB)
+        if ($sdP -gt 1e-12 -and $sdB -gt 1e-12) { $corr = [Math]::Round($cov / ($sdP * $sdB), 2) }
+    }
+
+    return [pscustomobject][ordered]@{
+        days = $n
+        insufficient = $false
+        annVolPct = [Math]::Round($sdP * $ann * 100.0, 2)
+        annReturnPct = [Math]::Round($annRetPct, 2)
+        sharpe = $sharpe
+        sortino = $sortino
+        maxDrawdownPct = [Math]::Round($maxDD, 2)
+        calmar = $calmar
+        beta = $beta
+        alphaAnnPct = $alphaPct
+        trackingErrorPct = $tePct
+        infoRatio = $ir
+        correlation = $corr
+    }
+}
+
+function Get-DashKapNews {
+    <#
+        data/kap_enrichment.json'dan (LLM ile zenginlestirilmis KAP bildirimleri)
+        panel icin haber listesi uretir. directionRefined: '+'=pozitif '-'=negatif
+        '~'=notr '?'=belirsiz. Best-effort: dosya yoksa/bozuksa bos dizi.
+    #>
+    param([string]$DataDir)
+    try {
+        if ([string]::IsNullOrWhiteSpace($DataDir)) { $DataDir = Join-Path $PSScriptRoot 'data' }
+        $path = Join-Path $DataDir 'kap_enrichment.json'
+        if (-not (Test-Path -LiteralPath $path)) { return @() }
+        $enr = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
+        $items = Get-DashProp -Object $enr -Name 'items'
+        if ($null -eq $items) { return @() }
+        $rows = @()
+        foreach ($prop in $items.PSObject.Properties) {
+            $it = $prop.Value
+            $dir = Get-DashStr -Object $it -Name 'directionRefined'
+            if (-not $dir) { $dir = Get-DashStr -Object $it -Name 'directionHint' }
+            $impact = switch ($dir) { '+' { 'pozitif' } '-' { 'negatif' } '~' { 'nötr' } default { 'belirsiz' } }
+            $dateStr = Get-DashStr -Object $it -Name 'date'
+            $dt = $null
+            try { $dt = [datetime]::ParseExact($dateStr, 'dd.MM.yyyy HH:mm:ss', [Globalization.CultureInfo]::InvariantCulture) } catch { $dt = [datetime]::MinValue }
+            $rows += [pscustomobject]@{
+                symbol = (Get-DashStr -Object $it -Name 'symbol'); title = (Get-DashStr -Object $it -Name 'title')
+                date = $dateStr; impact = $impact; summary = (Get-DashStr -Object $it -Name 'summary'); _dt = $dt
+            }
+        }
+        return @($rows | Sort-Object _dt -Descending | Select-Object -First 12 | Select-Object symbol, title, date, impact, summary)
+    }
+    catch { return @() }
+}
+
 function ConvertTo-DashboardReport {
     [CmdletBinding()]
     param(
@@ -68,7 +194,9 @@ function ConvertTo-DashboardReport {
         [string]$Strategy = 'Dengeli',
         [string]$PrimaryPortfolioId = 'Dengeli',
         [int]$TopStocks = 30,
-        [string]$PagesUrl = $null
+        [string]$PagesUrl = $null,
+        $MacroSnapshot = $null,
+        [string]$DataDir = $null
     )
 
     # ---- meta ----
@@ -137,6 +265,20 @@ function ConvertTo-DashboardReport {
     }
     $series = @($series | Where-Object { $_ -and @($_.points).Count -gt 0 })
     $performance = [ordered]@{ note = if ($series.Count -eq 0) { 'Performans serisi henüz üretilmedi.' } else { $null }; series = $series }
+
+    # ---- riskMetrics (TUM portfoyler icin Sharpe/Sortino/Calmar/MaxDD/Beta/Alfa/TE/IR/korelasyon) ----
+    # Mevcut gunluk serilerden saf matematik; BIST100 serisi benchmark. Ek veri kaynagi yok.
+    $benchPts = $null
+    foreach ($s in $series) { if ([string]$s.key -eq 'bist100') { $benchPts = $s.points; break } }
+    $riskMetrics = @()
+    foreach ($s in $series) {
+        if ([string]$s.key -notlike 'pf_*') { continue }
+        try {
+            $m = Get-DashRiskMetrics -PfPoints $s.points -BenchPoints $benchPts
+            $riskMetrics += [pscustomobject]@{ id = ([string]$s.key).Substring(3); name = [string]$s.name; metrics = $m }
+        } catch { }
+    }
+    $riskNote = 'Varsayımlar: risksiz faiz=0, 252 gün yıllıklaştırma, BIST100 benchmark. Kısa geçmişte (≲60 gün) metrikler gürültülüdür; yön göstergesi olarak okuyun.'
 
     # ---- allocation (birincil portföy holding'leri) ----
     $holds = @(Get-DashProp -Object $primary -Name 'Holdings')
@@ -225,12 +367,50 @@ function ConvertTo-DashboardReport {
         $rv = Get-DashNum -Object $_ -Name 'RelativeVolume'; $ch = Get-DashNum -Object $_ -Name 'ChangePct'
         $null -ne $rv -and $rv -ge 1.5 -and $null -ne $ch -and $ch -lt 0
     } | Sort-Object @{ Expression = { Get-DashNum -Object $_ -Name 'RelativeVolume' }; Descending = $true } | Select-Object -First 6 | ForEach-Object { Get-DashStr -Object $_ -Name 'Symbol' })
+    # items: en yuksek goreli hacimli belirgin hareketler (>=2x) — panelde 'Para Akisi' kartini doldurur.
+    $smItems = @($Stocks | ForEach-Object {
+            $rv = Get-DashNum -Object $_ -Name 'RelativeVolume'; $ch = Get-DashNum -Object $_ -Name 'ChangePct'
+            if ($null -eq $rv -or $rv -lt 2.0 -or $null -eq $ch) { return }
+            $typ = 'Yoğun satış'; if ($ch -gt 0) { $typ = 'Yoğun alım' }
+            [pscustomobject]@{ ticker = (Get-DashStr -Object $_ -Name 'Symbol'); type = $typ
+                note = ('Göreli hacim {0}x · günlük %{1}' -f [Math]::Round($rv, 1), [Math]::Round($ch, 1)); _rv = $rv }
+        } | Where-Object { $_ } | Sort-Object _rv -Descending | Select-Object -First 6 | Select-Object ticker, type, note)
     $smartMoney = [ordered]@{
         commentary = if ($strengthening.Count -or $weakening.Count) { 'Göreli hacmi 1,5x ve üzeri olan hisselerde yön ayrışması (otomatik türetildi).' } else { $null }
-        items = @()
+        items = $smItems
         strengthening = @($strengthening | Where-Object { $_ })
         weakening = @($weakening | Where-Object { $_ })
     }
+
+    # ---- heatmap (tum evren: sektor gruplu, gunluk % ile renklendirilecek kompakt dizi) ----
+    $heatmap = @($Stocks | ForEach-Object {
+            $sec = Get-DashStr -Object $_ -Name 'SectorTR'; $tk = Get-DashStr -Object $_ -Name 'Symbol'
+            $dp = Get-DashNum -Object $_ -Name 'ChangePct'
+            if ($sec -and $tk -and $null -ne $dp) { [pscustomobject]@{ t = $tk; s = $sec; d = [Math]::Round($dp, 2) } }
+        } | Where-Object { $_ } | Select-Object -First 700)
+
+    # ---- macro (Get-MacroSnapshot -> panel karti; yalniz gosterim, karar mantigina dokunmaz) ----
+    $macro = $null
+    if ($null -ne $MacroSnapshot) {
+        try {
+            $mItems = @(Get-DashProp -Object $MacroSnapshot -Name 'Metrics' | ForEach-Object {
+                    [pscustomobject]@{ id = (Get-DashStr -Object $_ -Name 'Id'); name = (Get-DashStr -Object $_ -Name 'Name')
+                        value = (Get-DashNum -Object $_ -Name 'Value'); changePct = (Get-DashNum -Object $_ -Name 'ChangePct')
+                        unit = (Get-DashStr -Object $_ -Name 'Unit'); status = (Get-DashStr -Object $_ -Name 'Status')
+                        note = (Get-DashStr -Object $_ -Name 'Note') }
+                } | Where-Object { $_.name })
+            $sup = Get-DashNum -Object $MacroSnapshot -Name 'SupportiveCount'
+            $pre = Get-DashNum -Object $MacroSnapshot -Name 'PressureCount'
+            $riskApp = $null
+            if ($null -ne $sup -and $null -ne $pre -and ($sup + $pre) -gt 0) { $riskApp = [Math]::Round(100.0 * $sup / ($sup + $pre), 0) }
+            $macro = [pscustomobject]@{ status = (Get-DashStr -Object $MacroSnapshot -Name 'Status')
+                supportiveCount = $sup; pressureCount = $pre; riskAppetite = $riskApp
+                note = (Get-DashStr -Object $MacroSnapshot -Name 'MeasurementNote'); items = $mItems }
+        } catch { $macro = $null }
+    }
+
+    # ---- kapNews (LLM ile zenginlestirilmis KAP bildirimleri — dosyadan best-effort) ----
+    $kapNews = Get-DashKapNews -DataDir $DataDir
 
     # ---- technicalSignals (RSI/trend/MACD/kırılım — tek anlık görüntüden dürüst türevler) ----
     $ob = @($Stocks | Where-Object { $r = Get-DashNum -Object $_ -Name 'RSI'; $null -ne $r -and $r -ge 70 } | Sort-Object @{ Expression = { Get-DashNum -Object $_ -Name 'RSI' }; Descending = $true } | Select-Object -First 8 | ForEach-Object { [pscustomobject]@{ ticker = (Get-DashStr -Object $_ -Name 'Symbol'); rsi = (Get-DashNum -Object $_ -Name 'RSI') } })
@@ -382,6 +562,11 @@ function ConvertTo-DashboardReport {
         modelPortfolios = $modelPortfolios
         instantEntry = $instantEntry
         stocks = $topRows
+        riskMetrics = $riskMetrics
+        riskNote = $riskNote
+        macro = $macro
+        kapNews = $kapNews
+        heatmap = $heatmap
         sectorRotation = $sectorRotation
         sectorFlow = $sectorFlow
         sectorFlowBasis = $sectorFlowBasis
@@ -430,12 +615,13 @@ function Export-DashboardReport {
         [string]$Strategy = 'Dengeli',
         [string]$PrimaryPortfolioId = 'Dengeli',
         [int]$TopStocks = 30,
-        [string]$PagesUrl = $null
+        [string]$PagesUrl = $null,
+        $MacroSnapshot = $null
     )
     $report = ConvertTo-DashboardReport -Stocks $Stocks -PortfolioSet $PortfolioSet -InstantEntryPortfolio $InstantEntryPortfolio `
         -StrategySeries $StrategySeries -BenchmarkSeries $BenchmarkSeries -MarketBreadth $MarketBreadth `
         -PortfolioCommentary $PortfolioCommentary -AsOf $AsOf -Strategy $Strategy -PrimaryPortfolioId $PrimaryPortfolioId `
-        -TopStocks $TopStocks -PagesUrl $PagesUrl
+        -TopStocks $TopStocks -PagesUrl $PagesUrl -MacroSnapshot $MacroSnapshot -DataDir (Join-Path $PSScriptRoot 'data')
     $dir = Split-Path -Parent $OutPath
     if ($dir -and -not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
     $report | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $OutPath -Encoding UTF8
