@@ -28,7 +28,8 @@ function Get-DashProp {
 function Get-DashNum {
     param($Object, [string]$Name)
     $v = Get-DashProp -Object $Object -Name $Name
-    if ($null -eq $v -or $v -eq '') { return $null }
+    # dikkat: '$v -eq ""' sayisal 0'i da elerdi (PS tip donusumu); yalniz bos string'i ele
+    if ($null -eq $v -or ($v -is [string] -and [string]::IsNullOrWhiteSpace($v))) { return $null }
     $d = $v -as [double]
     if ($null -eq $d) { return $null }
     if ([double]::IsNaN($d) -or [double]::IsInfinity($d)) { return $null }
@@ -180,6 +181,46 @@ function Get-DashKapNews {
     catch { return @() }
 }
 
+function Get-DashForeignFlow {
+    <#
+        data/mkk_foreign.json'dan (MKK kaynakli yabanci saklama orani, haftalik
+        collector) panel icin yabanci takas ozeti uretir. Donen deger:
+        @{ map = @{SYM=pct}; panel = {updatedAt,note,count,risers,fallers} }.
+        Best-effort: dosya yoksa/bozuksa $null (panel karti gizlenir).
+    #>
+    param([string]$DataDir)
+    try {
+        if ([string]::IsNullOrWhiteSpace($DataDir)) { $DataDir = Join-Path $PSScriptRoot 'data' }
+        $path = Join-Path $DataDir 'mkk_foreign.json'
+        if (-not (Test-Path -LiteralPath $path)) { return $null }
+        $ff = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
+        $items = Get-DashProp -Object $ff -Name 'items'
+        if ($null -eq $items) { return $null }
+        $rows = @()
+        foreach ($prop in $items.PSObject.Properties) {
+            $pct = Get-DashNum -Object $prop.Value -Name 'foreignPct'
+            if ($null -eq $pct) { continue }
+            $rows += [pscustomobject]@{ ticker = $prop.Name; pct = $pct; chg = (Get-DashNum -Object $prop.Value -Name 'chg1wBps') }
+        }
+        if (-not $rows.Count) { return $null }
+        $map = @{}
+        foreach ($r in $rows) { $map[$r.ticker] = $r.pct }
+        $risers = @($rows | Where-Object { $null -ne $_.chg -and $_.chg -gt 0 } | Sort-Object chg -Descending | Select-Object -First 6)
+        $fallers = @($rows | Where-Object { $null -ne $_.chg -and $_.chg -lt 0 } | Sort-Object chg | Select-Object -First 6)
+        return @{
+            map   = $map
+            panel = [pscustomobject]@{
+                updatedAt = (Get-DashStr -Object $ff -Name 'generatedAt')
+                note      = (Get-DashStr -Object $ff -Name 'asOfNote')
+                count     = $rows.Count
+                risers    = $risers
+                fallers   = $fallers
+            }
+        }
+    }
+    catch { return $null }
+}
+
 function ConvertTo-DashboardReport {
     [CmdletBinding()]
     param(
@@ -290,14 +331,19 @@ function ConvertTo-DashboardReport {
     foreach ($h in $allocHoldings) { if ($null -ne $h.weightPct -and $null -ne $target -and [Math]::Abs([double]$h.weightPct - [double]$target) -gt 3.0) { $needsReb = $true } }
     $allocation = [ordered]@{ rebalanceNeeded = $needsReb; rebalanceNote = if ($needsReb) { 'Bazı ağırlıklar hedeften >3 puan sapmış.' } else { $null }; holdings = $allocHoldings }
 
+    # ---- foreignFlow (MKK kaynakli yabanci saklama orani — dosyadan best-effort) ----
+    $ffData = Get-DashForeignFlow -DataDir $DataDir
+    $ffMap = if ($null -ne $ffData) { $ffData.map } else { $null }
+
     # ---- stocks (en yüksek skorlu TopStocks) ----
     $topRows = @($Stocks |
         Sort-Object @{ Expression = { $v = Get-DashNum -Object $_ -Name 'Score'; if ($null -ne $v) { $v } else { -1 } }; Descending = $true } |
         Select-Object -First $TopStocks |
         ForEach-Object {
             $rv = Get-DashNum -Object $_ -Name 'RelativeVolume'
+            $tkSym = Get-DashStr -Object $_ -Name 'Symbol'
             [pscustomobject]@{
-                ticker    = (Get-DashStr -Object $_ -Name 'Symbol')
+                ticker    = $tkSym
                 company   = (Get-DashStr -Object $_ -Name 'Company')
                 price     = (Get-DashNum -Object $_ -Name 'Price')
                 dailyPct  = (Get-DashNum -Object $_ -Name 'ChangePct')
@@ -305,6 +351,7 @@ function ConvertTo-DashboardReport {
                 rsi       = (Get-DashNum -Object $_ -Name 'RSI')
                 macd      = (Get-DashNum -Object $_ -Name 'MacdHistogram')
                 volume    = if ($null -ne $rv) { ([string]([Math]::Round($rv, 2)) + 'x') } else { $null }
+                foreignPct = if ($null -ne $ffMap -and $tkSym -and $ffMap.ContainsKey($tkSym)) { $ffMap[$tkSym] } else { $null }
                 signal    = (Get-DashStr -Object $_ -Name 'Signal')
                 llmNote   = $null    # bot per-stock LLM yorumu üretmiyor (ileride eklenebilir)
                 action    = (Get-DashStockAction -Stock $_)
@@ -566,6 +613,7 @@ function ConvertTo-DashboardReport {
         riskNote = $riskNote
         macro = $macro
         kapNews = $kapNews
+        foreignFlow = if ($null -ne $ffData) { $ffData.panel } else { $null }
         heatmap = $heatmap
         sectorRotation = $sectorRotation
         sectorFlow = $sectorFlow

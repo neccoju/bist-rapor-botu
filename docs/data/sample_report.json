@@ -12,10 +12,22 @@
     "disclaimer": "Bu panel karar destek amaçlıdır, yatırım tavsiyesi değildir."
   },
   "history": [
-    { "date": "2026-06-30", "label": "Son rapor" },
-    { "date": "2026-06-29", "label": "29.06.2026" },
-    { "date": "2026-06-27", "label": "27.06.2026" },
-    { "date": "2026-06-26", "label": "26.06.2026" }
+    {
+      "date": "2026-06-30",
+      "label": "Son rapor"
+    },
+    {
+      "date": "2026-06-29",
+      "label": "29.06.2026"
+    },
+    {
+      "date": "2026-06-27",
+      "label": "27.06.2026"
+    },
+    {
+      "date": "2026-06-26",
+      "label": "26.06.2026"
+    }
   ],
   "summary": {
     "portfolioValueTL": 101856.13,
@@ -23,165 +35,1171 @@
     "dailyChangePct": 0.42,
     "weeklyChangePct": 1.21,
     "monthlyChangePct": 1.86,
-    "bestStock": { "ticker": "DSTKF", "company": "Destek Faktoring", "changePct": 4.83 },
-    "worstStock": { "ticker": "YGGYO", "company": "Yeşil GYO", "changePct": -2.14 },
-    "riskScore": { "value": 38, "label": "Orta" },
+    "bestStock": {
+      "ticker": "DSTKF",
+      "company": "Destek Faktoring",
+      "changePct": 4.83
+    },
+    "worstStock": {
+      "ticker": "YGGYO",
+      "company": "Yeşil GYO",
+      "changePct": -2.14
+    },
+    "riskScore": {
+      "value": 38,
+      "label": "Orta"
+    },
     "llmStance": "Nötr"
   },
   "performance": {
     "note": null,
     "series": [
-      { "name": "Dengeli Model Portföy", "key": "pf_Dengeli", "points": [
-        {"t":"2026-06-11","v":0},{"t":"2026-06-17","v":1.3},{"t":"2026-06-24","v":1.6},{"t":"2026-06-30","v":1.86}
-      ]},
-      { "name": "Değer Model Portföyü", "key": "pf_Deger", "points": [
-        {"t":"2026-06-11","v":0},{"t":"2026-06-17","v":3.1},{"t":"2026-06-24","v":5.4},{"t":"2026-06-30","v":7.70}
-      ]},
-      { "name": "Momentum Model Portföyü", "key": "pf_Momentum", "points": [
-        {"t":"2026-06-11","v":0},{"t":"2026-06-17","v":2.4},{"t":"2026-06-24","v":4.8},{"t":"2026-06-30","v":6.59}
-      ]},
-      { "name": "Kalite Model Portföyü", "key": "pf_Kalite", "points": [
-        {"t":"2026-06-11","v":0},{"t":"2026-06-17","v":2.9},{"t":"2026-06-24","v":5.9},{"t":"2026-06-30","v":7.70}
-      ]},
-      { "name": "RFS100 Model Portföyü", "key": "pf_RFS100", "points": [
-        {"t":"2026-06-11","v":0},{"t":"2026-06-17","v":0.6},{"t":"2026-06-24","v":0.2},{"t":"2026-06-30","v":0.45}
-      ]},
-      { "name": "Risk Dengeli Model Portföyü", "key": "pf_RiskDengeli", "points": [
-        {"t":"2026-06-11","v":0},{"t":"2026-06-17","v":-1.1},{"t":"2026-06-24","v":-2.5},{"t":"2026-06-30","v":-3.30}
-      ]},
-      { "name": "BIST100", "key": "bist100", "points": [
-        {"t":"2026-06-11","v":0},{"t":"2026-06-12","v":0.1},{"t":"2026-06-13","v":-0.2},{"t":"2026-06-16","v":0.3},{"t":"2026-06-17","v":0.5},{"t":"2026-06-18","v":0.2},{"t":"2026-06-19","v":0.4},{"t":"2026-06-20","v":0.1},{"t":"2026-06-23","v":0.3},{"t":"2026-06-24","v":0.33},{"t":"2026-06-25","v":0.5},{"t":"2026-06-26","v":0.2},{"t":"2026-06-27","v":0.4},{"t":"2026-06-30","v":0.33}
-      ]},
-      { "name": "Nasdaq (TRY)", "key": "nasdaq", "points": [
-        {"t":"2026-06-11","v":0},{"t":"2026-06-13","v":1.1},{"t":"2026-06-17","v":2.0},{"t":"2026-06-20","v":2.8},{"t":"2026-06-24","v":3.6},{"t":"2026-06-27","v":4.2},{"t":"2026-06-30","v":4.64}
-      ]},
-      { "name": "S&P 500 (TRY)", "key": "sp500", "points": [
-        {"t":"2026-06-11","v":0},{"t":"2026-06-13","v":0.8},{"t":"2026-06-17","v":1.5},{"t":"2026-06-20","v":2.1},{"t":"2026-06-24","v":2.7},{"t":"2026-06-27","v":3.1},{"t":"2026-06-30","v":3.5}
-      ]},
-      { "name": "Altın (TRY)", "key": "gold", "points": [
-        {"t":"2026-06-11","v":0},{"t":"2026-06-13","v":0.5},{"t":"2026-06-17","v":1.0},{"t":"2026-06-20","v":1.4},{"t":"2026-06-24","v":1.8},{"t":"2026-06-27","v":2.2},{"t":"2026-06-30","v":2.46}
-      ]},
-      { "name": "USD/TRY", "key": "usdtry", "points": [
-        {"t":"2026-06-11","v":0},{"t":"2026-06-13","v":0.3},{"t":"2026-06-17","v":0.6},{"t":"2026-06-20","v":0.9},{"t":"2026-06-24","v":1.1},{"t":"2026-06-27","v":1.3},{"t":"2026-06-30","v":1.45}
-      ]}
+      {
+        "name": "Dengeli Model Portföy",
+        "key": "pf_Dengeli",
+        "points": [
+          {
+            "t": "2026-06-11",
+            "v": 0
+          },
+          {
+            "t": "2026-06-17",
+            "v": 1.3
+          },
+          {
+            "t": "2026-06-24",
+            "v": 1.6
+          },
+          {
+            "t": "2026-06-30",
+            "v": 1.86
+          }
+        ]
+      },
+      {
+        "name": "Değer Model Portföyü",
+        "key": "pf_Deger",
+        "points": [
+          {
+            "t": "2026-06-11",
+            "v": 0
+          },
+          {
+            "t": "2026-06-17",
+            "v": 3.1
+          },
+          {
+            "t": "2026-06-24",
+            "v": 5.4
+          },
+          {
+            "t": "2026-06-30",
+            "v": 7.7
+          }
+        ]
+      },
+      {
+        "name": "Momentum Model Portföyü",
+        "key": "pf_Momentum",
+        "points": [
+          {
+            "t": "2026-06-11",
+            "v": 0
+          },
+          {
+            "t": "2026-06-17",
+            "v": 2.4
+          },
+          {
+            "t": "2026-06-24",
+            "v": 4.8
+          },
+          {
+            "t": "2026-06-30",
+            "v": 6.59
+          }
+        ]
+      },
+      {
+        "name": "Kalite Model Portföyü",
+        "key": "pf_Kalite",
+        "points": [
+          {
+            "t": "2026-06-11",
+            "v": 0
+          },
+          {
+            "t": "2026-06-17",
+            "v": 2.9
+          },
+          {
+            "t": "2026-06-24",
+            "v": 5.9
+          },
+          {
+            "t": "2026-06-30",
+            "v": 7.7
+          }
+        ]
+      },
+      {
+        "name": "RFS100 Model Portföyü",
+        "key": "pf_RFS100",
+        "points": [
+          {
+            "t": "2026-06-11",
+            "v": 0
+          },
+          {
+            "t": "2026-06-17",
+            "v": 0.6
+          },
+          {
+            "t": "2026-06-24",
+            "v": 0.2
+          },
+          {
+            "t": "2026-06-30",
+            "v": 0.45
+          }
+        ]
+      },
+      {
+        "name": "Risk Dengeli Model Portföyü",
+        "key": "pf_RiskDengeli",
+        "points": [
+          {
+            "t": "2026-06-11",
+            "v": 0
+          },
+          {
+            "t": "2026-06-17",
+            "v": -1.1
+          },
+          {
+            "t": "2026-06-24",
+            "v": -2.5
+          },
+          {
+            "t": "2026-06-30",
+            "v": -3.3
+          }
+        ]
+      },
+      {
+        "name": "BIST100",
+        "key": "bist100",
+        "points": [
+          {
+            "t": "2026-06-11",
+            "v": 0
+          },
+          {
+            "t": "2026-06-12",
+            "v": 0.1
+          },
+          {
+            "t": "2026-06-13",
+            "v": -0.2
+          },
+          {
+            "t": "2026-06-16",
+            "v": 0.3
+          },
+          {
+            "t": "2026-06-17",
+            "v": 0.5
+          },
+          {
+            "t": "2026-06-18",
+            "v": 0.2
+          },
+          {
+            "t": "2026-06-19",
+            "v": 0.4
+          },
+          {
+            "t": "2026-06-20",
+            "v": 0.1
+          },
+          {
+            "t": "2026-06-23",
+            "v": 0.3
+          },
+          {
+            "t": "2026-06-24",
+            "v": 0.33
+          },
+          {
+            "t": "2026-06-25",
+            "v": 0.5
+          },
+          {
+            "t": "2026-06-26",
+            "v": 0.2
+          },
+          {
+            "t": "2026-06-27",
+            "v": 0.4
+          },
+          {
+            "t": "2026-06-30",
+            "v": 0.33
+          }
+        ]
+      },
+      {
+        "name": "Nasdaq (TRY)",
+        "key": "nasdaq",
+        "points": [
+          {
+            "t": "2026-06-11",
+            "v": 0
+          },
+          {
+            "t": "2026-06-13",
+            "v": 1.1
+          },
+          {
+            "t": "2026-06-17",
+            "v": 2.0
+          },
+          {
+            "t": "2026-06-20",
+            "v": 2.8
+          },
+          {
+            "t": "2026-06-24",
+            "v": 3.6
+          },
+          {
+            "t": "2026-06-27",
+            "v": 4.2
+          },
+          {
+            "t": "2026-06-30",
+            "v": 4.64
+          }
+        ]
+      },
+      {
+        "name": "S&P 500 (TRY)",
+        "key": "sp500",
+        "points": [
+          {
+            "t": "2026-06-11",
+            "v": 0
+          },
+          {
+            "t": "2026-06-13",
+            "v": 0.8
+          },
+          {
+            "t": "2026-06-17",
+            "v": 1.5
+          },
+          {
+            "t": "2026-06-20",
+            "v": 2.1
+          },
+          {
+            "t": "2026-06-24",
+            "v": 2.7
+          },
+          {
+            "t": "2026-06-27",
+            "v": 3.1
+          },
+          {
+            "t": "2026-06-30",
+            "v": 3.5
+          }
+        ]
+      },
+      {
+        "name": "Altın (TRY)",
+        "key": "gold",
+        "points": [
+          {
+            "t": "2026-06-11",
+            "v": 0
+          },
+          {
+            "t": "2026-06-13",
+            "v": 0.5
+          },
+          {
+            "t": "2026-06-17",
+            "v": 1.0
+          },
+          {
+            "t": "2026-06-20",
+            "v": 1.4
+          },
+          {
+            "t": "2026-06-24",
+            "v": 1.8
+          },
+          {
+            "t": "2026-06-27",
+            "v": 2.2
+          },
+          {
+            "t": "2026-06-30",
+            "v": 2.46
+          }
+        ]
+      },
+      {
+        "name": "USD/TRY",
+        "key": "usdtry",
+        "points": [
+          {
+            "t": "2026-06-11",
+            "v": 0
+          },
+          {
+            "t": "2026-06-13",
+            "v": 0.3
+          },
+          {
+            "t": "2026-06-17",
+            "v": 0.6
+          },
+          {
+            "t": "2026-06-20",
+            "v": 0.9
+          },
+          {
+            "t": "2026-06-24",
+            "v": 1.1
+          },
+          {
+            "t": "2026-06-27",
+            "v": 1.3
+          },
+          {
+            "t": "2026-06-30",
+            "v": 1.45
+          }
+        ]
+      }
     ]
   },
   "allocation": {
     "rebalanceNeeded": true,
     "rebalanceNote": "CCOLA hedef ağırlığın 1,3 puan üzerinde; sektör çeşitlendirmesi korunuyor.",
     "holdings": [
-      { "ticker": "CCOLA", "company": "Coca-Cola İçecek", "weightPct": 21.3, "targetPct": 20.0 },
-      { "ticker": "GLYHO", "company": "Global Yatırım Holding", "weightPct": 20.1, "targetPct": 20.0 },
-      { "ticker": "TUPRS", "company": "Tüpraş", "weightPct": 19.8, "targetPct": 20.0 },
-      { "ticker": "AKSA", "company": "Aksa Akrilik", "weightPct": 19.4, "targetPct": 20.0 },
-      { "ticker": "ARASE", "company": "Aras Elektrik", "weightPct": 19.4, "targetPct": 20.0 }
+      {
+        "ticker": "CCOLA",
+        "company": "Coca-Cola İçecek",
+        "weightPct": 21.3,
+        "targetPct": 20.0
+      },
+      {
+        "ticker": "GLYHO",
+        "company": "Global Yatırım Holding",
+        "weightPct": 20.1,
+        "targetPct": 20.0
+      },
+      {
+        "ticker": "TUPRS",
+        "company": "Tüpraş",
+        "weightPct": 19.8,
+        "targetPct": 20.0
+      },
+      {
+        "ticker": "AKSA",
+        "company": "Aksa Akrilik",
+        "weightPct": 19.4,
+        "targetPct": 20.0
+      },
+      {
+        "ticker": "ARASE",
+        "company": "Aras Elektrik",
+        "weightPct": 19.4,
+        "targetPct": 20.0
+      }
     ]
   },
   "modelPortfolios": [
-    { "id": "Dengeli", "name": "Dengeli Model Portföy", "strategy": "Dengeli", "rankBy": "Score", "valueTL": 101856.13, "returnPct": 1.86, "benchmarkReturnPct": 0.33, "alphaPct": 1.53,
-      "holdings": [ {"ticker":"CCOLA","weightPct":21.3},{"ticker":"GLYHO","weightPct":20.1},{"ticker":"TUPRS","weightPct":19.8},{"ticker":"AKSA","weightPct":19.4},{"ticker":"ARASE","weightPct":19.4} ] },
-    { "id": "Deger", "name": "Değer Model Portföyü", "strategy": "Değer", "rankBy": "Score", "valueTL": 107704.23, "returnPct": 7.70, "benchmarkReturnPct": 0.33, "alphaPct": 7.37,
-      "holdings": [ {"ticker":"NTGAZ","weightPct":20},{"ticker":"ARASE","weightPct":20},{"ticker":"INDES","weightPct":20},{"ticker":"TUPRS","weightPct":20},{"ticker":"TTKOM","weightPct":20} ] },
-    { "id": "Momentum", "name": "Momentum Model Portföyü", "strategy": "Momentum", "rankBy": "Score", "valueTL": 106592.24, "returnPct": 6.59, "benchmarkReturnPct": 0.33, "alphaPct": 6.26,
-      "holdings": [ {"ticker":"GLYHO","weightPct":20},{"ticker":"DOFRB","weightPct":20},{"ticker":"CCOLA","weightPct":20},{"ticker":"THYAO","weightPct":20},{"ticker":"DSTKF","weightPct":20} ] },
-    { "id": "Kalite", "name": "Kalite Model Portföyü", "strategy": "Kalite", "rankBy": "Score", "valueTL": 107704.23, "returnPct": 7.70, "benchmarkReturnPct": 0.33, "alphaPct": 7.37,
-      "holdings": [ {"ticker":"CCOLA","weightPct":20},{"ticker":"ORGE","weightPct":20},{"ticker":"NTGAZ","weightPct":20},{"ticker":"GUBRF","weightPct":20},{"ticker":"BIMAS","weightPct":20} ] },
-    { "id": "RFS100", "name": "RFS100 Model Portföyü", "strategy": "Dengeli", "rankBy": "RawFactorScore100", "valueTL": 100449.81, "returnPct": 0.45, "benchmarkReturnPct": 0.33, "alphaPct": 0.12,
-      "holdings": [ {"ticker":"DSTKF","weightPct":20},{"ticker":"YGGYO","weightPct":20},{"ticker":"ARASE","weightPct":20},{"ticker":"YEOTK","weightPct":20},{"ticker":"DOFRB","weightPct":20} ] },
-    { "id": "RiskDengeli", "name": "Risk Dengeli Model Portföyü", "strategy": "Dengeli", "rankBy": "Score", "valueTL": 96699.26, "returnPct": -3.30, "benchmarkReturnPct": 0.65, "alphaPct": -3.95,
-      "holdings": [ {"ticker":"CCOLA","weightPct":24},{"ticker":"GLYHO","weightPct":18},{"ticker":"TUPRS","weightPct":22},{"ticker":"AKSA","weightPct":16},{"ticker":"ARASE","weightPct":20} ] }
+    {
+      "id": "Dengeli",
+      "name": "Dengeli Model Portföy",
+      "strategy": "Dengeli",
+      "rankBy": "Score",
+      "valueTL": 101856.13,
+      "returnPct": 1.86,
+      "benchmarkReturnPct": 0.33,
+      "alphaPct": 1.53,
+      "holdings": [
+        {
+          "ticker": "CCOLA",
+          "weightPct": 21.3
+        },
+        {
+          "ticker": "GLYHO",
+          "weightPct": 20.1
+        },
+        {
+          "ticker": "TUPRS",
+          "weightPct": 19.8
+        },
+        {
+          "ticker": "AKSA",
+          "weightPct": 19.4
+        },
+        {
+          "ticker": "ARASE",
+          "weightPct": 19.4
+        }
+      ]
+    },
+    {
+      "id": "Deger",
+      "name": "Değer Model Portföyü",
+      "strategy": "Değer",
+      "rankBy": "Score",
+      "valueTL": 107704.23,
+      "returnPct": 7.7,
+      "benchmarkReturnPct": 0.33,
+      "alphaPct": 7.37,
+      "holdings": [
+        {
+          "ticker": "NTGAZ",
+          "weightPct": 20
+        },
+        {
+          "ticker": "ARASE",
+          "weightPct": 20
+        },
+        {
+          "ticker": "INDES",
+          "weightPct": 20
+        },
+        {
+          "ticker": "TUPRS",
+          "weightPct": 20
+        },
+        {
+          "ticker": "TTKOM",
+          "weightPct": 20
+        }
+      ]
+    },
+    {
+      "id": "Momentum",
+      "name": "Momentum Model Portföyü",
+      "strategy": "Momentum",
+      "rankBy": "Score",
+      "valueTL": 106592.24,
+      "returnPct": 6.59,
+      "benchmarkReturnPct": 0.33,
+      "alphaPct": 6.26,
+      "holdings": [
+        {
+          "ticker": "GLYHO",
+          "weightPct": 20
+        },
+        {
+          "ticker": "DOFRB",
+          "weightPct": 20
+        },
+        {
+          "ticker": "CCOLA",
+          "weightPct": 20
+        },
+        {
+          "ticker": "THYAO",
+          "weightPct": 20
+        },
+        {
+          "ticker": "DSTKF",
+          "weightPct": 20
+        }
+      ]
+    },
+    {
+      "id": "Kalite",
+      "name": "Kalite Model Portföyü",
+      "strategy": "Kalite",
+      "rankBy": "Score",
+      "valueTL": 107704.23,
+      "returnPct": 7.7,
+      "benchmarkReturnPct": 0.33,
+      "alphaPct": 7.37,
+      "holdings": [
+        {
+          "ticker": "CCOLA",
+          "weightPct": 20
+        },
+        {
+          "ticker": "ORGE",
+          "weightPct": 20
+        },
+        {
+          "ticker": "NTGAZ",
+          "weightPct": 20
+        },
+        {
+          "ticker": "GUBRF",
+          "weightPct": 20
+        },
+        {
+          "ticker": "BIMAS",
+          "weightPct": 20
+        }
+      ]
+    },
+    {
+      "id": "RFS100",
+      "name": "RFS100 Model Portföyü",
+      "strategy": "Dengeli",
+      "rankBy": "RawFactorScore100",
+      "valueTL": 100449.81,
+      "returnPct": 0.45,
+      "benchmarkReturnPct": 0.33,
+      "alphaPct": 0.12,
+      "holdings": [
+        {
+          "ticker": "DSTKF",
+          "weightPct": 20
+        },
+        {
+          "ticker": "YGGYO",
+          "weightPct": 20
+        },
+        {
+          "ticker": "ARASE",
+          "weightPct": 20
+        },
+        {
+          "ticker": "YEOTK",
+          "weightPct": 20
+        },
+        {
+          "ticker": "DOFRB",
+          "weightPct": 20
+        }
+      ]
+    },
+    {
+      "id": "RiskDengeli",
+      "name": "Risk Dengeli Model Portföyü",
+      "strategy": "Dengeli",
+      "rankBy": "Score",
+      "valueTL": 96699.26,
+      "returnPct": -3.3,
+      "benchmarkReturnPct": 0.65,
+      "alphaPct": -3.95,
+      "holdings": [
+        {
+          "ticker": "CCOLA",
+          "weightPct": 24
+        },
+        {
+          "ticker": "GLYHO",
+          "weightPct": 18
+        },
+        {
+          "ticker": "TUPRS",
+          "weightPct": 22
+        },
+        {
+          "ticker": "AKSA",
+          "weightPct": 16
+        },
+        {
+          "ticker": "ARASE",
+          "weightPct": 20
+        }
+      ]
+    }
   ],
   "instantEntry": {
-    "initialCapitalTL": 100000, "dailyBudgetTL": 5000, "cashTL": 73428.22, "holdingsValueTL": 28427.91,
-    "totalValueTL": 101856.13, "totalReturnPct": 1.86, "totalBoughtTL": 30000, "realizedGainTL": 928.22,
+    "initialCapitalTL": 100000,
+    "dailyBudgetTL": 5000,
+    "cashTL": 73428.22,
+    "holdingsValueTL": 28427.91,
+    "totalValueTL": 101856.13,
+    "totalReturnPct": 1.86,
+    "totalBoughtTL": 30000,
+    "realizedGainTL": 928.22,
     "statusNote": "Bugünkü alım: THYAO 5.000 TL. Risk çıkışı yok.",
     "holdings": [
-      { "ticker": "THYAO", "company": "Türk Hava Yolları", "valueTL": 5120.5, "weightPct": 18.0, "gainPct": 2.4 },
-      { "ticker": "TUPRS", "company": "Tüpraş", "valueTL": 6010.2, "weightPct": 21.1, "gainPct": 1.1 },
-      { "ticker": "CCOLA", "company": "Coca-Cola İçecek", "valueTL": 5890.0, "weightPct": 20.7, "gainPct": 3.8 },
-      { "ticker": "ARASE", "company": "Aras Elektrik", "valueTL": 6207.0, "weightPct": 21.8, "gainPct": 5.1 },
-      { "ticker": "DSTKF", "company": "Destek Faktoring", "valueTL": 5200.2, "weightPct": 18.3, "gainPct": -1.2 }
+      {
+        "ticker": "THYAO",
+        "company": "Türk Hava Yolları",
+        "valueTL": 5120.5,
+        "weightPct": 18.0,
+        "gainPct": 2.4
+      },
+      {
+        "ticker": "TUPRS",
+        "company": "Tüpraş",
+        "valueTL": 6010.2,
+        "weightPct": 21.1,
+        "gainPct": 1.1
+      },
+      {
+        "ticker": "CCOLA",
+        "company": "Coca-Cola İçecek",
+        "valueTL": 5890.0,
+        "weightPct": 20.7,
+        "gainPct": 3.8
+      },
+      {
+        "ticker": "ARASE",
+        "company": "Aras Elektrik",
+        "valueTL": 6207.0,
+        "weightPct": 21.8,
+        "gainPct": 5.1
+      },
+      {
+        "ticker": "DSTKF",
+        "company": "Destek Faktoring",
+        "valueTL": 5200.2,
+        "weightPct": 18.3,
+        "gainPct": -1.2
+      }
     ]
   },
   "stocks": [
-    { "ticker": "CCOLA", "company": "Coca-Cola İçecek", "price": 612.50, "dailyPct": 1.8, "weeklyPct": 4.2, "rsi": 61.2, "macd": 3.4, "volume": "4.1M", "signal": "AL", "llmNote": "Defansif tüketim; bilanço güçlü, momentum ılımlı.", "action": "alım bölgesi" },
-    { "ticker": "GLYHO", "company": "Global Yatırım Holding", "price": 18.42, "dailyPct": -0.6, "weeklyPct": 2.1, "rsi": 55.0, "macd": 0.21, "volume": "22.7M", "signal": "İZLE", "llmNote": "Holding NAV iskontosu; katalizör bekleniyor.", "action": "izle" },
-    { "ticker": "TUPRS", "company": "Tüpraş", "price": 198.70, "dailyPct": 0.9, "weeklyPct": 1.4, "rsi": 58.7, "macd": 1.1, "volume": "9.3M", "signal": "AL", "llmNote": "Rafineri marjları destekleyici; trend yukarı.", "action": "alım bölgesi" },
-    { "ticker": "AKSA", "company": "Aksa Akrilik", "price": 41.06, "dailyPct": 0.3, "weeklyPct": -0.8, "rsi": 49.5, "macd": -0.05, "volume": "3.8M", "signal": "BEKLE", "llmNote": "Yatay; hacim teyidi zayıf.", "action": "bekle" },
-    { "ticker": "ARASE", "company": "Aras Elektrik", "price": 92.15, "dailyPct": 2.4, "weeklyPct": 6.1, "rsi": 67.8, "macd": 2.0, "volume": "5.5M", "signal": "AL", "llmNote": "Güçlü momentum; aşırı alıma yaklaşıyor.", "action": "riskli" },
-    { "ticker": "DSTKF", "company": "Destek Faktoring", "price": 14.88, "dailyPct": 4.8, "weeklyPct": 9.7, "rsi": 73.1, "macd": 0.9, "volume": "31.2M", "signal": "AL", "llmNote": "Hacim patlaması; kâr-al bölgesine dikkat.", "action": "riskli" },
-    { "ticker": "THYAO", "company": "Türk Hava Yolları", "price": 312.20, "dailyPct": 1.1, "weeklyPct": 3.0, "rsi": 60.4, "macd": 4.7, "volume": "18.9M", "signal": "AL", "llmNote": "Yolcu verileri güçlü; trend sağlam.", "action": "alım bölgesi" },
-    { "ticker": "BIMAS", "company": "BİM Mağazalar", "price": 542.00, "dailyPct": -0.4, "weeklyPct": 0.6, "rsi": 47.2, "macd": -0.3, "volume": "2.1M", "signal": "İZLE", "llmNote": "Defansif; enflasyon korumalı ciro.", "action": "izle" },
-    { "ticker": "GUBRF", "company": "Gübre Fabrikaları", "price": 215.30, "dailyPct": -1.2, "weeklyPct": -3.4, "rsi": 38.9, "macd": -1.8, "volume": "6.7M", "signal": "RİSKLİ", "llmNote": "Momentum zayıflıyor; destek test ediliyor.", "action": "riskli" },
-    { "ticker": "YGGYO", "company": "Yeşil GYO", "price": 7.34, "dailyPct": -2.1, "weeklyPct": -5.2, "rsi": 31.5, "macd": -0.6, "volume": "12.4M", "signal": "BEKLE", "llmNote": "Aşırı satım; dönüş teyidi yok.", "action": "bekle" }
+    {
+      "ticker": "CCOLA",
+      "company": "Coca-Cola İçecek",
+      "price": 612.5,
+      "dailyPct": 1.8,
+      "weeklyPct": 4.2,
+      "rsi": 61.2,
+      "macd": 3.4,
+      "volume": "4.1M",
+      "foreignPct": 38.6,
+      "signal": "AL",
+      "llmNote": "Defansif tüketim; bilanço güçlü, momentum ılımlı.",
+      "action": "alım bölgesi"
+    },
+    {
+      "ticker": "GLYHO",
+      "company": "Global Yatırım Holding",
+      "price": 18.42,
+      "dailyPct": -0.6,
+      "weeklyPct": 2.1,
+      "rsi": 55.0,
+      "macd": 0.21,
+      "volume": "22.7M",
+      "foreignPct": 11.2,
+      "signal": "İZLE",
+      "llmNote": "Holding NAV iskontosu; katalizör bekleniyor.",
+      "action": "izle"
+    },
+    {
+      "ticker": "TUPRS",
+      "company": "Tüpraş",
+      "price": 198.7,
+      "dailyPct": 0.9,
+      "weeklyPct": 1.4,
+      "rsi": 58.7,
+      "macd": 1.1,
+      "volume": "9.3M",
+      "foreignPct": 29.3,
+      "signal": "AL",
+      "llmNote": "Rafineri marjları destekleyici; trend yukarı.",
+      "action": "alım bölgesi"
+    },
+    {
+      "ticker": "AKSA",
+      "company": "Aksa Akrilik",
+      "price": 41.06,
+      "dailyPct": 0.3,
+      "weeklyPct": -0.8,
+      "rsi": 49.5,
+      "macd": -0.05,
+      "volume": "3.8M",
+      "foreignPct": null,
+      "signal": "BEKLE",
+      "llmNote": "Yatay; hacim teyidi zayıf.",
+      "action": "bekle"
+    },
+    {
+      "ticker": "ARASE",
+      "company": "Aras Elektrik",
+      "price": 92.15,
+      "dailyPct": 2.4,
+      "weeklyPct": 6.1,
+      "rsi": 67.8,
+      "macd": 2.0,
+      "volume": "5.5M",
+      "foreignPct": 1.7,
+      "signal": "AL",
+      "llmNote": "Güçlü momentum; aşırı alıma yaklaşıyor.",
+      "action": "riskli"
+    },
+    {
+      "ticker": "DSTKF",
+      "company": "Destek Faktoring",
+      "price": 14.88,
+      "dailyPct": 4.8,
+      "weeklyPct": 9.7,
+      "rsi": 73.1,
+      "macd": 0.9,
+      "volume": "31.2M",
+      "foreignPct": 2.1,
+      "signal": "AL",
+      "llmNote": "Hacim patlaması; kâr-al bölgesine dikkat.",
+      "action": "riskli"
+    },
+    {
+      "ticker": "THYAO",
+      "company": "Türk Hava Yolları",
+      "price": 312.2,
+      "dailyPct": 1.1,
+      "weeklyPct": 3.0,
+      "rsi": 60.4,
+      "macd": 4.7,
+      "volume": "18.9M",
+      "foreignPct": 23.8,
+      "signal": "AL",
+      "llmNote": "Yolcu verileri güçlü; trend sağlam.",
+      "action": "alım bölgesi"
+    },
+    {
+      "ticker": "BIMAS",
+      "company": "BİM Mağazalar",
+      "price": 542.0,
+      "dailyPct": -0.4,
+      "weeklyPct": 0.6,
+      "rsi": 47.2,
+      "macd": -0.3,
+      "volume": "2.1M",
+      "foreignPct": null,
+      "signal": "İZLE",
+      "llmNote": "Defansif; enflasyon korumalı ciro.",
+      "action": "izle"
+    },
+    {
+      "ticker": "GUBRF",
+      "company": "Gübre Fabrikaları",
+      "price": 215.3,
+      "dailyPct": -1.2,
+      "weeklyPct": -3.4,
+      "rsi": 38.9,
+      "macd": -1.8,
+      "volume": "6.7M",
+      "foreignPct": 5.6,
+      "signal": "RİSKLİ",
+      "llmNote": "Momentum zayıflıyor; destek test ediliyor.",
+      "action": "riskli"
+    },
+    {
+      "ticker": "YGGYO",
+      "company": "Yeşil GYO",
+      "price": 7.34,
+      "dailyPct": -2.1,
+      "weeklyPct": -5.2,
+      "rsi": 31.5,
+      "macd": -0.6,
+      "volume": "12.4M",
+      "foreignPct": 0.4,
+      "signal": "BEKLE",
+      "llmNote": "Aşırı satım; dönüş teyidi yok.",
+      "action": "bekle"
+    }
   ],
   "sectorRotation": [
-    { "sector": "Enerji", "dailyPct": 1.4, "weeklyPct": 3.8, "monthlyPct": 9.2, "flow": "giriş" },
-    { "sector": "Ulaştırma", "dailyPct": 1.1, "weeklyPct": 2.9, "monthlyPct": 6.5, "flow": "giriş" },
-    { "sector": "Tüketim", "dailyPct": 0.6, "weeklyPct": 1.2, "monthlyPct": 2.8, "flow": "giriş" },
-    { "sector": "Holding", "dailyPct": 0.1, "weeklyPct": 0.4, "monthlyPct": 0.9, "flow": "nötr" },
-    { "sector": "Kimya", "dailyPct": -0.5, "weeklyPct": -1.1, "monthlyPct": -2.4, "flow": "çıkış" },
-    { "sector": "Gayrimenkul", "dailyPct": -1.3, "weeklyPct": -4.0, "monthlyPct": -7.8, "flow": "çıkış" },
-    { "sector": "Banka", "dailyPct": -0.2, "weeklyPct": 0.3, "monthlyPct": 1.5, "flow": "nötr" }
+    {
+      "sector": "Enerji",
+      "dailyPct": 1.4,
+      "weeklyPct": 3.8,
+      "monthlyPct": 9.2,
+      "flow": "giriş"
+    },
+    {
+      "sector": "Ulaştırma",
+      "dailyPct": 1.1,
+      "weeklyPct": 2.9,
+      "monthlyPct": 6.5,
+      "flow": "giriş"
+    },
+    {
+      "sector": "Tüketim",
+      "dailyPct": 0.6,
+      "weeklyPct": 1.2,
+      "monthlyPct": 2.8,
+      "flow": "giriş"
+    },
+    {
+      "sector": "Holding",
+      "dailyPct": 0.1,
+      "weeklyPct": 0.4,
+      "monthlyPct": 0.9,
+      "flow": "nötr"
+    },
+    {
+      "sector": "Kimya",
+      "dailyPct": -0.5,
+      "weeklyPct": -1.1,
+      "monthlyPct": -2.4,
+      "flow": "çıkış"
+    },
+    {
+      "sector": "Gayrimenkul",
+      "dailyPct": -1.3,
+      "weeklyPct": -4.0,
+      "monthlyPct": -7.8,
+      "flow": "çıkış"
+    },
+    {
+      "sector": "Banka",
+      "dailyPct": -0.2,
+      "weeklyPct": 0.3,
+      "monthlyPct": 1.5,
+      "flow": "nötr"
+    }
   ],
   "sectorFlow": [
-    { "from": "Gayrimenkul", "to": "Enerji", "flow": 3.433 },
-    { "from": "Gayrimenkul", "to": "Ulaştırma", "flow": 2.426 },
-    { "from": "Gayrimenkul", "to": "Tüketim", "flow": 1.045 },
-    { "from": "Gayrimenkul", "to": "Banka", "flow": 0.560 },
-    { "from": "Gayrimenkul", "to": "Holding", "flow": 0.336 },
-    { "from": "Kimya", "to": "Enerji", "flow": 1.056 },
-    { "from": "Kimya", "to": "Ulaştırma", "flow": 0.746 },
-    { "from": "Kimya", "to": "Tüketim", "flow": 0.322 },
-    { "from": "Kimya", "to": "Banka", "flow": 0.172 },
-    { "from": "Kimya", "to": "Holding", "flow": 0.103 }
+    {
+      "from": "Gayrimenkul",
+      "to": "Enerji",
+      "flow": 3.433
+    },
+    {
+      "from": "Gayrimenkul",
+      "to": "Ulaştırma",
+      "flow": 2.426
+    },
+    {
+      "from": "Gayrimenkul",
+      "to": "Tüketim",
+      "flow": 1.045
+    },
+    {
+      "from": "Gayrimenkul",
+      "to": "Banka",
+      "flow": 0.56
+    },
+    {
+      "from": "Gayrimenkul",
+      "to": "Holding",
+      "flow": 0.336
+    },
+    {
+      "from": "Kimya",
+      "to": "Enerji",
+      "flow": 1.056
+    },
+    {
+      "from": "Kimya",
+      "to": "Ulaştırma",
+      "flow": 0.746
+    },
+    {
+      "from": "Kimya",
+      "to": "Tüketim",
+      "flow": 0.322
+    },
+    {
+      "from": "Kimya",
+      "to": "Banka",
+      "flow": 0.172
+    },
+    {
+      "from": "Kimya",
+      "to": "Holding",
+      "flow": 0.103
+    }
   ],
   "sectorFlowBasis": "aylık",
   "riskMetrics": [
-    { "id": "Dengeli", "name": "Dengeli Model Portföy", "metrics": { "days": 13, "insufficient": false, "annVolPct": 14.2, "annReturnPct": 46.9, "sharpe": 1.9, "sortino": 2.6, "maxDrawdownPct": -2.1, "calmar": 22.3, "beta": 0.64, "alphaAnnPct": 38.7, "trackingErrorPct": 11.8, "infoRatio": 1.5, "correlation": 0.58 } },
-    { "id": "Deger", "name": "Değer Model Portföyü", "metrics": { "days": 13, "insufficient": false, "annVolPct": 16.8, "annReturnPct": 19.4, "sharpe": 1.1, "sortino": 1.5, "maxDrawdownPct": -3.4, "calmar": 5.7, "beta": 0.71, "alphaAnnPct": 10.2, "trackingErrorPct": 13.5, "infoRatio": 0.7, "correlation": 0.61 } },
-    { "id": "RiskDengeli", "name": "Risk Dengeli Model Portföyü", "metrics": { "days": 8, "insufficient": true } }
+    {
+      "id": "Dengeli",
+      "name": "Dengeli Model Portföy",
+      "metrics": {
+        "days": 13,
+        "insufficient": false,
+        "annVolPct": 14.2,
+        "annReturnPct": 46.9,
+        "sharpe": 1.9,
+        "sortino": 2.6,
+        "maxDrawdownPct": -2.1,
+        "calmar": 22.3,
+        "beta": 0.64,
+        "alphaAnnPct": 38.7,
+        "trackingErrorPct": 11.8,
+        "infoRatio": 1.5,
+        "correlation": 0.58
+      }
+    },
+    {
+      "id": "Deger",
+      "name": "Değer Model Portföyü",
+      "metrics": {
+        "days": 13,
+        "insufficient": false,
+        "annVolPct": 16.8,
+        "annReturnPct": 19.4,
+        "sharpe": 1.1,
+        "sortino": 1.5,
+        "maxDrawdownPct": -3.4,
+        "calmar": 5.7,
+        "beta": 0.71,
+        "alphaAnnPct": 10.2,
+        "trackingErrorPct": 13.5,
+        "infoRatio": 0.7,
+        "correlation": 0.61
+      }
+    },
+    {
+      "id": "RiskDengeli",
+      "name": "Risk Dengeli Model Portföyü",
+      "metrics": {
+        "days": 8,
+        "insufficient": true
+      }
+    }
   ],
   "riskNote": "Varsayımlar: risksiz faiz=0, 252 gün yıllıklaştırma, BIST100 benchmark. Kısa geçmişte metrikler gürültülüdür.",
   "macro": {
-    "status": "Nötr", "supportiveCount": 4, "pressureCount": 3, "riskAppetite": 57,
+    "status": "Nötr",
+    "supportiveCount": 4,
+    "pressureCount": 3,
+    "riskAppetite": 57,
     "note": "Makro görünüm; BIST trendi, USD/TRY, CDS, TR10Y, DXY ve VIX ile izlenir.",
     "items": [
-      { "id": "XU100", "name": "BIST100", "value": 14539.83, "changePct": 0.4, "unit": "puan", "status": "Destekleyici", "note": "SMA200 üstü" },
-      { "id": "USDTRY", "name": "USD/TRY", "value": 41.25, "changePct": 0.1, "unit": "TL", "status": "Nötr", "note": "" },
-      { "id": "CDS", "name": "Türkiye 5Y CDS", "value": 262, "changePct": -1.2, "unit": "bps", "status": "Destekleyici", "note": "" },
-      { "id": "VIX", "name": "VIX", "value": 17.4, "changePct": 3.1, "unit": "puan", "status": "Baskılayıcı", "note": "" }
+      {
+        "id": "XU100",
+        "name": "BIST100",
+        "value": 14539.83,
+        "changePct": 0.4,
+        "unit": "puan",
+        "status": "Destekleyici",
+        "note": "SMA200 üstü"
+      },
+      {
+        "id": "USDTRY",
+        "name": "USD/TRY",
+        "value": 41.25,
+        "changePct": 0.1,
+        "unit": "TL",
+        "status": "Nötr",
+        "note": ""
+      },
+      {
+        "id": "CDS",
+        "name": "Türkiye 5Y CDS",
+        "value": 262,
+        "changePct": -1.2,
+        "unit": "bps",
+        "status": "Destekleyici",
+        "note": ""
+      },
+      {
+        "id": "VIX",
+        "name": "VIX",
+        "value": 17.4,
+        "changePct": 3.1,
+        "unit": "puan",
+        "status": "Baskılayıcı",
+        "note": ""
+      }
     ]
   },
   "kapNews": [
-    { "symbol": "TCELL", "title": "Özel Durum Açıklaması (Genel)", "date": "18.06.2026 21:55:08", "impact": "nötr", "summary": "Belarus bağlı ortaklığında sermaye artırımı; konsolide etkisi sınırlı." },
-    { "symbol": "TUPRS", "title": "Pay Geri Alım İşlemleri", "date": "18.06.2026 18:10:00", "impact": "pozitif", "summary": "Şirket geri alım programı kapsamında alım yaptı; hisse başına değer desteği." },
-    { "symbol": "GUBRF", "title": "Üretim Duruşu Bildirimi", "date": "17.06.2026 14:32:00", "impact": "negatif", "summary": "Bakım nedeniyle geçici üretim duruşu; çeyrek hacmine sınırlı olumsuz etki." }
+    {
+      "symbol": "TCELL",
+      "title": "Özel Durum Açıklaması (Genel)",
+      "date": "18.06.2026 21:55:08",
+      "impact": "nötr",
+      "summary": "Belarus bağlı ortaklığında sermaye artırımı; konsolide etkisi sınırlı."
+    },
+    {
+      "symbol": "TUPRS",
+      "title": "Pay Geri Alım İşlemleri",
+      "date": "18.06.2026 18:10:00",
+      "impact": "pozitif",
+      "summary": "Şirket geri alım programı kapsamında alım yaptı; hisse başına değer desteği."
+    },
+    {
+      "symbol": "GUBRF",
+      "title": "Üretim Duruşu Bildirimi",
+      "date": "17.06.2026 14:32:00",
+      "impact": "negatif",
+      "summary": "Bakım nedeniyle geçici üretim duruşu; çeyrek hacmine sınırlı olumsuz etki."
+    }
   ],
+  "foreignFlow": {
+    "updatedAt": "2026-06-29T05:24:00Z",
+    "note": "MKK kaynakli cari yabanci orani (Is Yatirim yeniden yayini); yayin gecikmeli olabilir.",
+    "count": 591,
+    "risers": [
+      {
+        "ticker": "THYAO",
+        "pct": 23.8,
+        "chg": 1.59
+      },
+      {
+        "ticker": "CCOLA",
+        "pct": 38.6,
+        "chg": 0.84
+      },
+      {
+        "ticker": "TUPRS",
+        "pct": 29.3,
+        "chg": 0.41
+      }
+    ],
+    "fallers": [
+      {
+        "ticker": "ASELS",
+        "pct": 55.0,
+        "chg": -1.45
+      },
+      {
+        "ticker": "YGGYO",
+        "pct": 0.4,
+        "chg": -0.31
+      },
+      {
+        "ticker": "GUBRF",
+        "pct": 5.6,
+        "chg": -0.22
+      }
+    ]
+  },
   "heatmap": [
-    { "t": "CCOLA", "s": "Tüketim", "d": 1.8 }, { "t": "BIMAS", "s": "Tüketim", "d": -0.4 },
-    { "t": "TUPRS", "s": "Enerji", "d": 0.9 }, { "t": "ARASE", "s": "Enerji", "d": 2.4 },
-    { "t": "THYAO", "s": "Ulaştırma", "d": 1.1 }, { "t": "DSTKF", "s": "Finans", "d": 4.8 },
-    { "t": "AKBNK", "s": "Finans", "d": -0.5 }, { "t": "GUBRF", "s": "Kimya", "d": -1.2 },
-    { "t": "YGGYO", "s": "Gayrimenkul", "d": -2.1 }
+    {
+      "t": "CCOLA",
+      "s": "Tüketim",
+      "d": 1.8
+    },
+    {
+      "t": "BIMAS",
+      "s": "Tüketim",
+      "d": -0.4
+    },
+    {
+      "t": "TUPRS",
+      "s": "Enerji",
+      "d": 0.9
+    },
+    {
+      "t": "ARASE",
+      "s": "Enerji",
+      "d": 2.4
+    },
+    {
+      "t": "THYAO",
+      "s": "Ulaştırma",
+      "d": 1.1
+    },
+    {
+      "t": "DSTKF",
+      "s": "Finans",
+      "d": 4.8
+    },
+    {
+      "t": "AKBNK",
+      "s": "Finans",
+      "d": -0.5
+    },
+    {
+      "t": "GUBRF",
+      "s": "Kimya",
+      "d": -1.2
+    },
+    {
+      "t": "YGGYO",
+      "s": "Gayrimenkul",
+      "d": -2.1
+    }
   ],
   "smartMoney": {
     "commentary": "Büyük hacim akışı enerji ve ulaştırmada yoğunlaştı; gayrimenkulde kâr realizasyonu görülüyor. Akış henüz geniş tabanlı değil, seçici.",
     "items": [
-      { "ticker": "DSTKF", "type": "Büyük alım", "note": "Hacim 20 gün ortalamasının 3,1 katı; fiyat dik yukarı." },
-      { "ticker": "THYAO", "type": "Kademeli giriş", "note": "Hacim 1,9x; trend teyitli alım." },
-      { "ticker": "YGGYO", "type": "Çıkış", "note": "Hacimli satış; zayıf el boşaltıyor." }
+      {
+        "ticker": "DSTKF",
+        "type": "Büyük alım",
+        "note": "Hacim 20 gün ortalamasının 3,1 katı; fiyat dik yukarı."
+      },
+      {
+        "ticker": "THYAO",
+        "type": "Kademeli giriş",
+        "note": "Hacim 1,9x; trend teyitli alım."
+      },
+      {
+        "ticker": "YGGYO",
+        "type": "Çıkış",
+        "note": "Hacimli satış; zayıf el boşaltıyor."
+      }
     ],
-    "strengthening": ["DSTKF", "ARASE", "THYAO", "TUPRS"],
-    "weakening": ["YGGYO", "GUBRF"]
+    "strengthening": [
+      "DSTKF",
+      "ARASE",
+      "THYAO",
+      "TUPRS"
+    ],
+    "weakening": [
+      "YGGYO",
+      "GUBRF"
+    ]
   },
   "technicalSignals": {
-    "overbought": [ { "ticker": "DSTKF", "rsi": 73.1 }, { "ticker": "ARASE", "rsi": 67.8 } ],
-    "oversold": [ { "ticker": "YGGYO", "rsi": 31.5 }, { "ticker": "GUBRF", "rsi": 38.9 } ],
-    "macdCross": [ { "ticker": "TUPRS", "note": "MACD sinyal üstüne kesişti (al)" }, { "ticker": "GUBRF", "note": "MACD sinyal altına kesişti (sat)" } ],
-    "trendStrengthening": [ { "ticker": "THYAO", "note": "200g üstü, MACD pozitif genişliyor" }, { "ticker": "ARASE", "note": "Yeni 20g zirvesi" } ],
-    "momentumLosing": [ { "ticker": "AKSA", "note": "Momentum yatay, hacim düşük" }, { "ticker": "GUBRF", "note": "Negatif ivme" } ],
-    "breakout": [ { "ticker": "DSTKF", "note": "Direnç kırılımı, hacim teyitli" } ]
+    "overbought": [
+      {
+        "ticker": "DSTKF",
+        "rsi": 73.1
+      },
+      {
+        "ticker": "ARASE",
+        "rsi": 67.8
+      }
+    ],
+    "oversold": [
+      {
+        "ticker": "YGGYO",
+        "rsi": 31.5
+      },
+      {
+        "ticker": "GUBRF",
+        "rsi": 38.9
+      }
+    ],
+    "macdCross": [
+      {
+        "ticker": "TUPRS",
+        "note": "MACD sinyal üstüne kesişti (al)"
+      },
+      {
+        "ticker": "GUBRF",
+        "note": "MACD sinyal altına kesişti (sat)"
+      }
+    ],
+    "trendStrengthening": [
+      {
+        "ticker": "THYAO",
+        "note": "200g üstü, MACD pozitif genişliyor"
+      },
+      {
+        "ticker": "ARASE",
+        "note": "Yeni 20g zirvesi"
+      }
+    ],
+    "momentumLosing": [
+      {
+        "ticker": "AKSA",
+        "note": "Momentum yatay, hacim düşük"
+      },
+      {
+        "ticker": "GUBRF",
+        "note": "Negatif ivme"
+      }
+    ],
+    "breakout": [
+      {
+        "ticker": "DSTKF",
+        "note": "Direnç kırılımı, hacim teyitli"
+      }
+    ]
   },
   "llmCommentary": {
     "stance": "Nötr",
@@ -189,9 +1207,18 @@
     "portfolioComment": "Portföy ay sonunda %1,86 ile endeksin (%0,33) üzerinde; katkı enerji ve momentum kanadından geldi. Tek hisse yoğunlaşması sınırlı.",
     "portfolioCommentTitle": "Aylık Portföy Notu — 30 Haziran 2026 Yeniden Dengeleme",
     "portfolioCommentSections": [
-      { "heading": "Dengeli Model Portföy", "text": "Portföy ay sonunda %1,86 ile endeksin (%0,33) üzerinde; katkı enerji ve momentum kanadından geldi. Tek hisse yoğunlaşması sınırlı.\n\nTUPRS'un rafineri marjı desteği ve ARASE'nin momentumu ana katkı kalemleri oldu." },
-      { "heading": "Değer Model Portföyü", "text": "Değer kanadı bu ay en güçlü performansı verdi; düşük FD/FAVÖK'lü isimler (NTGAZ, TUPRS) öne çıktı.\n\nDeğer tuzağı riski düşük görünüyor; kârlılık filtresi çalışıyor." },
-      { "heading": "Risk Dengeli Model Portföyü", "text": "Ters-volatilite ağırlıklandırma bu dönem koruma sağlamadı; CCOLA yüksek ağırlıkla zarar getirdi.\n\nÇeşitlendirme etkisi zayıfladı, izlemeye devam." }
+      {
+        "heading": "Dengeli Model Portföy",
+        "text": "Portföy ay sonunda %1,86 ile endeksin (%0,33) üzerinde; katkı enerji ve momentum kanadından geldi. Tek hisse yoğunlaşması sınırlı.\n\nTUPRS'un rafineri marjı desteği ve ARASE'nin momentumu ana katkı kalemleri oldu."
+      },
+      {
+        "heading": "Değer Model Portföyü",
+        "text": "Değer kanadı bu ay en güçlü performansı verdi; düşük FD/FAVÖK'lü isimler (NTGAZ, TUPRS) öne çıktı.\n\nDeğer tuzağı riski düşük görünüyor; kârlılık filtresi çalışıyor."
+      },
+      {
+        "heading": "Risk Dengeli Model Portföyü",
+        "text": "Ters-volatilite ağırlıklandırma bu dönem koruma sağlamadı; CCOLA yüksek ağırlıkla zarar getirdi.\n\nÇeşitlendirme etkisi zayıfladı, izlemeye devam."
+      }
     ],
     "risks": [
       "DSTKF ve ARASE aşırı alım bölgesine yakın; kâr realizasyonu riski.",
@@ -208,10 +1235,22 @@
     "watchNext": "Yarın açılışta enerji akışının sürüp sürmediğini ve DSTKF'de kâr-al baskısını izle."
   },
   "actionItems": {
-    "watch": ["THYAO — trend teyidi", "TUPRS — geri çekilmede alım", "GLYHO — katalizör"],
-    "rebalance": ["CCOLA ağırlığı hedefin 1,3 puan üzerinde — küçük azaltma değerlendirilebilir"],
-    "riskReduction": ["DSTKF — kademeli kâr-al planı", "ARASE — iz-süren stop sıkılaştır"],
-    "buyWatchlist": ["TUPRS", "THYAO"],
+    "watch": [
+      "THYAO — trend teyidi",
+      "TUPRS — geri çekilmede alım",
+      "GLYHO — katalizör"
+    ],
+    "rebalance": [
+      "CCOLA ağırlığı hedefin 1,3 puan üzerinde — küçük azaltma değerlendirilebilir"
+    ],
+    "riskReduction": [
+      "DSTKF — kademeli kâr-al planı",
+      "ARASE — iz-süren stop sıkılaştır"
+    ],
+    "buyWatchlist": [
+      "TUPRS",
+      "THYAO"
+    ],
     "note": "Karar destek amaçlıdır, yatırım tavsiyesi değildir."
   }
 }
