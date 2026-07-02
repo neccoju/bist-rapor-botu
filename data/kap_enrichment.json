@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-07-01T14:46:35.408463+00:00",
+  "generatedAt": "2026-07-02T14:46:13.541593+00:00",
   "source": "borsapy 0.10.2 get_news_content",
-  "count": 92,
+  "count": 95,
   "lastRun": {
-    "targets": 8,
-    "enriched": 8,
+    "targets": 3,
+    "enriched": 3,
     "errors": 0,
-    "elapsedSec": 38
+    "elapsedSec": 17
   },
   "items": {
     "1618795": {
@@ -1876,6 +1876,75 @@
         "680.000.000 TL"
       ],
       "rationale": "Bildirimde işlem detayları ve tutar yer almıyor, fiyat etkisi belirsiz."
+    },
+    "1622775": {
+      "symbol": "THYAO",
+      "title": "Kredi Derecelendirmesi",
+      "category": "Kredi Notu",
+      "date": "02.07.2026 09:32:58",
+      "directionHint": "~",
+      "contentChars": 60435,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-02T14:45:58.808959+00:00",
+      "directionRefined": "?",
+      "summary": "THYAO, 02.07.2026 tarihinde kredi derecelendirmesiyle ilgili KAP bildirimi yaptı; not, kuruluş veya detay belirtilmemiştir.",
+      "impact": 2,
+      "amounts": [],
+      "rationale": "Kredi notu ve detaylar açıklanmadığı için fiyat etkisi belirsiz."
+    },
+    "1622735": {
+      "symbol": "TRALT",
+      "title": "Kar Payı Dağıtım İşlemlerine İlişkin Bildirim",
+      "category": "Temettu",
+      "date": "01.07.2026 19:41:26",
+      "directionHint": "+",
+      "contentChars": 76633,
+      "pdfChars": 2035,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f0a085a019f1e888c7f0650"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 2035,
+      "inputSnippet": " SPK'ya Göre 5.833.387.000,00 1.729.063.000,00 4.104.324.000,00 0,00 205.216.200,00 3.899.107.800,00 151.849.000,00 4.050.956.800,00 1.601.250.000,00 1.601.250.000,00 0,00 1.601.250.000,00 0,00 0,00 0,00 144.112.500,00 2.153.745.300,00 TOPLAM DAĞITILAN KAR PAYI / NET DAĞITILABİLİR DÖNEM KARI GRUBU NAKİT (TL) BEDELSİZ (TL) ORANI % TUTAR (TL) ORANI(%) A 320.250.000,00 - 8,21 0,5000 50,00 B 1.281.000.000,00 - 32,85 0,5000 50,00 TOPLAM 1.601.250.000,00 - 41,07 0,5000 50,00 TOPLAM DAĞITILAN KAR PAYI ",
+      "engine": "github",
+      "enrichedAt": "2026-07-02T14:46:05.209572+00:00",
+      "directionRefined": "+",
+      "summary": "TRALT, 2025 için toplam 1,60 milyar TL nakit temettü dağıtacak; dağıtım oranı %41,07, hisse başı brüt 0,50 TL.",
+      "impact": 4,
+      "amounts": [
+        "1,60 milyar TL",
+        "0,50 TL/hisse",
+        "%41,07 dağıtım oranı",
+        "1 TL",
+        "4.104.324.000,00 TL",
+        "205.216.200,00 TL"
+      ],
+      "rationale": "Yüksek temettü tutarı ve oranı yatırımcı için olumlu, fiyatı destekleyebilir."
+    },
+    "1622728": {
+      "symbol": "GUBRF",
+      "title": "Özel Durum Açıklaması (Genel)",
+      "category": "Ozel Durum (Genel)",
+      "date": "01.07.2026 19:21:00",
+      "directionHint": "?",
+      "contentChars": 62260,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-02T14:46:10.409437+00:00",
+      "directionRefined": "0",
+      "summary": "GUBRF, finansal tablolarına ilişkin genel açıklama yaptı; yeni bir finansal veri veya özel durum yok.",
+      "impact": 1,
+      "amounts": [],
+      "rationale": "Yatırımcı açısından nötr; rutin bildirim, fiyatı etkileyecek yeni bilgi yok."
     }
   }
 }
