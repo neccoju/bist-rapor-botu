@@ -60,6 +60,10 @@
     foreignFlow: { updatedAt: "2026-06-29T05:24:00Z", note: "MKK kaynaklı cari yabancı oranı; yayın gecikmeli olabilir.", count: 591,
       risers: [ { ticker: "THYAO", pct: 23.8, chg: 1.59 }, { ticker: "CCOLA", pct: 38.6, chg: 0.84 } ],
       fallers: [ { ticker: "ASELS", pct: 55.0, chg: -1.45 }, { ticker: "YGGYO", pct: 0.4, chg: -0.31 } ] },
+    tefasFlow: { asOf: "2026-07-02", note: "TEFAS hisse senedi fonları; net akış pay bazlı (fiyat etkisiz).",
+      equityFundCount: 192, totalAumTL: 248715781437, flow1wTL: 1240000000, flow4wTL: -830000000,
+      topInflow: [ { code: "TTE", name: "İş Portföy BIST Teknoloji Endeksi", flowTL: 310000000 } ],
+      topOutflow: [ { code: "GAF", name: "Ak Portföy Hisse Senedi Fonu", flowTL: -120000000 } ] },
     heatmap: [ { t: "CCOLA", s: "Tüketim", d: 1.8 }, { t: "TUPRS", s: "Enerji", d: 0.9 }, { t: "DSTKF", s: "Finans", d: 4.8 }, { t: "YGGYO", s: "Gayrimenkul", d: -2.1 } ],
     smartMoney: { commentary: "Akış enerji ve ulaştırmada; gayrimenkulde realizasyon.",
       items: [ { ticker: "DSTKF", type: "Büyük alım", note: "Hacim 3,1x." }, { ticker: "YGGYO", type: "Çıkış", note: "Hacimli satış." } ],
@@ -760,6 +764,43 @@
       (fallers.length ? "<ul class='plainlist'>" + fallers.map((x) => item(x, "badge--neg")).join("") + "</ul>" : inlineEmpty("—")) + "</div>";
   }
 
+  /* ---------------- 7d) Yerli fon akışı (TEFAS) ---------------- */
+  function fmtTLBig(v) {
+    if (!isNum(v)) return "—";
+    const a = Math.abs(v), sign = v < 0 ? "−" : "+";
+    if (a >= 1e9) return sign + fmtTR(a / 1e9, 2) + " mlr TL";
+    if (a >= 1e6) return sign + fmtTR(a / 1e6, 1) + " mn TL";
+    return sign + fmtTR(a, 0) + " TL";
+  }
+  function renderTefasFlow(report) {
+    const host = $("#tefasFlowHost"), sub = $("#tefasFlowSub");
+    if (!host) return;
+    const tf = report.tefasFlow || null;
+    if (!tf) { host.innerHTML = inlineEmpty("TEFAS verisi yok — haftalık collector henüz veri üretmemiş."); return; }
+    if (sub && tf.note) sub.textContent = tf.note + (tf.asOf ? " · veri: " + tf.asOf : "");
+    const aum = isNum(tf.totalAumTL) ? fmtTR(tf.totalAumTL / 1e9, 1) + " mlr TL" : "—";
+    let html = '<div class="chiprow" style="margin-bottom:10px">' +
+      '<span class="badge badge--neutral">' + (isNum(tf.equityFundCount) ? fmtTR(tf.equityFundCount, 0) : "—") + " fon</span>" +
+      '<span class="badge badge--neutral">AUM ' + esc(aum) + "</span>";
+    if (isNum(tf.flow1wTL)) {
+      html += '<span class="badge ' + (tf.flow1wTL >= 0 ? "badge--pos" : "badge--neg") + '">1H ' + esc(fmtTLBig(tf.flow1wTL)) + "</span>";
+    } else {
+      html += '<span class="badge badge--warn">baz oluşturuldu — ilk akış önümüzdeki hafta</span>';
+    }
+    if (isNum(tf.flow4wTL)) html += '<span class="badge ' + (tf.flow4wTL >= 0 ? "badge--pos" : "badge--neg") + '">4H ' + esc(fmtTLBig(tf.flow4wTL)) + "</span>";
+    html += "</div>";
+    const li = (x, cls) => '<li><b>' + esc(x.code || "—") + "</b> <span class='badge " + cls + "'>" + esc(fmtTLBig(x.flowTL)) + "</span>" +
+      (x.name ? " <span class='flat'>" + esc(String(x.name).slice(0, 40)) + "</span>" : "") + "</li>";
+    const tin = arr(tf.topInflow), tout = arr(tf.topOutflow);
+    if (tin.length || tout.length) {
+      html += '<div class="twocol"><div><h4>Giriş</h4>' +
+        (tin.length ? "<ul class='plainlist'>" + tin.map((x) => li(x, "badge--pos")).join("") + "</ul>" : inlineEmpty("—")) + "</div>" +
+        '<div><h4>Çıkış</h4>' +
+        (tout.length ? "<ul class='plainlist'>" + tout.map((x) => li(x, "badge--neg")).join("") + "</ul>" : inlineEmpty("—")) + "</div></div>";
+    }
+    host.innerHTML = html;
+  }
+
   /* ---------------- 8) Teknik sinyaller ---------------- */
   function renderTechnicalSignals(report) {
     const host = $("#signalGrid"); if (!host) return;
@@ -869,6 +910,7 @@
     try { renderSectorRotation(report); } catch (e) { warn("sector", e); }
     try { renderSmartMoney(report); } catch (e) { warn("smart", e); }
     try { renderForeignFlow(report); } catch (e) { warn("foreign", e); }
+    try { renderTefasFlow(report); } catch (e) { warn("tefas", e); }
     try { renderTechnicalSignals(report); } catch (e) { warn("tech", e); }
     try { renderLLMCommentary(report); } catch (e) { warn("llm", e); }
     try { renderActionItems(report); } catch (e) { warn("action", e); }

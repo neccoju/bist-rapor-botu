@@ -221,6 +221,36 @@ function Get-DashForeignFlow {
     catch { return $null }
 }
 
+function Get-DashTefasFlow {
+    <#
+        data/tefas_flows.json'dan (haftalik TEFAS collector) yerli hisse fonu
+        net akis ozetini panel icin okur. Best-effort: dosya yoksa/bozuksa $null.
+        flow1wTL null olabilir (ilk kosu yalniz baz olusturur) — panel bunu
+        "baz olusturuldu" diye gosterir.
+    #>
+    param([string]$DataDir)
+    try {
+        if ([string]::IsNullOrWhiteSpace($DataDir)) { $DataDir = Join-Path $PSScriptRoot 'data' }
+        $path = Join-Path $DataDir 'tefas_flows.json'
+        if (-not (Test-Path -LiteralPath $path)) { return $null }
+        $tf = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
+        $mapTop = { param($rows) @($rows | ForEach-Object {
+                [pscustomobject]@{ code = (Get-DashStr -Object $_ -Name 'code'); name = (Get-DashStr -Object $_ -Name 'name'); flowTL = (Get-DashNum -Object $_ -Name 'flowTL') }
+            } | Where-Object { $_.code }) }
+        return [pscustomobject]@{
+            asOf            = (Get-DashStr -Object $tf -Name 'asOf')
+            note            = (Get-DashStr -Object $tf -Name 'note')
+            equityFundCount = (Get-DashNum -Object $tf -Name 'equityFundCount')
+            totalAumTL      = (Get-DashNum -Object $tf -Name 'totalAumTL')
+            flow1wTL        = (Get-DashNum -Object $tf -Name 'flow1wTL')
+            flow4wTL        = (Get-DashNum -Object $tf -Name 'flow4wTL')
+            topInflow       = (& $mapTop (Get-DashProp -Object $tf -Name 'topInflow'))
+            topOutflow      = (& $mapTop (Get-DashProp -Object $tf -Name 'topOutflow'))
+        }
+    }
+    catch { return $null }
+}
+
 function ConvertTo-DashboardReport {
     [CmdletBinding()]
     param(
@@ -334,6 +364,9 @@ function ConvertTo-DashboardReport {
     # ---- foreignFlow (MKK kaynakli yabanci saklama orani — dosyadan best-effort) ----
     $ffData = Get-DashForeignFlow -DataDir $DataDir
     $ffMap = if ($null -ne $ffData) { $ffData.map } else { $null }
+
+    # ---- tefasFlow (TEFAS hisse fonu net akisi — dosyadan best-effort) ----
+    $tefasFlow = Get-DashTefasFlow -DataDir $DataDir
 
     # ---- stocks (en yüksek skorlu TopStocks) ----
     $topRows = @($Stocks |
@@ -614,6 +647,7 @@ function ConvertTo-DashboardReport {
         macro = $macro
         kapNews = $kapNews
         foreignFlow = if ($null -ne $ffData) { $ffData.panel } else { $null }
+        tefasFlow = $tefasFlow
         heatmap = $heatmap
         sectorRotation = $sectorRotation
         sectorFlow = $sectorFlow
