@@ -267,7 +267,8 @@ function ConvertTo-DashboardReport {
         [int]$TopStocks = 30,
         [string]$PagesUrl = $null,
         $MacroSnapshot = $null,
-        [string]$DataDir = $null
+        [string]$DataDir = $null,
+        [object[]]$StructureSignals = @()
     )
 
     # ---- meta ----
@@ -539,9 +540,18 @@ function ConvertTo-DashboardReport {
             [pscustomobject]@{ ticker = (Get-DashStr -Object $_ -Name 'Symbol'); note = ('Hacim {0}x + %{1} hareket — {2}' -f [Math]::Round($rv, 1), [Math]::Round($ch, 1), $dirNote); _rv = $rv }
         } | Sort-Object _rv -Descending | Select-Object -First 8 | Select-Object ticker, note)
 
+    # Yapisal sinyaller (Darvas/Wyckoff — Yahoo H/L serisinden, rapor akisinda hesaplanip verilir)
+    $structures = @($StructureSignals | ForEach-Object {
+            $tk = Get-DashStr -Object $_ -Name 'Symbol'
+            if (-not $tk) { return }
+            $typ = Get-DashStr -Object $_ -Name 'Type'; $nt = Get-DashStr -Object $_ -Name 'Note'
+            [pscustomobject]@{ ticker = $tk; note = (@($typ, $nt) | Where-Object { $_ }) -join ' — ' }
+        } | Where-Object { $_ } | Select-Object -First 8)
+
     $technicalSignals = [ordered]@{
         overbought = $ob; oversold = $os
         macdCross = $macdCross; trendStrengthening = $trendUp; momentumLosing = $momLosing; breakout = $breakout
+        structures = $structures
     }
 
     # ---- llmCommentary (ay sonu portföy yorumu — markdown-lite ayrıştırılır) ----
@@ -698,12 +708,14 @@ function Export-DashboardReport {
         [string]$PrimaryPortfolioId = 'Dengeli',
         [int]$TopStocks = 30,
         [string]$PagesUrl = $null,
-        $MacroSnapshot = $null
+        $MacroSnapshot = $null,
+        [object[]]$StructureSignals = @()
     )
     $report = ConvertTo-DashboardReport -Stocks $Stocks -PortfolioSet $PortfolioSet -InstantEntryPortfolio $InstantEntryPortfolio `
         -StrategySeries $StrategySeries -BenchmarkSeries $BenchmarkSeries -MarketBreadth $MarketBreadth `
         -PortfolioCommentary $PortfolioCommentary -AsOf $AsOf -Strategy $Strategy -PrimaryPortfolioId $PrimaryPortfolioId `
-        -TopStocks $TopStocks -PagesUrl $PagesUrl -MacroSnapshot $MacroSnapshot -DataDir (Join-Path $PSScriptRoot 'data')
+        -TopStocks $TopStocks -PagesUrl $PagesUrl -MacroSnapshot $MacroSnapshot -DataDir (Join-Path $PSScriptRoot 'data') `
+        -StructureSignals $StructureSignals
     $dir = Split-Path -Parent $OutPath
     if ($dir -and -not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
     $report | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $OutPath -Encoding UTF8

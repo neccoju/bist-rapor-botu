@@ -70,7 +70,8 @@
       strengthening: ["DSTKF", "ARASE", "THYAO"], weakening: ["YGGYO", "GUBRF"] },
     technicalSignals: { overbought: [{ ticker: "DSTKF", rsi: 73.1 }], oversold: [{ ticker: "YGGYO", rsi: 31.5 }],
       macdCross: [{ ticker: "TUPRS", note: "Al kesişimi" }], trendStrengthening: [{ ticker: "THYAO", note: "200g üstü" }],
-      momentumLosing: [{ ticker: "GUBRF", note: "Negatif ivme" }], breakout: [{ ticker: "DSTKF", note: "Direnç kırılımı" }] },
+      momentumLosing: [{ ticker: "GUBRF", note: "Negatif ivme" }], breakout: [{ ticker: "DSTKF", note: "Direnç kırılımı" }],
+      structures: [{ ticker: "THYAO", note: "Darvas kırılımı — 25 günlük kutu (%6,2 genişlik) yukarı kırıldı, hacim teyitli" }] },
     llmCommentary: { stance: "Nötr", marketSummary: "BIST yataya yakın, momentum hisseleri ayrıştı.", portfolioComment: "Portföy %1,86 ile endeksin üzerinde.",
       risks: ["DSTKF aşırı alım bölgesine yakın."], opportunities: ["TUPRS kademeli alım."], levels: ["BIST100: 14.450 destek."], watchNext: "Enerji akışını izle." },
     actionItems: { watch: ["THYAO", "TUPRS"], rebalance: ["CCOLA hafif azalt"], riskReduction: ["DSTKF kâr-al"], buyWatchlist: ["TUPRS"], note: "Karar destek amaçlıdır, yatırım tavsiyesi değildir." }
@@ -811,7 +812,8 @@
       { key: "macdCross", title: "MACD Kesişimleri", cls: "badge--accent", fmt: (x) => (x.ticker || "—") + (x.note ? " · " + x.note : "") },
       { key: "trendStrengthening", title: "Trend Güçlenen", cls: "badge--pos", fmt: (x) => (x.ticker || "—") + (x.note ? " · " + x.note : "") },
       { key: "momentumLosing", title: "Momentum Kaybeden", cls: "badge--warn", fmt: (x) => (x.ticker || "—") + (x.note ? " · " + x.note : "") },
-      { key: "breakout", title: "Kırılım / Risk", cls: "badge--accent", fmt: (x) => (x.ticker || "—") + (x.note ? " · " + x.note : "") }
+      { key: "breakout", title: "Kırılım / Risk", cls: "badge--accent", fmt: (x) => (x.ticker || "—") + (x.note ? " · " + x.note : "") },
+      { key: "structures", title: "Yapısal (Darvas/Wyckoff)", cls: "badge--accent", fmt: (x) => (x.ticker || "—") + (x.note ? " · " + x.note : "") }
     ];
     const any = groups.some((g) => arr(t[g.key]).length);
     if (!any) { host.innerHTML = inlineEmpty("Teknik sinyal verisi yok."); return; }

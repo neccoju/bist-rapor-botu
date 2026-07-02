@@ -2896,6 +2896,8 @@ function Get-YahooDailyOhlcSeries {
     if ($quotes.Count -eq 0 -or $null -eq $quotes[0]) { return @() }
     $closeValues = @(Get-ObjectPropertyValue -Object $quotes[0] -Name 'close')
     $volumeValues = @(Get-ObjectPropertyValue -Object $quotes[0] -Name 'volume')
+    $highValues = @(Get-ObjectPropertyValue -Object $quotes[0] -Name 'high')
+    $lowValues = @(Get-ObjectPropertyValue -Object $quotes[0] -Name 'low')
     if ($timestamps.Count -eq 0 -or $closeValues.Count -ne $timestamps.Count) { return @() }
 
     $series = [System.Collections.Generic.List[object]]::new()
@@ -2903,12 +2905,132 @@ function Get-YahooDailyOhlcSeries {
         $close = ConvertTo-DoubleOrNull $closeValues[$i]
         $date = ConvertFrom-UnixSecondsOrNull $timestamps[$i]
         $vol = if ($i -lt $volumeValues.Count) { ConvertTo-DoubleOrNull $volumeValues[$i] } else { $null }
+        $hi = if ($i -lt $highValues.Count) { ConvertTo-DoubleOrNull $highValues[$i] } else { $null }
+        $lo = if ($i -lt $lowValues.Count) { ConvertTo-DoubleOrNull $lowValues[$i] } else { $null }
         if ($null -ne $close -and $close -gt 0 -and $null -ne $date) {
-            [void]$series.Add([pscustomobject]@{ Date = $date; Close = [double]$close; Volume = if ($null -ne $vol) { [double]$vol } else { 0.0 } })
+            # H/L eksikse kapanisa duser (yapi dedektorleri bos deger istemez).
+            if ($null -eq $hi -or $hi -le 0) { $hi = $close }
+            if ($null -eq $lo -or $lo -le 0) { $lo = $close }
+            [void]$series.Add([pscustomobject]@{ Date = $date; Close = [double]$close; High = [double]$hi; Low = [double]$lo; Volume = if ($null -ne $vol) { [double]$vol } else { 0.0 } })
         }
     }
 
     return @($series.ToArray())
+}
+
+function Get-PriceStructureSignal {
+    <#
+        Fiyat YAPISI dedektoru (Darvas kutusu + basitlestirilmis Wyckoff) — SAF fonksiyon.
+
+        Girdi: eskiden yeniye gunluk {Date, Close, High, Low, Volume} serisi
+        (Get-YahooDailyOhlcSeries ciktisi). En az 60 bar ister; yoksa $null.
+
+        DURUSTLUK: Wyckoff tam metodolojisi hacim/yayilim okumasi gerektirir;
+        buradaki, uc kosullu (aralik daralmasi + hacim sonmesi + dip bolgesi)
+        MUHAFAZAKAR bir 'birikim adayi' sezgiselidir. Karar mantigina girmez;
+        yalniz panelde 'Yapisal' sinyal grubunda GOSTERILIR.
+
+        Oncelik sirasi: Darvas kirilimi > Wyckoff spring > Wyckoff birikim >
+        Darvas sikismasi. Ilk eslesen doner: {Type, Note}; hicbiri yoksa $null.
+    #>
+    [CmdletBinding()]
+    param([object[]]$Series)
+
+    $s = @($Series | Where-Object { $null -ne $_ })
+    if ($s.Count -lt 60) { return $null }
+    if ($s.Count -gt 120) { $s = @($s[($s.Count - 120)..($s.Count - 1)]) }
+    $n = $s.Count
+    $today = $s[$n - 1]
+
+    # --- Darvas kutusu: bugun haric son 25 bar ---
+    $boxLen = 25
+    $box = @($s[($n - 1 - $boxLen)..($n - 2)])
+    $boxTop = ($box | ForEach-Object { $_.High } | Measure-Object -Maximum).Maximum
+    $boxBottom = ($box | ForEach-Object { $_.Low } | Measure-Object -Minimum).Minimum
+    $boxVolAvg = ($box | ForEach-Object { $_.Volume } | Measure-Object -Average).Average
+    $boxWidth = if ($boxBottom -gt 0) { ($boxTop - $boxBottom) / $boxBottom } else { [double]::MaxValue }
+
+    if ($boxWidth -le 0.12 -and $today.Close -gt $boxTop) {
+        $volNote = ''
+        if ($boxVolAvg -gt 0 -and $today.Volume -ge 1.3 * $boxVolAvg) { $volNote = ', hacim teyitli' }
+        return [pscustomobject]@{
+            Type = 'Darvas kırılımı'
+            Note = ('{0} günlük kutu (%{1} genişlik) yukarı kırıldı{2}' -f $boxLen, [Math]::Round(100 * $boxWidth, 1), $volNote)
+        }
+    }
+
+    # --- Wyckoff spring: son 5 barda onceki 40-bar dibinin altina sarkip geri kapanis ---
+    if ($n -ge 46) {
+        $priorWin = @($s[($n - 46)..($n - 6)])
+        $priorLow = ($priorWin | ForEach-Object { $_.Low } | Measure-Object -Minimum).Minimum
+        $recent5 = @($s[($n - 5)..($n - 1)])
+        $recentLow = ($recent5 | ForEach-Object { $_.Low } | Measure-Object -Minimum).Minimum
+        if ($priorLow -gt 0 -and $recentLow -lt 0.995 * $priorLow -and $today.Close -gt $priorLow) {
+            return [pscustomobject]@{
+                Type = 'Wyckoff spring adayı'
+                Note = ('Dip {0} altına sarkıp üzerinde kapandı (yanlış kırılım geri alımı)' -f [Math]::Round($priorLow, 2))
+            }
+        }
+    }
+
+    # --- Wyckoff birikim adayi: aralik daralmasi + hacim sonmesi + dip bolgesi ---
+    $w = @($s[($n - 60)..($n - 1)])
+    $first20 = @($w[0..19]); $last20 = @($w[40..59])
+    $r1 = (($first20 | ForEach-Object { $_.High } | Measure-Object -Maximum).Maximum) - (($first20 | ForEach-Object { $_.Low } | Measure-Object -Minimum).Minimum)
+    $r2 = (($last20 | ForEach-Object { $_.High } | Measure-Object -Maximum).Maximum) - (($last20 | ForEach-Object { $_.Low } | Measure-Object -Minimum).Minimum)
+    $v1 = ($first20 | ForEach-Object { $_.Volume } | Measure-Object -Average).Average
+    $v2 = ($last20 | ForEach-Object { $_.Volume } | Measure-Object -Average).Average
+    $allHigh = ($s | ForEach-Object { $_.High } | Measure-Object -Maximum).Maximum
+    $allLow = ($s | ForEach-Object { $_.Low } | Measure-Object -Minimum).Minimum
+    $pos = if (($allHigh - $allLow) -gt 0) { ($today.Close - $allLow) / ($allHigh - $allLow) } else { 1.0 }
+    if ($r1 -gt 0 -and $r2 -le 0.6 * $r1 -and $v1 -gt 0 -and $v2 -le 0.75 * $v1 -and $pos -le 0.5) {
+        return [pscustomobject]@{
+            Type = 'Wyckoff birikim adayı'
+            Note = ('Aralık daraldı (%{0}), hacim söndü (%{1}), dip bölgesinde' -f [Math]::Round(100 * $r2 / $r1, 0), [Math]::Round(100 * $v2 / $v1, 0))
+        }
+    }
+
+    # --- Darvas sikismasi: dar kutu icinde bekleyis (kirilim yok) ---
+    if ($boxWidth -le 0.08 -and $today.Close -ge $boxBottom -and $today.Close -le $boxTop) {
+        return [pscustomobject]@{
+            Type = 'Darvas kutusu'
+            Note = ('{0} günlük dar sıkışma (%{1}); kırılım izlenmeli — kutu {2}-{3}' -f $boxLen, [Math]::Round(100 * $boxWidth, 1), [Math]::Round($boxBottom, 2), [Math]::Round($boxTop, 2))
+        }
+    }
+
+    return $null
+}
+
+function Get-PriceStructureSignals {
+    <#
+        En yuksek skorlu -Top hisse icin Yahoo gunluk H/L serisi cekip yapi
+        sinyallerini toplar. Best-effort: veri alinamayan sembol atlanir.
+        Cikti: @({Symbol, Type, Note}) — panelde technicalSignals.structures.
+    #>
+    [CmdletBinding()]
+    param(
+        [object[]]$Stocks = @(),
+        [int]$Top = 20,
+        [int]$TimeoutSec = 12
+    )
+    $results = @()
+    $cands = @($Stocks |
+        Where-Object { -not [string]::IsNullOrWhiteSpace((Get-ObjectPropertyValue -Object $_ -Name 'Symbol')) } |
+        Sort-Object @{ Expression = { $v = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $_ -Name 'Score'); if ($null -ne $v) { $v } else { -1 } }; Descending = $true } |
+        Select-Object -First $Top)
+    foreach ($stock in $cands) {
+        $sym = [string](Get-ObjectPropertyValue -Object $stock -Name 'Symbol')
+        try {
+            Start-Sleep -Milliseconds 150
+            $series = @(Get-YahooDailyOhlcSeries -Symbol $sym -Range '6mo' -TimeoutSec $TimeoutSec)
+            $sig = Get-PriceStructureSignal -Series $series
+            if ($null -ne $sig) {
+                $results += [pscustomobject]@{ Symbol = $sym; Type = [string]$sig.Type; Note = [string]$sig.Note }
+            }
+        }
+        catch { continue }
+    }
+    return @($results)
 }
 
 function Get-EmaSeries {
@@ -6914,6 +7036,8 @@ Export-ModuleMember -Function `
     Get-StoredKapDisclosures, `
     Get-YahooDailyCloseSeries, `
     Get-YahooDailyOhlcSeries, `
+    Get-PriceStructureSignal, `
+    Get-PriceStructureSignals, `
     Invoke-BistStockScan, `
     Get-ObjectPropertyValue, `
     Get-BistScore, `

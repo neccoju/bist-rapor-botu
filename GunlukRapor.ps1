@@ -2360,11 +2360,17 @@ try {
             $dashBench = Get-Variable -Name benchmarkSeries -ValueOnly -ErrorAction SilentlyContinue
             if ($null -eq $dashStrat) { $dashStrat = @() }
             if ($null -eq $dashBench) { $dashBench = @() }
+            # Yapisal sinyaller (Darvas/Wyckoff): top-20 icin Yahoo H/L; best-effort, rapor akisini etkilemez.
+            $structureSignals = @()
+            if (Get-Command Get-PriceStructureSignals -ErrorAction SilentlyContinue) {
+                try { $structureSignals = @(Get-PriceStructureSignals -Stocks $scored -Top 20) }
+                catch { $structureSignals = @() }
+            }
             [void](Export-DashboardReport -OutPath (Join-Path $PSScriptRoot 'docs/data/latest_report.json') `
                     -Stocks $scored -PortfolioSet $updatedPortfolioSet -InstantEntryPortfolio $updatedInstantEntryPortfolio `
                     -StrategySeries $dashStrat -BenchmarkSeries $dashBench -MarketBreadth $marketBreadth `
                     -PortfolioCommentary (Get-ObjectPropertyValue -Object $updatedPortfolioSet -Name 'MonthlyCommentary') `
-                    -MacroSnapshot $macroSnapshot `
+                    -MacroSnapshot $macroSnapshot -StructureSignals $structureSignals `
                     -AsOf $runAt -Strategy $strategy -PagesUrl 'https://neccoju.github.io/bist-rapor-botu/')
             Write-Host 'Web panel JSON guncellendi: docs/data/latest_report.json'
         }

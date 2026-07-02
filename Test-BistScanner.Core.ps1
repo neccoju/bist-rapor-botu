@@ -574,6 +574,38 @@ $rmShort = Get-DashRiskMetrics -PfPoints (New-RiskPts @(0, 1, 2, 3, 4)) -BenchPo
 if (-not $rmShort.insufficient) { throw "4 getiri ile insufficient=true dönmeliydi." }
 Write-Host "Panel risk metrikleri testi başarılı (MaksDD=-5.00, beta=1, korel=1, TE=0; kısa seri veri-kapılı)."
 
+# --- Fiyat yapısı dedektörü (Darvas/Wyckoff) — sentetik serilerle ---
+function New-StructBar {
+    param([int]$i, [double]$c, [double]$h, [double]$l, [double]$v)
+    [pscustomobject]@{ Date = ([datetime]'2026-01-01').AddDays($i); Close = $c; High = $h; Low = $l; Volume = $v }
+}
+# 1) Darvas kirilimi: 40 bar trend + 25 bar dar kutu (100-106) + bugun 108 yuksek hacim
+$darvas = @()
+for ($i = 0; $i -lt 40; $i++) { $p = 90 + 0.25 * $i; $darvas += New-StructBar $i $p ($p + 1) ($p - 1) 1000000 }
+for ($i = 40; $i -lt 65; $i++) { $darvas += New-StructBar $i 103 106 100 400000 }
+$darvas += New-StructBar 65 108 108.5 103 900000
+$sigD = Get-PriceStructureSignal -Series $darvas
+if ($null -eq $sigD -or $sigD.Type -ne 'Darvas kırılımı') { throw "Darvas kirilimi bulunamadi: $($sigD | ConvertTo-Json -Compress)" }
+if ($sigD.Note -notmatch 'hacim teyitli') { throw "Darvas hacim teyidi bekleniyordu: $($sigD.Note)" }
+# 2) Wyckoff birikim adayi: genis aralikli/yuksek hacimli dusus -> dar aralik + sonen hacim, dipte
+$wyck = @()
+for ($i = 0; $i -lt 60; $i++) { $p = 150 - 0.75 * $i; $wyck += New-StructBar $i $p ($p + 6) ($p - 6) 2000000 }
+for ($i = 60; $i -lt 120; $i++) {
+    $vol = 1800000 - 25000 * ($i - 60)   # sonen hacim
+    $half = if ($i -lt 100) { 5.0 } else { 1.5 }  # son 20 barda daralan aralik
+    $wyck += New-StructBar $i 104 (104 + $half) (104 - $half) $vol
+}
+$sigW = Get-PriceStructureSignal -Series $wyck
+if ($null -eq $sigW -or $sigW.Type -ne 'Wyckoff birikim adayı') { throw "Wyckoff birikim bulunamadi: $($sigW | ConvertTo-Json -Compress)" }
+# 3) Duz trend (genis kutu, kirilim yok) -> sinyal yok
+$trend = @()
+for ($i = 0; $i -lt 90; $i++) { $p = 100 + 1.2 * $i; $trend += New-StructBar $i $p ($p + 2) ($p - 2) 1000000 }
+$sigT = Get-PriceStructureSignal -Series $trend
+if ($null -ne $sigT) { throw "Trend serisinde yanlis pozitif: $($sigT.Type)" }
+# 4) Kisa seri -> null (veri kapisi)
+if ($null -ne (Get-PriceStructureSignal -Series @($darvas | Select-Object -First 30))) { throw 'Kisa seride null beklenirdi.' }
+Write-Host "Fiyat yapısı dedektörü testi başarılı (Darvas kırılımı + Wyckoff birikim; trend/kısa seri temiz)."
+
 # --- Panel JSON şema sözleşmesi (boş girdiyle bile anahtarlar mevcut olmalı) ---
 $schemaR = ConvertTo-DashboardReport -Stocks @() -AsOf ([datetime]'2026-07-01T12:00:00')
 $mustKeys = @('meta','summary','performance','allocation','modelPortfolios','instantEntry','stocks','sectorRotation','sectorFlow','riskMetrics','macro','kapNews','foreignFlow','tefasFlow','heatmap','smartMoney','technicalSignals','llmCommentary','actionItems')
