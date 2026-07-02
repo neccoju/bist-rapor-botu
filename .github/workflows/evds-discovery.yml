@@ -27,3 +27,8 @@ jobs:
         shell: powershell
         run: |
           powershell -NoProfile -ExecutionPolicy Bypass -File .\Find-EvdsBondSeries.ps1
+
+      - name: Discover EVDS foreign equity flow series
+        shell: powershell
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\Find-EvdsForeignFlowSeries.ps1
