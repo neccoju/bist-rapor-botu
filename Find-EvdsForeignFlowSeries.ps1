@@ -18,9 +18,9 @@ $headers = @{
     Referer = 'https://evds3.tcmb.gov.tr/tumSeriler'
 }
 
-function Inv($url) {
+function Inv($url, $timeout = 45) {
     try {
-        $r = Invoke-WebRequest -Uri $url -Headers $headers -TimeoutSec 30 -UseBasicParsing -ErrorAction Stop
+        $r = Invoke-WebRequest -Uri $url -Headers $headers -TimeoutSec $timeout -UseBasicParsing -ErrorAction Stop
         $raw = [string]$r.Content
         if ($raw -match '^\s*<') { Write-Host ("  [tani] HTML dondu: {0}" -f $url); return $null }
         return ($raw | ConvertFrom-Json)
@@ -28,39 +28,26 @@ function Inv($url) {
     catch { Write-Host "  ! istek hatasi: $url -> $($_.Exception.Message)"; return $null }
 }
 
-Write-Host '=== 1) Kategori agaci: yabanci/saklama/menkul esleyen veri gruplari ==='
-$tree = Inv ("{0}/categories/withDatagroups/type=json" -f $base)
-if ($null -eq $tree) { Write-Host 'Kategori agaci alinamadi.'; return }
-$gkw = 'YABANCI|YURT DI|YURTDI|SAKLAMA|MENKUL KIY|MENKUL KIY|NON-RESIDENT|CUSTODY|PORTFOLIO FLOW|SECURITIES STAT'
-$hits = @()
-foreach ($c in @($tree)) {
-    foreach ($g in @($c.DATAGROUPS)) {
-        $nm = "$($g.DATAGROUP_NAME) $($g.DATAGROUP_NAME_ENG)"
-        if ($nm -match $gkw) {
-            $hits += $g.DATAGROUP_CODE
-            Write-Host ("  [{0}] {1}  |  {2}" -f $g.DATAGROUP_CODE, $g.DATAGROUP_NAME, $c.TOPIC_TITLE_TR)
-        }
-    }
-}
-
-Write-Host ''
-Write-Host '=== 2) Esleyen gruplarin serileri (hisse/equity/net filtreli) ==='
-foreach ($gcode in ($hits | Select-Object -First 20)) {
-    Write-Host ("--- VeriGrubu [{0}] ---" -f $gcode)
-    $series = Inv ("{0}/serieList/fe/type=json&code={1}" -f $base, $gcode)
-    foreach ($s in @($series)) {
-        $nm = "$($s.SERIE_NAME) $($s.SERIE_NAME_ENG)"
-        if ($nm -match 'HISSE|HİSSE|EQUITY|NET|STOK|STOCK') {
-            Write-Host ("      SERI: {0}  |  {1}  |  freq={2}" -f $s.SERIE_CODE, $s.SERIE_NAME, $s.FREQUENCY_STR)
-        }
-    }
-}
-
-Write-Host ''
-Write-Host '=== 3) searchResults ham dokum (alan adlari icin) ==='
-$res = Inv ("{0}/searchResults?searchVal={1}" -f $base, [uri]::EscapeDataString('hisse senedi net'))
-if ($null -ne $res) {
+Write-Host '=== 1) searchResults ham dokumler (alan adlari + seri kodlari) ==='
+foreach ($term in @('yabanci', 'yurt disi yerlesik', 'menkul kiymet istatistikleri', 'hisse senedi')) {
+    Write-Host ("--- arama: '{0}' ---" -f $term)
+    $res = Inv ("{0}/searchResults?searchVal={1}" -f $base, [uri]::EscapeDataString($term))
+    if ($null -eq $res) { continue }
     $json = ($res | ConvertTo-Json -Depth 4)
-    Write-Host $json.Substring(0, [Math]::Min(2500, $json.Length))
+    Write-Host $json.Substring(0, [Math]::Min(3000, $json.Length))
+    Write-Host ''
 }
-Write-Host '=== EVDS3 kesif v4 tamam ==='
+
+Write-Host '=== 2) Kategori agaci (uzun timeout ile tek deneme) ==='
+$tree = Inv ("{0}/categories/withDatagroups/type=json" -f $base) 110
+if ($null -ne $tree) {
+    $gkw = 'YABANCI|YURT DI|YURTDI|SAKLAMA|MENKUL KIY|NON-RESIDENT|CUSTODY|SECURITIES'
+    foreach ($c in @($tree)) {
+        foreach ($g in @($c.DATAGROUPS)) {
+            if ("$($g.DATAGROUP_NAME) $($g.DATAGROUP_NAME_ENG)" -match $gkw) {
+                Write-Host ("  [{0}] {1}  |  {2}" -f $g.DATAGROUP_CODE, $g.DATAGROUP_NAME, $c.TOPIC_TITLE_TR)
+            }
+        }
+    }
+}
+Write-Host '=== EVDS3 kesif v5 tamam ==='
