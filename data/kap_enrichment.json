@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-07-03T14:03:03.956609+00:00",
+  "generatedAt": "2026-07-03T14:46:30.641940+00:00",
   "source": "borsapy 0.10.2 get_news_content",
-  "count": 149,
+  "count": 155,
   "lastRun": {
-    "targets": 60,
-    "enriched": 60,
+    "targets": 6,
+    "enriched": 6,
     "errors": 0,
-    "elapsedSec": 435
+    "elapsedSec": 36
   },
   "items": {
     "1618795": {
@@ -3331,6 +3331,156 @@
         "212,7 milyon pay"
       ],
       "rationale": "Pay sahipliği %5'in altına düştü"
+    },
+    "1623867": {
+      "symbol": "ISCTR",
+      "title": "Özel Durum Açıklaması (Genel)",
+      "category": "Ozel Durum (Genel)",
+      "date": "03.07.2026 16:27:31",
+      "directionHint": "?",
+      "contentChars": 67849,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T14:45:55.300385+00:00",
+      "directionRefined": "0",
+      "summary": "İş Bankası, finansal tablolarına ilişkin genel açıklama yaptı; bilgiler SPK düzenlemelerine uygun ve tam olarak yansıtılmıştır.",
+      "impact": 1,
+      "amounts": [],
+      "rationale": "Standart, rutin SPK uyum bildirimi; fiyat etkisi yoktur."
+    },
+    "1623769": {
+      "symbol": "GEDIK",
+      "title": "Halka Arz Sonuçları",
+      "category": "Halka Arz",
+      "date": "03.07.2026 15:16:55",
+      "directionHint": "~",
+      "contentChars": 98663,
+      "pdfChars": 1733,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f0a085a019f27e6ccba5bf4"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1733,
+      "inputSnippet": " GOLDA GIDA SANAYİ VE TİCARET A.Ş. HALKA ARZINA İLİŞKİN SONUÇLAR Golda Gıda Sanayi ve Ticaret A.Ş. halka arzında “Borsa’da Satış - Sabit Fiyatla Talep Toplama ve Satış Yöntemi” ile 1 – 2 Temmuz 2026 tarihlerinde 1 TL nominal değerli pay için 9,20 TL’den talep toplanmıştır. Halka arzda sermaye artışı yoluyla halka arz edilen 50.000.000 TL ve ortak satışı yoluyla halka arz edilen 37.499.998 TL nominal değerli olmak üzere toplam 87.499.998 TL nominal değerli payların tamamı satılmıştır. Toplam halk",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T14:46:10.772965+00:00",
+      "directionRefined": "+",
+      "summary": "Golda Gıda'nın halka arzı 2,2 kat talep gördü, 749.674 yatırımcıya 804,9 milyon TL büyüklükte pay satıldı.",
+      "impact": 4,
+      "amounts": [
+        "804.999.982 TL",
+        "87.499.998 TL",
+        "1.773.633.574 TL",
+        "1 TL",
+        "9,20 TL",
+        "50.000.000 TL"
+      ],
+      "rationale": "Yüksek talep ve geniş yatırımcı dağılımı, hisseye olumlu ilk fiyatlama etkisi yaratabilir."
+    },
+    "1623639": {
+      "symbol": "GEDIK",
+      "title": "Özel Durum Açıklaması (Genel)",
+      "category": "Ozel Durum (Genel)",
+      "date": "03.07.2026 14:13:41",
+      "directionHint": "?",
+      "contentChars": 77504,
+      "pdfChars": 511,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a58019f27a776c86b20"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 511,
+      "inputSnippet": " GOLDA GIDA SANAYİ ve TİCARET A.Ş. PAYLARININ HALKA ARZINDA İÇSEL BİLGİYE ULAŞABİLECEK KONUMDAKİ VE İDARİ SORUMLULUĞU BULUNAN KİŞİLER TARAFINDAN SATIN ALINAN PAYLAR Ad-Soyad Kurum Dağıtım Yapılan Payların Nominal Değeri (TL) Telat SEHER Bera Holding A.Ş. 132 Recep BORA Bera Holding A.Ş. 132 Mahmut DEMİRCAN Bera Holding A.Ş. 132 Ahmet AKA Gedik Yatırım Menkul Değerler A.Ş. 132 Galip Erdem SEZGİN Misyon Yatırım Bankası A.Ş. 108 Erkan EREN Misyon Yatırım Bankası A.Ş. 132 Fatih YURTGÜN Yeminli Mali ",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T14:46:15.519691+00:00",
+      "directionRefined": "+",
+      "summary": "GOLDA Gıda halka arzında içsel bilgiye sahip kişiler ve yöneticiler toplam 900 TL nominal pay aldı.",
+      "impact": 2,
+      "amounts": [
+        "900 TL"
+      ],
+      "rationale": "Yöneticilerin halka arzdan pay alması güven artırıcı, tutar düşük."
+    },
+    "1623638": {
+      "symbol": "GEDIK",
+      "title": "Halka Arz İşlemlerinde Sermaye Piyasası Aracının % 5 inden Fazlasını Satın Alanlara İlişkin Bildirim",
+      "category": "Halka Arz",
+      "date": "03.07.2026 14:13:28",
+      "directionHint": "~",
+      "contentChars": 72782,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T14:46:18.068046+00:00",
+      "directionRefined": "+",
+      "summary": "GEDİK'in halka arzında bir yatırımcı, sermaye piyasası aracının %5'inden fazlasını satın aldı. Taraf ve tutar açıklanmadı.",
+      "impact": 3,
+      "amounts": [],
+      "rationale": "%5 üzeri alım, kurumsal ilgi göstergesi; talep ve güveni artırabilir."
+    },
+    "1623637": {
+      "symbol": "GEDIK",
+      "title": "Halka Arz Sonuçları",
+      "category": "Halka Arz",
+      "date": "03.07.2026 14:13:10",
+      "directionHint": "~",
+      "contentChars": 84212,
+      "pdfChars": 1734,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a58019f278d5a4a6854"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1734,
+      "inputSnippet": " GOLDA GIDA SANAYİ VE TİCARET A.Ş. HALKA ARZINA İLİŞKİN SONUÇLAR Golda Gıda Sanayi ve Ticaret A.Ş. halka arzında “Borsa’da Satış - Sabit Fiyatla Talep Toplama ve Satış Yöntemi” ile 1 – 2 Temmuz 2026 tarihlerinde 1 TL nominal değerli pay için 9,20 TL’den talep toplanmıştır. Halka arzda sermaye artışı yoluyla halka arz edilen 50.000.000 TL ve ortak satışı yoluyla halka arz edilen 37.499.998 TL nominal değerli olmak üzere toplam 87.499.998 TL nominal değerli payların tamamı satılmıştır. Toplam halk",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T14:46:23.489220+00:00",
+      "directionRefined": "+",
+      "summary": "Golda Gıda'nın halka arzında 87,5 milyon TL nominal pay 804,9 milyon TL büyüklükle satıldı, 2,2 kat talep geldi.",
+      "impact": 4,
+      "amounts": [
+        "804,9 milyon TL",
+        "87,5 milyon TL",
+        "1,77 milyar TL talep",
+        "1 TL",
+        "9,20 TL",
+        "50.000.000 TL"
+      ],
+      "rationale": "Talebin arzın 2,2 katı olması güçlü yatırımcı ilgisi gösteriyor."
+    },
+    "1623304": {
+      "symbol": "TRMET",
+      "title": "Kar Payı Dağıtım İşlemlerine İlişkin Bildirim",
+      "category": "Temettu",
+      "date": "02.07.2026 18:33:47",
+      "directionHint": "+",
+      "contentChars": 68292,
+      "pdfChars": 1532,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f0a085a019f21a62695111c"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1532,
+      "inputSnippet": " TR ANADOLU METAL MADENCİLİK İŞLETMELERİ A.Ş. 2025 YILI KAR PAYI DAĞITIM TABLOSU (TL) 1. Ödenmiş / Çıkarılmış Sermaye 388.080.000,00 2. Genel Kanuni Yedek Akçe (Yasal Kayıtlara Göre) 65.149.016,93 Esas sözleşme uyarınca kar dağıtımında imtiyaz var ise sözkonusu imtiyaza ilişkin bilgi YOKTUR SPK'ya Göre (Konsolide) Yasal Kayıtlara (YK) Göre 3. Dönem Kârı 3.980.983.000,00 407.102.580,11 4. Vergiler (-) 2.029.354.000,00 101.477.235,75 5. Net Dönem Karı (=) 1.951.629.000,00 305.625.344,36 6. Geçmiş ",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T14:46:28.098429+00:00",
+      "directionRefined": "-",
+      "summary": "TRMET 2025 için kar payı dağıtmıyor; net dönem karı 1,95 milyar TL, tamamı olağanüstü yedeklere aktarılmış.",
+      "impact": 3,
+      "amounts": [
+        "1,95 milyar TL net dönem karı",
+        "388,08 milyon TL sermaye",
+        "1 TL",
+        "305.625.344,36 TL",
+        "1.951.629.000 TL"
+      ],
+      "rationale": "Kar payı dağıtılmaması yatırımcı beklentisini olumsuz etkiler."
     }
   }
 }
