@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-07-02T14:46:13.541593+00:00",
+  "generatedAt": "2026-07-03T14:03:03.956609+00:00",
   "source": "borsapy 0.10.2 get_news_content",
-  "count": 95,
+  "count": 149,
   "lastRun": {
-    "targets": 3,
-    "enriched": 3,
+    "targets": 60,
+    "enriched": 60,
     "errors": 0,
-    "elapsedSec": 17
+    "elapsedSec": 435
   },
   "items": {
     "1618795": {
@@ -1945,6 +1945,1392 @@
       "impact": 1,
       "amounts": [],
       "rationale": "Yatırımcı açısından nötr; rutin bildirim, fiyatı etkileyecek yeni bilgi yok."
+    },
+    "1623082": {
+      "symbol": "ISSEN",
+      "title": "Pay Mali Hak Kullanım İşlemi - Nakit Ödeme",
+      "category": "Insider/Pay Bildirimi",
+      "date": "02.07.2026 17:01:12",
+      "directionHint": "~",
+      "contentChars": 42879,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:55:53.288316+00:00",
+      "directionRefined": "0",
+      "summary": "ISSEN pay sahiplerine nakit ödeme işlemi yapılmıştır. İşlem detayları ve tutar belirtilmemiştir.",
+      "impact": 2,
+      "amounts": [
+        "2026 TRY"
+      ],
+      "rationale": "Nakit ödeme işlemi rutin olup, tutar ve kapsam belirtilmediği için fiyat etkisi nötr."
+    },
+    "1622960": {
+      "symbol": "MANAS",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "02.07.2026 14:46:31",
+      "directionHint": "~",
+      "contentChars": 39446,
+      "pdfChars": 1427,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a59019f22a5b4f71d7e"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1427,
+      "inputSnippet": " PAY ALIM / SATIM İŞLEMLERİNE İLİŞKİN ÖZEL DURUM AÇIKLAMA FORMU 30.06.2026 tarihinde, ortaklığımızın % 100 oranında kontrolüne sahip olduğu iştiraki Merrill Lynch International tarafından, MANAS ENERJİ YÖNETİMİ SANAYİ VE TİCARET A.Ş. payları ile ilgili olarak 30,90-31,54 TL fiyat aralığından 13.878.708 toplam nominal tutarlı alış işlemi ve 7.930.510 toplam nominal tutarlı satış işlemi neticesinde net 5.948.198 adet pay satın alınmıştır. Bu işlemle birlikte MANAS ENERJİ YÖNETİMİ SANAYİ VE TİCARET",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:55:58.214581+00:00",
+      "directionRefined": "+",
+      "summary": "Merrill Lynch International, MANAS'ta 5,95 milyon adet pay alımıyla dolaylı sahiplik oranını %5,468'e çıkardı.",
+      "impact": 4,
+      "amounts": [
+        "5.948.198 adet pay",
+        "30,90-31,54 TL fiyat aralığı",
+        "%5,468 pay oranı",
+        "31,54 TL"
+      ],
+      "rationale": "Yabancı kurumsal alım ve pay oranı artışı, yatırımcı güvenini artırabilir."
+    },
+    "1622760": {
+      "symbol": "SEGMN",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "02.07.2026 08:59:36",
+      "directionHint": "~",
+      "contentChars": 39686,
+      "pdfChars": 881,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a58019f213762ff115f"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 881,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu SEĞMEN KARDEŞLER GIDA ÜRETİM VE AMBALAJ SANYİ ANONİM ŞİRKETİ PAY SATIŞI : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi SEĞMEN KARDEŞLER GIDA ÜRETİM VE AMBALAJ SANAYİ A.Ş. : Açıklama : 30/06/2026 tarihinde SEGMN - SEĞMEN KARDEŞLER GIDA ÜRETİM VE AMBALAJ SANAYİ A.Ş. payları ile ilgili olarak 27,94 TL fiyattan 5.781.106 TL toplam nominal değerli (3.000.000 TL nominal değerli A grubu, 2.781.106 TL nominal değerli B grubu) sa",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:56:04.056631+00:00",
+      "directionRefined": "-",
+      "summary": "Ömer Seğmen, SEGMN hisselerinde 27,94 TL fiyattan toplam 5,78 milyon TL nominal değerli satış yaptı.",
+      "impact": 3,
+      "amounts": [
+        "5,78 milyon TL",
+        "27,94 TL",
+        "5.781.106 TL",
+        "3.000.000 TL",
+        "2.781.106 TL"
+      ],
+      "rationale": "Yönetici satışı genelde olumsuz algılanır; satış tutarı orta büyüklükte."
+    },
+    "1622759": {
+      "symbol": "SEGMN",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "02.07.2026 08:58:43",
+      "directionHint": "~",
+      "contentChars": 39688,
+      "pdfChars": 874,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a58019f2132f2d510dd"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 874,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Seğmen Kardeşler Gıda Üretim ve Ambalaj Sanayi A.Ş. Pay Satışı : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi SEĞMEN KARDEŞLER GIDA ÜRETİM VE AMBALAJ SANAYİ A.Ş. : Açıklama : 30/06/2026 tarihinde SEGMN - SEĞMEN KARDEŞLER GIDA ÜRETİM VE AMBALAJ SANAYİ A.Ş. payları ile ilgili olarak 27,94 TL fiyattan 8.774.430 TL toplam nominal değerli (3.500.000 TL nominal değerli A grubu, 5.274.430 TL nominal değerli B grubu) satış işlem",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:56:10.563347+00:00",
+      "directionRefined": "-",
+      "summary": "Yusuf Seğmen, SEGMN hisselerinde 8,77 milyon TL nominal değerli satış yaptı; oy oranı %2,351'e düştü.",
+      "impact": 3,
+      "amounts": [
+        "8,77 milyon TL",
+        "27,94 TL",
+        "8.774.430 TL",
+        "3.500.000 TL",
+        "5.274.430 TL"
+      ],
+      "rationale": "Ana ortak satışının genelde kısa vadede olumsuz fiyat etkisi olur."
+    },
+    "1622758": {
+      "symbol": "SEGMN",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "02.07.2026 08:57:21",
+      "directionHint": "~",
+      "contentChars": 39682,
+      "pdfChars": 1550,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a58019f2130300210ae"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1550,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Seğmen kardeşler Gıda Üretim Ve Ambalaj Sanayi A.Ş Pay Satışı : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi SEĞMEN KARDEŞLER GIDA ÜRETİM VE AMBALAJ SANAYİ A.Ş. : Açıklama : 30/06/2026 tarihinde SEGMN - SEĞMEN KARDEŞLER GIDA ÜRETİM VE AMBALAJ SANAYİ A.Ş. payları ile ilgili olarak 27,94 TL fiyattan 2.000.000 TL toplam nominal değerli (2.000.000 TL nominal değerli A grubu, 0 TL nominal değerli B grubu) satış işlemi tarafım",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:56:14.479037+00:00",
+      "directionRefined": "-",
+      "summary": "Oya Yener, SEGMN'de 2.000.000 TL nominal değerli A grubu payı 27,94 TL fiyattan sattı; oy hakkı %0,559'a düştü.",
+      "impact": 3,
+      "amounts": [
+        "2.000.000 TL",
+        "27,94 TL",
+        "0 TL"
+      ],
+      "rationale": "Yönetici pay satışı genelde olumsuz algılanır; satış miktarı orta seviyede."
+    },
+    "1622661": {
+      "symbol": "SEGMN",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "01.07.2026 18:09:39",
+      "directionHint": "~",
+      "contentChars": 39688,
+      "pdfChars": 1564,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f0a0859019f1e38d56d0154"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1564,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Seğmen Kardeşler Gıda Üretim ve Ambalaj Sanayi A.Ş. Pay Satışı : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi SEĞMEN KARDEŞLER GIDA ÜRETİM VE AMBALAJ SANAYİ A.Ş. : Açıklama : 30/06/2026 tarihinde SEGMN - SEĞMEN KARDEŞLER GIDA ÜRETİM VE AMBALAJ SANAYİ A.Ş. payları ile ilgili olarak 27,94 TL fiyattan 5.337.327 TL toplam nominal değerli (2.000.000 TL nominal değerli A grubu, 3.337.327 TL nominal değerli B grubu) satış işlem",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:56:17.879292+00:00",
+      "directionRefined": "-",
+      "summary": "Ayhan Seğmen, SEGMN'de 5.337.327 TL nominal değerli payı 27,94 TL fiyattan sattı; oy hakkı %4,954'ten %1,488'e düştü.",
+      "impact": 3,
+      "amounts": [
+        "5.337.327 TL",
+        "27,94 TL",
+        "8.000.000 TL",
+        "2.662.673 TL",
+        "3.337.327 TL",
+        "2.000.000 TL"
+      ],
+      "rationale": "Yönetici pay satışı ve oy hakkı azalması yatırımcı güvenini olumsuz etkileyebilir."
+    },
+    "1622634": {
+      "symbol": "TABGD",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "01.07.2026 17:49:18",
+      "directionHint": "~",
+      "contentChars": 39830,
+      "pdfChars": 8548,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f0a0859019f1e25710d7fb7",
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f0a0859019f1e2571157fb8"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 8548,
+      "inputSnippet": " Tarih: 1 Temmuz 2026 Özel Durum Açıklaması (Genel) Özet Bilgi Nitelikli kurumsal alıcılara yönelik hızlandırılmış talep toplama işleminin fiyatının belirlenmesi İlgili Şirketler: TABGD İlgili Fonlar : - Özel Durum Açıklaması Genel: Yapılan Açıklama Güncelleme mi? : Evet Yapılan Açıklama Düzeltme mi? : Hayır Konuya İlişkin Daha Önce Yapılan Açıklamanın Tarihi : 30 Haziran 2026 Yapılan Açıklama Ertelenmiş Bir Açıklama mı? : Hayır Bildirim İçeriği Açıklama 30 Haziran 2026 tarihindeki açıklamamıza ",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:56:25.634324+00:00",
+      "directionRefined": "-",
+      "summary": "ELQ Investors, TAB Gıda'nın %5,63 payını 208 TL fiyattan kurumsal yatırımcılara sattı; toplam satış tutarı 3,06 milyar TL.",
+      "impact": 4,
+      "amounts": [
+        "14.721.793 adet pay",
+        "208 TL/pay",
+        "3.062 milyon TL",
+        "208,00 TL"
+      ],
+      "rationale": "Büyük pay satışı genellikle kısa vadede satış baskısı yaratır."
+    },
+    "1622579": {
+      "symbol": "BALSU",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "01.07.2026 17:32:18",
+      "directionHint": "~",
+      "contentChars": 74962,
+      "pdfChars": 1103,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a59019f1e17e0e67c73"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1103,
+      "inputSnippet": " PAY ALIM / SATIM İŞLEMLERİNE İLİŞKİN ÖZEL DURUM AÇIKLAMA FORMU Pusula Portföy Yönetimi A.Ş.'nin kurucusu ve yöneticisi olduğu yatırım fonlarının portföylerinden Balsu Gıda Sanayi ve Ticaret A.Ş. hisselerinde 30/06/2026 tarihinde (18,42 ₺) fiyat ile 222.000.000,00 toplam nominal tutarlı alış işlemi gerçekleşmiş ve bu işlemler sonucunda Pusula Portföy Yönetimi A.Ş.’nin kurucusu ve yöneticisi olduğu yatırım fonlarının portföylerindeki Balsu Gıda Sanayi ve Ticaret A.Ş. sermaye payı oranı %0,0’dan %",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:56:31.572466+00:00",
+      "directionRefined": "+",
+      "summary": "Pusula Portföy, Balsu'da 222 milyon TL nominal tutarla %19,96 pay aldı; oy hakkı %11,61'e çıktı.",
+      "impact": 5,
+      "amounts": [
+        "222 milyon TL",
+        "%19,96 pay",
+        "%11,61 oy hakkı"
+      ],
+      "rationale": "Büyük fonun yüksek oranlı alımı, şirketin görünürlüğünü ve likiditesini artırır."
+    },
+    "1622560": {
+      "symbol": "SEGMN",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "01.07.2026 17:09:34",
+      "directionHint": "~",
+      "contentChars": 39690,
+      "pdfChars": 1566,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f0a0859019f1e01df8b7b67"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1566,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Seğmen Kardeşler Gıda Üretim ve Ambalaj Sanayi A.Ş. Pay Satışı : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi SEĞMEN KARDEŞLER GIDA ÜRETİM VE AMBALAJ SANAYİ A.Ş. : Açıklama : 30/06/2026 tarihinde SEGMN - SEĞMEN KARDEŞLER GIDA ÜRETİM VE AMBALAJ SANAYİ A.Ş. payları ile ilgili olarak 27,94 TL fiyattan 4.002.995 TL toplam nominal değerli (1.500.000 TL nominal değerli A grubu, 2.502.995 TL nominal değerli B grubu) satış işlem",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:56:38.341337+00:00",
+      "directionRefined": "-",
+      "summary": "Gülsen Seğmen, SEGMN'de 4.002.995 TL nominal değerli payı 27,94 TL fiyattan sattı; oy hakkı %1,116'ya düştü.",
+      "impact": 3,
+      "amounts": [
+        "4.002.995 TL",
+        "27,94 TL",
+        "1.500.000 TL",
+        "2.502.995 TL"
+      ],
+      "rationale": "Ana ortak satış yaptı; yatırımcı güveni ve fiyat üzerinde olumsuz etki yaratabilir."
+    },
+    "1622557": {
+      "symbol": "FORMT",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "01.07.2026 17:06:22",
+      "directionHint": "~",
+      "contentChars": 39184,
+      "pdfChars": 1400,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f0a085b019f1dfed18870e6"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1400,
+      "inputSnippet": " PAY ALIM / SATIM İŞLEMLERİNE İLİŞKİN ÖZEL DURUM AÇIKLAMA FORMU 29.06.2026 tarihinde, ortaklığımızın % 100 oranında kontrolüne sahip olduğu iştiraki Merrill Lynch International tarafından, FORMET METAL VE CAM SANAYİ A.Ş. payları ile ilgili olarak 2,22 – 2,25 TL fiyat aralığından 9.934.072 toplam nominal tutarlı alış işlemi ve 8.300.562 toplam nominal tutarlı satış işlemi neticesinde net 1.633.510 adet pay satın alınmıştır. Bu işlemle birlikte FORMET METAL VE CAM SANAYİ A.Ş. sermayesinde, iştirak",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:56:43.129137+00:00",
+      "directionRefined": "+",
+      "summary": "Merrill Lynch International, FORMT hisselerinde 1.633.510 adet net alım yaptı; pay oranı %5,039'a yükseldi.",
+      "impact": 3,
+      "amounts": [
+        "1.633.510 adet",
+        "2,22–2,25 TL fiyat aralığı",
+        "%5,039 pay oranı",
+        "2,25 TL"
+      ],
+      "rationale": "Yabancı ortak net alım ve pay artışı genellikle olumlu algılanır."
+    },
+    "1622555": {
+      "symbol": "SEGMN",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "01.07.2026 17:03:55",
+      "directionHint": "~",
+      "contentChars": 39102,
+      "pdfChars": 1576,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a59019f1dfd7fac77b2"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1576,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Seğmen Kardeşler Gıda Üretim ve Ambalaj Sanayi A.Ş. Pay Satışı : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi SEĞMEN KARDEŞLER GIDA ÜRETİM VE AMBALAJ SANAYİ A.Ş. : Açıklama : 30/06/2026 tarihinde SEGMN - SEĞMEN KARDEŞLER GIDA ÜRETİM VE AMBALAJ SANAYİ A.Ş. payları ile ilgili olarak 27,94 TL fiyattan 4.002.995 TL toplam nominal değerli (1.500.000 TL nominal değerli A grubu, 2.502.995 TL nominal değerli B grubu) satış işlem",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:56:56.371820+00:00",
+      "directionRefined": "-",
+      "summary": "Ferika Aslı Okumuş, SEGMN'de 4.002.995 TL nominal değerli payı 27,94 TL fiyattan sattı; oy oranı %1,116'ya düştü.",
+      "impact": 3,
+      "amounts": [
+        "4.002.995 TL",
+        "27,94 TL",
+        "1.500.000 TL",
+        "2.502.995 TL"
+      ],
+      "rationale": "Yönetici pay satışı genelde olumsuz algılanır; satış miktarı orta seviyede."
+    },
+    "1622515": {
+      "symbol": "SEGMN",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "01.07.2026 16:24:37",
+      "directionHint": "~",
+      "contentChars": 39690,
+      "pdfChars": 1566,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a59019f1dd971757076"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1566,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Seğmen Kardeşler Gıda Üretim ve Ambalaj Sanayi A.Ş. Pay Satışı : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi SEĞMEN KARDEŞLER GIDA ÜRETİM VE AMBALAJ SANAYİ A.Ş. : Açıklama : 30/06/2026 tarihinde SEGMN - SEĞMEN KARDEŞLER GIDA ÜRETİM VE AMBALAJ SANAYİ A.Ş. payları ile ilgili olarak 27,94 TL fiyattan 8.005.990 TL toplam nominal değerli (3.000.000 TL nominal değerli A grubu, 5.005.990 TL nominal değerli B grubu) satış işlem",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:57:00.692733+00:00",
+      "directionRefined": "-",
+      "summary": "Nihal Özcanlı, SEGMN'de 8,01 milyon TL nominal değerli payı 27,94 TL fiyattan sattı; oy oranı %2,231'e düştü.",
+      "impact": 3,
+      "amounts": [
+        "8.005.990 TL",
+        "27,94 TL",
+        "3.000.000 TL",
+        "5.005.990 TL"
+      ],
+      "rationale": "İçeriden pay satışı genelde olumsuz algılanır; önemli tutarda satış gerçekleşti."
+    },
+    "1622491": {
+      "symbol": "SEGMN",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "01.07.2026 15:58:20",
+      "directionHint": "~",
+      "contentChars": 39688,
+      "pdfChars": 1564,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a59019f1dc14e936cea"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1564,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Seğmen Kardeşler Gıda Üretim ve Ambalaj Sanayi A.Ş. Pay Satışı : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi SEĞMEN KARDEŞLER GIDA ÜRETİM VE AMBALAJ SANAYİ A.Ş. : Açıklama : 30/06/2026 tarihinde SEGMN - SEĞMEN KARDEŞLER GIDA ÜRETİM VE AMBALAJ SANAYİ A.Ş. payları ile ilgili olarak 27,94 TL fiyattan 8.005.990 TL toplam nominal değerli (3.000.000 TL nominal değerli A grubu, 5.005.990 TL nominal değerli B grubu) satış işlem",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:57:04.950698+00:00",
+      "directionRefined": "-",
+      "summary": "Emine Seğmen, SEGMN'de 8,01 milyon TL nominal payı 27,94 TL fiyattan sattı; oy hakkı %7,43'ten %2,23'e düştü.",
+      "impact": 3,
+      "amounts": [
+        "8.005.990 TL",
+        "27,94 TL",
+        "3.000.000 TL",
+        "5.005.990 TL"
+      ],
+      "rationale": "Ana ortak satış yaptı, oy hakkı ciddi azaldı; piyasada olumsuz algı yaratabilir."
+    },
+    "1622478": {
+      "symbol": "SEGMN",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "01.07.2026 15:27:55",
+      "directionHint": "~",
+      "contentChars": 39021,
+      "pdfChars": 1568,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f0a085a019f1da49e1b6dca"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1568,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Seğmen Kardeşler Gıda Üretim ve Ambalaj Sanayi A.Ş. Pay Satışı : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi SEĞMEN KARDEŞLER GIDA ÜRETİM VE AMBALAJ SANAYİ A.Ş. : Açıklama : 30/06/2026 tarihinde SEGMN - SEĞMEN KARDEŞLER GIDA ÜRETİM VE AMBALAJ SANAYİ A.Ş. payları ile ilgili olarak 27,94 TL fiyattan 8.005.990 TL toplam nominal değerli (3.000.000 TL nominal değerli A grubu, 5.005.990 TL nominal değerli B grubu) satış işlem",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:57:08.530064+00:00",
+      "directionRefined": "-",
+      "summary": "Meral Yıldırım, SEGMN'de 8,01 milyon TL nominal değerli payı 27,94 TL fiyattan sattı; oy oranı %2,231'e düştü.",
+      "impact": 3,
+      "amounts": [
+        "8.005.990 TL",
+        "27,94 TL",
+        "3.000.000 TL",
+        "5.005.990 TL"
+      ],
+      "rationale": "Yönetici pay satışı genelde olumsuz algılanır; satış tutarı ve oranı dikkat çekici."
+    },
+    "1622201": {
+      "symbol": "BORLS",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "01.07.2026 09:11:00",
+      "directionHint": "~",
+      "contentChars": 39100,
+      "pdfChars": 716,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a59019f1c408e7d53e2"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 716,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu PAY ALIM BİLDİRİMİ : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi BORLEASE OTOMOTİV A.Ş. : Açıklama : 30.06.2026 tarihinde Borlease Otomotiv A.Ş. payları ile ilgili olarak borsa dışında virman yoluyla B grubu nominal 69.702.273 adet payın 4,10 TL birim fiyat ile alış işlemi toplam 285.779.319,30 TL tutar ile tarafımca gerçekleştirilmiştir. Bu işlemle birlikte Borlease Otomotiv A. Ş. sermayesinde pay oranım % 7,21'den % 1",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:57:12.362605+00:00",
+      "directionRefined": "+",
+      "summary": "Halil İbrahim Ege, BORLS'te 69,7 milyon payı 4,10 TL'den alarak payını %7,21'den %17,17'ye çıkardı.",
+      "impact": 4,
+      "amounts": [
+        "69.702.273 adet pay",
+        "4,10 TL birim fiyat",
+        "285.779.319,30 TL",
+        "4,10 TL"
+      ],
+      "rationale": "Ana ortak payını ciddi artırdı; güven ve sahiplenme göstergesi, fiyat için olumlu."
+    },
+    "1622195": {
+      "symbol": "BORLS",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "01.07.2026 09:08:15",
+      "directionHint": "~",
+      "contentChars": 39098,
+      "pdfChars": 1620,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a59019f1c4215c8545f"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1620,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Pay Satım Bildirimi : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi BORLEASE OTOMOTİV A.Ş. : Açıklama : 30.06.2026 tarihinde, Merkezi Kayıt Sisteminde yer alan kapalı paylarımıza ilişkin, Borlease Otomotiv A.Ş. sermayesinde sahip olduğumuz sermayenin %9,96’sine karşılık gelen 69.702.273 adet B Grubu pay, 4,10 TL üzerinden borsa dışında satış yöntemi ile Halil İbrahim Ege’ye devredilmiştir. Bu işlemle birlikte Borlease Oto",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:57:17.014897+00:00",
+      "directionRefined": "~",
+      "summary": "BOR Holding, BORLS'teki %9,96 payını 4,10 TL fiyattan Halil İbrahim Ege'ye borsa dışında devretti; payı %32,66'ya indi.",
+      "impact": 3,
+      "amounts": [
+        "69.702.273 adet pay",
+        "4,10 TL fiyat",
+        "%9,96 pay",
+        "%32,66 kalan pay",
+        "4,10 TL"
+      ],
+      "rationale": "Büyük pay satışı; yeni yatırımcı girişi ve hakim ortaklıkta azalma, kısa vadede belirsizlik yaratabilir."
+    },
+    "1622193": {
+      "symbol": "DMRGD",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "01.07.2026 09:05:28",
+      "directionHint": "~",
+      "contentChars": 39220,
+      "pdfChars": 1668,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a59019f1c4218615985"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1668,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Pay Alım Satım Bildirimi : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi DMR UNLU MAMULLER ÜRETİM GIDA TOPTAN PERAKENDE İHRACAT A.Ş. : Açıklama : 30.06.2026. tarihinde DMR UNLU MAMULLER ÜRETİM GIDA TOPTAN PERAKENDE İHRACAT A.Ş. payları ile ilgili olarak 11.20 - 11,51 TL fiyat aralığından 22.450.000 TL toplam nominal tutarlı (B) Grubu payların satış işlemi ortaklığımızca gerçekleştirilmiştir. Bu işlemle birlikte DMR UNLU M",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:57:21.142554+00:00",
+      "directionRefined": "-",
+      "summary": "Simit Sarayı, DMR Unlu Mamuller'de 22,45 milyon TL nominal tutarlı pay satışıyla payını %27,18'e düşürdü.",
+      "impact": 4,
+      "amounts": [
+        "22,45 milyon TL",
+        "11,51 TL",
+        "22.450.000 TL"
+      ],
+      "rationale": "Ana ortak pay satışı genelde olumsuz algılanır; pay oranı ciddi şekilde azaldı."
+    },
+    "1622188": {
+      "symbol": "DAPGM",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "01.07.2026 09:03:18",
+      "directionHint": "~",
+      "contentChars": 39686,
+      "pdfChars": 1421,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f0a085a019f1c431cd55832"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1421,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Pay Satım Bildirimi : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi DAP GAYRİMENKUL GELİŞTİRME A.Ş. : Açıklama : 30.06.2026 tarihinde DAP GAYRİMENKUL GELİŞTİRME A.Ş. payları ile ilgili olarak 9,80-10,11 TL fiyat aralığından 12.500.000 TL toplam nominal tutarlı satış işlemi tarafımca gerçekleştirilmiştir. Bu işlemle birlikte DAP GAYRİMENKUL GELİŞTİRME A.Ş. sermayesindeki paylarım 30.06.2026 tarihi itibariyle % 34,16 oranın",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:57:25.222566+00:00",
+      "directionRefined": "-",
+      "summary": "Yönetim Kurulu Başkanı Ziya Yılmaz, 12,5 milyon TL nominal DAPGM hissesi satışıyla payı %34,16'ya düşürdü.",
+      "impact": 3,
+      "amounts": [
+        "12,5 milyon TL",
+        "%34,16",
+        "10,11 TL",
+        "12.500.000 TL"
+      ],
+      "rationale": "Üst düzey pay satışı genelde olumsuz algılanır; satış miktarı dikkat çekici."
+    },
+    "1622186": {
+      "symbol": "MANAS",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "01.07.2026 09:01:45",
+      "directionHint": "~",
+      "contentChars": 75254,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:57:28.225185+00:00",
+      "directionRefined": "?",
+      "summary": "MANAS için 01.07.2026 tarihli pay alım satım bildirimi yayımlandı; bildirimi yapan taraf Pardus Portföy Yönetimi A.Ş. Fon Yönetim Müdürü Furkan Açar.",
+      "impact": 1,
+      "amounts": [],
+      "rationale": "Bildirimde alım/satım miktarı ve detaylar yok; fiyat etkisi belirsiz."
+    },
+    "1622185": {
+      "symbol": "DAPGM",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "01.07.2026 09:01:38",
+      "directionHint": "~",
+      "contentChars": 39688,
+      "pdfChars": 1432,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f0a085a019f1c4166ab57c1"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1432,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Pay Satım Bildirimi : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi DAP GAYRİMENKUL GELİŞTİRME A.Ş. : Açıklama : 30.06.2026 tarihinde DAP GAYRİMENKUL GELİŞTİRME A.Ş. payları ile ilgili olarak 9,80-10,11 TL fiyat aralığından 12.500.000 TL toplam nominal tutarlı satış işlemi tarafımca gerçekleştirilmiştir. Bu işlemle birlikte DAP GAYRİMENKUL GELİŞTİRME A.Ş. sermayesindeki paylarım 30.06.2026 tarihi itibariyle % 22,01 oranın",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:57:32.010497+00:00",
+      "directionRefined": "-",
+      "summary": "Yönetim Kurulu Başkan Yardımcısı Rafet Yılmaz, 12,5 milyon TL nominal DAPGM payını 9,80-10,11 TL aralığında sattı; payı %22,01'e düştü.",
+      "impact": 3,
+      "amounts": [
+        "12,5 milyon TL",
+        "9,80-10,11 TL",
+        "10,11 TL",
+        "12.500.000 TL"
+      ],
+      "rationale": "Yönetimden önemli pay satışı genelde olumsuz algılanır; satış miktarı yüksek."
+    },
+    "1622184": {
+      "symbol": "PRZMA",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "01.07.2026 08:59:25",
+      "directionHint": "~",
+      "contentChars": 39684,
+      "pdfChars": 1457,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f0a085a019f1c3fa190575c"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1457,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Pay Devri (Virman) : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi PRİZMA PRES MATBAACILIK YAYINCILIK SANAYİ VE TİCARET A.Ş. : Açıklama : 30.06.2026 tarihinde PRİZMA PRES MATBAACILIK YAYINCILIK SANAYİ VE TİCARET A.Ş. payları ile ilgili olarak, Nuran KURU’dan 845.000 TL nominal tutarlı B Grubu pay devri (virman) işlemi gerçekleştirilmiştir. Bu işlem ile 30.06.2026 tarihi itibarıyla PRİZMA PRES MATBAACILIK YAYINCILIK SANAYİ",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:57:58.522808+00:00",
+      "directionRefined": "+",
+      "summary": "Raşit Kuru, PRZMA'da 845.000 TL nominal B grubu pay devriyle pay oranını %15,29'a, oy hakkını %27,95'e yükseltti.",
+      "impact": 3,
+      "amounts": [
+        "845.000 TL",
+        "%15,29 pay",
+        "%27,95 oy hakkı"
+      ],
+      "rationale": "Yönetim kurulu üyesinin payını artırması güven ve kontrolü güçlendirir."
+    },
+    "1622183": {
+      "symbol": "SKBNK",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "01.07.2026 08:57:42",
+      "directionHint": "~",
+      "contentChars": 39787,
+      "pdfChars": 1562,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f0a085a019f1c3ac56556db"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1562,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu pay satım bildirimi : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi ŞEKERBANK T.A.Ş. : Açıklama : 30/06/2026 - 30/06/2026 tarihinde payları ile ilgili olarak - TL fiyat aralığından TL toplam nominal tutarlı ŞEKERBANK T.A.Ş. 15,80 15,87 0 alış işlemi ve/veya TL toplam nominal tutarlı satış işlemi tarafımca/ortaklığımızca gerçekleştirilmiştir. Bu işlemle birlikte 672.800 sermayesindeki paylarım/oy haklarım tarihi itibariyle",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:58:07.688734+00:00",
+      "directionRefined": "-",
+      "summary": "Şekerbank Pers. Mun. Sos. Güv. Yard. Vakfı, 672.800 adet pay satarak sermayedeki payını %30,71'den %30,69'a düşürdü.",
+      "impact": 2,
+      "amounts": [
+        "672.800 adet pay",
+        "%30,71",
+        "%30,69"
+      ],
+      "rationale": "Ana ortak satış yaptı, oran küçük ama satış yönlü hareket genelde olumsuz algılanır."
+    },
+    "1622181": {
+      "symbol": "PRZMA",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "01.07.2026 08:52:11",
+      "directionHint": "~",
+      "contentChars": 39684,
+      "pdfChars": 1416,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f0a085a019f1c387be65661"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1416,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Pay Devri (Virman) : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi PRİZMA PRES MATBAACILIK YAYINCILIK SANAYİ VE TİCARET A.Ş. : Açıklama : 30.06.2026 tarihinde PRİZMA PRES MATBAACILIK YAYINCILIK SANAYİ VE TİCARET A.Ş. payları ile ilgili olarak Raşit KURU’ya 845.000 TL nominal tutarlı pay devri (virman) işlemi gerçekleştirilmiştir. Bu işlem ile birlikte 30.06.2026 tarihi itibarıyla PRİZMA PRES MATBAACILIK YAYINCILIK SANAYİ ",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:58:12.925885+00:00",
+      "directionRefined": "0",
+      "summary": "Nuran Kuru, PRZMA'da 845.000 TL nominal payı Raşit Kuru'ya devretti; pay oranı %1,12'den %0,02'ye düştü.",
+      "impact": 1,
+      "amounts": [
+        "845.000 TL",
+        "864.012 TL",
+        "19.012 TL"
+      ],
+      "rationale": "İç ortaklar arası virman; şirket kontrolünde veya piyasa üzerinde etkisi yok."
+    },
+    "1622179": {
+      "symbol": "MIATK",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "01.07.2026 08:49:48",
+      "directionHint": "~",
+      "contentChars": 39702,
+      "pdfChars": 1353,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f0a085a019f1c3700a35602"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1353,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Pay Satışı hk : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi MİA TEKNOLOJİ A.Ş. : Açıklama : 30.06.2026 tarihinde MİA TEKNOLOJİ A.Ş. payları ile ilgili olarak 36,70 TL fiyattan 2.046.156 TL toplam nominal tutarlı hissemin kurumsal bir yatırımcıya satış işlemi tarafımca gerçekleştirilmiştir. Bu işlemle birlikte MİA TEKNOLOJİ A.Ş. sermayesindeki paylarım 30.06.2026 tarihi itibariyle %10,81, oy haklarım ise %24,32 olmuştur.",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:58:17.369535+00:00",
+      "directionRefined": "-",
+      "summary": "Ali Gökhan Beltekin, MIATK hisselerinden 2.046.156 TL nominal tutarlı payı 36,70 TL fiyattan kurumsal yatırımcıya sattı.",
+      "impact": 3,
+      "amounts": [
+        "2.046.156 TL",
+        "36,70 TL",
+        "53.406.000 TL",
+        "%10,81 pay",
+        "%24,32 oy hakkı"
+      ],
+      "rationale": "Ana ortak pay satışı genelde kısa vadede olumsuz algılanır; kurumsal alıcı olması etkiyi sınırlayabilir."
+    },
+    "1622178": {
+      "symbol": "PRZMA",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "01.07.2026 08:48:54",
+      "directionHint": "~",
+      "contentChars": 39684,
+      "pdfChars": 1483,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f0a085a019f1c3545c955b9"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1483,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Pay Devri (Virman) : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi PRİZMA PRES MATBAACILIK YAYINCILIK SANAYİ VE TİCARET A.Ş. : Açıklama : 30.06.2026 tarihinde PRİZMA PRES MATBAACILIK YAYINCILIK SANAYİ VE TİCARET A.Ş. payları ile ilgili olarak DLT TURİZM VE TİCARET A.Ş.’ ne 10.254.666,00 TL nominal tutarlı pay devri (virman) işlemi gerçekleştirilmiştir. Bu işlem ile birlikte 30.06.2026 tarihi itibarıyla PRİZMA PRESMATBAACI",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:58:21.862896+00:00",
+      "directionRefined": "-",
+      "summary": "Yönetim Kurulu Başkan Vekili Raşit Kuru, 10,25 milyon TL nominal PRZMA payını DLT Turizm'e devretti, pay oranı %2,05'e düştü.",
+      "impact": 3,
+      "amounts": [
+        "10.254.666 TL nominal",
+        "10.254.666,00 TL"
+      ],
+      "rationale": "Yönetici pay satışı genelde olumsuz algılanır; oy hakkı oranı da ciddi şekilde azaldı."
+    },
+    "1622177": {
+      "symbol": "ENKAI",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "01.07.2026 08:47:41",
+      "directionHint": "~",
+      "contentChars": 39694,
+      "pdfChars": 1544,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f0a085a019f1c3399cd5582"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1544,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Pay Alım Bildirimi : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi ENKA İNŞAAT VE SANAYİ A.Ş. : Açıklama : 30/06/2026 - 30/06/2026 tarihinde payları ile ilgili olarak - TL fiyat aralığından TL ENKA İNŞAAT VE SANAYİ A.Ş. 90,15 90,95 175.000 toplam nominal tutarlı alış işlemi ve/veya TL toplam nominal tutarlı satış işlemi tarafımca/ortaklığımızca gerçekleştirilmiştir. Bu 0 işlemle birlikte sermayesindeki paylarım/oy hakları",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:58:26.519094+00:00",
+      "directionRefined": "+",
+      "summary": "Şarık Ömer Tara, ENKA'da 175.000 TL nominal tutarlı pay alımı yaptı; pay oranı %0,247'den %0,25'e yükseldi.",
+      "impact": 2,
+      "amounts": [
+        "175.000 TL"
+      ],
+      "rationale": "Yönetici pay alımı genelde olumlu; miktar düşük, piyasa etkisi sınırlı."
+    },
+    "1622176": {
+      "symbol": "ENKAI",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "01.07.2026 08:46:06",
+      "directionHint": "~",
+      "contentChars": 39696,
+      "pdfChars": 1566,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f0a085a019f1c31c3b7554c"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1566,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Pay Alım Bildirimi : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi ENKA İNŞAAT VE SANAYİ A.Ş. : Açıklama : 30/06/2026 - 30/06/2026 tarihinde payları ile ilgili olarak - TL fiyat aralığından TL toplam ENKA İNŞAAT VE SANAYİ A.Ş. 90,05 90,7 175.000 nominal tutarlı alış işlemi ve/veya TL toplam nominal tutarlı satış işlemi tarafımca/ortaklığımızca gerçekleştirilmiştir. Bu işlemle 0 birlikte sermayesindeki paylarım/oy haklarım",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:58:30.733719+00:00",
+      "directionRefined": "+",
+      "summary": "Yönetim Kurulu Başkanı Agah Mehmet Tara, 175.000 TL nominal ENKA payı alımıyla sahipliği %0,293'ten %0,295'e çıkardı.",
+      "impact": 2,
+      "amounts": [
+        "175.000 TL"
+      ],
+      "rationale": "Üst düzey yönetici pay alımı genelde olumlu; tutar düşük, etkisi sınırlı."
+    },
+    "1622175": {
+      "symbol": "PRZMA",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "01.07.2026 08:41:41",
+      "directionHint": "~",
+      "contentChars": 39684,
+      "pdfChars": 1474,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f0a085a019f1c2f426854fe"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1474,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Pay Devri (Virman) : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi PRİZMA PRES MATBAACILIK YAYINCILIK SANAYİ VE TİCARET A.Ş. : Açıklama : 30.06.2026 tarihinde PRİZMA PRES MATBAACILIK YAYINCILIK SANAYİ VE TİCARET A.Ş. payları ile ilgili olarak DLT TURİZM VE TİCARET A.Ş.’ ne 9.731.170,00 TL nominal tutarlı pay devri (virman) işlemi gerçekleştirilmiştir. Bu işlem ile birlikte 30.06.2026 tarihi itibarıyla PRİZMA PRESMATBAACIL",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:58:34.570262+00:00",
+      "directionRefined": "-",
+      "summary": "Metin Kuru, PRZMA'da 9,73 milyon TL nominal payı DLT Turizm'e devretti; pay oranı %14,62'den %2,05'e düştü.",
+      "impact": 3,
+      "amounts": [
+        "9.731.170 TL",
+        "11.319.406,52 TL",
+        "1.588.236,52 TL",
+        "9.731.170,00 TL"
+      ],
+      "rationale": "Yönetim Kurulu Başkanı'nın pay satışı genelde olumsuz algılanır; pay oranı ciddi düştü."
+    },
+    "1622174": {
+      "symbol": "GSDHO",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "01.07.2026 08:39:33",
+      "directionHint": "~",
+      "contentChars": 39694,
+      "pdfChars": 2199,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f0a085a019f1c2d597354b7"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 2199,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Pay Alım Bildirimi : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi GSD HOLDİNG A.Ş. : Açıklama : 30 Haziran 2026 tarihinde GSD Holding A.Ş. payları ile ilgili olarak 5,88-6,05 TL fiyat aralığından 1.768.742 TL nominal tutarlı alış işlemi ortaklığımızca gerçekleştirilmiştir. Bu işlemle birlikte ortaklığımız Delta Global AG’nin GSD Holding A.Ş.’nin sermayesindeki payları 30 Haziran 2026 tarihi itibariyle %2,70 seviyesine ul",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:58:38.893995+00:00",
+      "directionRefined": "+",
+      "summary": "Delta Global AG, GSD Holding'de 1,77 milyon TL tutarında alımla payını %2,70'e çıkardı; birlikte hareket edenlerin toplam payı %32,84 oldu.",
+      "impact": 2,
+      "amounts": [
+        "1.768.742 TL",
+        "%2,70",
+        "%32,84",
+        "6,05 TL"
+      ],
+      "rationale": "Ana ortak ve birlikte hareket edenlerin pay artışı güven verici, ancak işlem tutarı sınırlı."
+    },
+    "1622145": {
+      "symbol": "INVEO",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "30.06.2026 19:29:46",
+      "directionHint": "~",
+      "contentChars": 78414,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:58:59.833158+00:00",
+      "directionRefined": "?",
+      "summary": "INVEO tarafından 30.06.2026 tarihinde pay alım satım işlemi bildirimi yapılmıştır, işlem detayları ve tutarları açıklamada yer almamaktadır.",
+      "impact": 1,
+      "amounts": [
+        "7,00 TL",
+        "7,05 TL",
+        "1.637.321.198,41 TL"
+      ],
+      "rationale": "İşlem tutarı ve taraf bilgisi yok; fiyat etkisi belirsiz ve önemsiz olabilir."
+    },
+    "1622054": {
+      "symbol": "NTHOL",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "30.06.2026 18:08:39",
+      "directionHint": "~",
+      "contentChars": 39686,
+      "pdfChars": 1517,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a59019f19125d704e7a"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1517,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu NET HOLDİNG A.Ş. HİSSE ALIMI : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi NET HOLDİNG A.Ş. : Açıklama : 30/06/2026 - 30/06/2026 tarihinde payları ile ilgili olarak - TL fiyat aralığından TL toplam NET HOLDİNG A.Ş. 43,36 44,20 1.000.000 nominal tutarlı alış işlemi ve/veya TL toplam nominal tutarlı satış işlemi tarafımca/ortaklığımızca gerçekleştirilmiştir. Bu işlemle 0 birlikte sermayesindeki paylarım/oy haklarım tarihi",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:59:03.424736+00:00",
+      "directionRefined": "+",
+      "summary": "Besim Tibuk, Net Holding'de 1.000.000 TL nominal değerli hisse alımıyla payını %37,42'den %37,62'ye çıkardı.",
+      "impact": 2,
+      "amounts": [
+        "1.000.000 TL"
+      ],
+      "rationale": "Ana ortak tarafından yapılan alım, güven göstergesi olarak olumlu algılanabilir."
+    },
+    "1622024": {
+      "symbol": "EBEBK",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "30.06.2026 17:34:20",
+      "directionHint": "~",
+      "contentChars": 39708,
+      "pdfChars": 1477,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a59019f18f28fb94ade"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1477,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Ebebek Mağazacılık A.Ş. Pay alımı : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi EBEBEK MAĞAZACILIK A.Ş. : Açıklama : 29/06/2026 - 30/06/2026 tarihlerinde EBEBK-EBEBEK MAĞAZACILIK A.Ş. payları ile ilgili olarak 1 ADET HİSSE 73,90-74,95 TL fiyat aralığından 67.000 TL toplam nominal tutarlı 4.972.646,25 TL karşılığı 67.000 adet hisse alış işlemi tarafımca gerçekleştirilmiştir. Bu işlemler ile birlikte Mahmud Muhammed TOPBA",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:59:07.979239+00:00",
+      "directionRefined": "+",
+      "summary": "Mahmud Muhammed Topbaş ve çocukları, EBEBEK'te 67.000 adet hisse alımıyla paylarını %17,19'a yükseltti.",
+      "impact": 3,
+      "amounts": [
+        "67.000 adet",
+        "4.972.646,25 TL",
+        "73,90-74,95 TL fiyat aralığı",
+        "74,95 TL",
+        "67.000 TL"
+      ],
+      "rationale": "Ana ortak pay artırımı genelde güven göstergesidir, orta düzeyde olumlu etki yaratabilir."
+    },
+    "1622013": {
+      "symbol": "BALSU",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "30.06.2026 17:21:00",
+      "directionHint": "~",
+      "contentChars": 39694,
+      "pdfChars": 1931,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a59019f18e6b9744a3b"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1931,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Pay Satış Bildirimi : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi BALSU GIDA SANAYİ VE TİCARET A.Ş. : Açıklama : Bağlı ortaklığımız Balsu Gıda Sanayi ve Ticaret A.Ş. (\"Şirket\") payları ile ilgili olarak; 30.06.2026 tarihinde, Şirket sermayesinde sahip olduğumuz sermayenin %32,19'una karşılık gelen 358.000.000 adet borsada işlem görmeyen nitelikteki B Grubu paylarımız, Toptan Alış Satış İşlemlerine İlişkin Prosedür kapsa",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:59:12.408752+00:00",
+      "directionRefined": "~",
+      "summary": "BG Holding, BALSU'daki payını %73,13'ten %40,93'e düşürdü; 358 milyon payı 18,42 TL'den kurumsal yatırımcılara sattı, 4,64 milyar TL sermaye avansı sağlandı.",
+      "impact": 4,
+      "amounts": [
+        "358.000.000 pay",
+        "18,42 TL fiyat",
+        "4.640.000.000 TL avans",
+        "1 TL",
+        "18,42 TL",
+        "4.640.000.000 TL"
+      ],
+      "rationale": "Yönetim hakimiyeti korunuyor, büyük pay satışı ve sermaye girişi karışık etki yaratabilir."
+    },
+    "1621974": {
+      "symbol": "PSGYO",
+      "title": "Pay Mali Hak Kullanım İşlemi - Nakit Ödeme",
+      "category": "Insider/Pay Bildirimi",
+      "date": "30.06.2026 16:43:56",
+      "directionHint": "~",
+      "contentChars": 45936,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:59:25.632116+00:00",
+      "directionRefined": "0",
+      "summary": "PSGYO pay mali hak kullanım işlemi kapsamında nakit ödeme yapılmıştır. İşlem detayları ve tutar belirtilmemiştir.",
+      "impact": 1,
+      "amounts": [
+        "2026 TRY"
+      ],
+      "rationale": "Nakit ödeme işlemi rutin; tutar ve taraf bilgisi yok, fiyat etkisi beklenmez."
+    },
+    "1621911": {
+      "symbol": "AKSA",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "30.06.2026 15:24:16",
+      "directionHint": "~",
+      "contentChars": 39120,
+      "pdfChars": 1622,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a58019f187b345f49dd"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1622,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu PAY ALIM BİLDİRİMİ : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi AKSA AKRİLİK KİMYA SANAYİİ A.Ş. : Açıklama : 30/06/2026 - 30/06/2026 tarihinde payları ile ilgili olarak - TL fiyat aralığından TL AKSA AKRİLİK KİMYA SANAYİİ A.Ş. 11,85 11,97 860.000 toplam nominal tutarlı alış işlemi ve/veya TL toplam nominal tutarlı satış işlemi tarafımca/ortaklığımızca gerçekleştirilmiştir. Bu 0 işlemle birlikte sermayesindeki paylarım/",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:59:29.888976+00:00",
+      "directionRefined": "+",
+      "summary": "EMNİYET TİCARET, AKSA'da 860.000 TL nominal tutarlı pay alımı yaptı; pay oranı %25,61'e yükseldi.",
+      "impact": 2,
+      "amounts": [
+        "860.000 TL",
+        "%25,612912"
+      ],
+      "rationale": "Yönetim kurulu başkanının şirket payını artırması genelde olumlu algılanır."
+    },
+    "1621892": {
+      "symbol": "MARBL",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "30.06.2026 14:56:24",
+      "directionHint": "~",
+      "contentChars": 38986,
+      "pdfChars": 1597,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f0a085b019f18611697404c"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1597,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Pay alım satım bildirimi : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi TUREKS TURUNÇ MADENCİLİK İÇ VE DIŞ TİCARET A.Ş. : Açıklama : 29/06/2026 - 29/06/2026 tarihinde payları ile ilgili olarak - TL fiyat TUREKS TURUNÇ MADENCİLİK İÇ VE DIŞ TİCARET A.Ş. 13,20 13,40 aralığından TL toplam nominal tutarlı alış işlemi ve/veya TL toplam nominal tutarlı satış işlemi tarafımca/ortaklığımızca 0 42.037 gerçekleştirilmiştir. Bu işle",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T13:59:57.811162+00:00",
+      "directionRefined": "-",
+      "summary": "Osman Cavit Turunç, MARBL'de 42.037 TL nominal tutarlı pay satışı yaptı; pay oranı %14,75'ten %14,73'e düştü.",
+      "impact": 2,
+      "amounts": [
+        "42.037 TL",
+        "%14,75",
+        "%14,73"
+      ],
+      "rationale": "Yönetici pay satışı genelde olumsuz algılanır; oran küçük, fiyat etkisi sınırlı."
+    },
+    "1621878": {
+      "symbol": "AKSA",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "30.06.2026 14:20:10",
+      "directionHint": "~",
+      "contentChars": 39047,
+      "pdfChars": 1628,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f0a085b019f18402c853e08"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1628,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu PAY ALIM BİLDİRİMİ : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi AKSA AKRİLİK KİMYA SANAYİİ A.Ş. : Açıklama : 30/06/2026 - 30/06/2026 tarihinde payları ile ilgili olarak - TL fiyat aralığından TL AKSA AKRİLİK KİMYA SANAYİİ A.Ş. 11,73 11,89 1.350.000 toplam nominal tutarlı alış işlemi ve/veya TL toplam nominal tutarlı satış işlemi tarafımca/ortaklığımızca gerçekleştirilmiştir. Bu 0 işlemle birlikte sermayesindeki payları",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T14:00:01.131257+00:00",
+      "directionRefined": "+",
+      "summary": "EMNİYET TİCARET VE SANAYİ A.Ş., AKSA'da 1.350.000 TL nominal tutarlı pay alımı yaptı, pay oranı %25,59'a yükseldi.",
+      "impact": 3,
+      "amounts": [
+        "1.350.000 TL",
+        "994.201.637,604 TL",
+        "%25,590776"
+      ],
+      "rationale": "Ana ortak pay artırımı genelde güven ve destek göstergesidir."
+    },
+    "1621839": {
+      "symbol": "GENKM",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "30.06.2026 11:57:00",
+      "directionHint": "~",
+      "contentChars": 39686,
+      "pdfChars": 1580,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a59019f17bce5d83aac"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1580,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Pay Alım Bildirimi : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi GENTAŞ KİMYA SANAYİ VE TİCARET PAZARLAMA A.Ş. : Açıklama : 29/06/2026 - 29/06/2026 tarihinde payları ile ilgili olarak - TL fiyat GENTAŞ KİMYA SANAYİ VE TİCARET PAZARLAMA A.Ş. 13,75 13,75 aralığından TL toplam nominal tutarlı alış işlemi ve/veya TL toplam nominal tutarlı satış işlemi tarafımca/ortaklığımızca 38.545 0 gerçekleştirilmiştir. Bu işlemle birlik",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T14:00:04.705264+00:00",
+      "directionRefined": "+",
+      "summary": "Macit Aydın, GENKM'de 38.545 TL nominal tutarlı pay alımı yaptı; pay oranı %29,91'den %29,92'ye yükseldi.",
+      "impact": 2,
+      "amounts": [
+        "38.545 TL",
+        "182.162.357 TL",
+        "182.200.902 TL",
+        "%29,91",
+        "%29,92"
+      ],
+      "rationale": "Ana ortak payını artırdı; güven göstergesi, sınırlı miktar nedeniyle etkisi düşük."
+    },
+    "1621779": {
+      "symbol": "SARKY",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "30.06.2026 10:11:50",
+      "directionHint": "~",
+      "contentChars": 39694,
+      "pdfChars": 1604,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a59019f175cd2f4345b"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1604,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Pay Alım Bildirimi : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi SARKUYSAN ELEKTROLİTİK BAKIR SANAYİ VE TİCARET A.Ş. : Açıklama : 29/06/2026 - 29/06/2026 tarihinde payları ile ilgili olarak - TL fiyat SARKUYSAN ELEKTROLİTİK BAKIR SANAYİ VE TİCARET A.Ş. 26,66 27,00 aralığından TL toplam nominal tutarlı alış işlemi ve/veya TL toplam nominal tutarlı satış işlemi tarafımca/ortaklığımızca 150.000 0,00 gerçekleştirilmiştir. B",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T14:00:09.406242+00:00",
+      "directionRefined": "+",
+      "summary": "Hayrettin Çaycı, SARKY'de 150.000 TL nominal tutarlı pay alımı yaptı; pay oranı %7,68'den %7,70'e çıktı.",
+      "impact": 2,
+      "amounts": [
+        "150.000 TL"
+      ],
+      "rationale": "Yönetici pay alımı genelde olumlu; tutar sınırlı, pay oranı hafif arttı."
+    },
+    "1621752": {
+      "symbol": "TRHOL",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "30.06.2026 09:36:22",
+      "directionHint": "~",
+      "contentChars": 75170,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T14:00:12.835045+00:00",
+      "directionRefined": "?",
+      "summary": "TRHOL için pay alım satım bildirimi yapılmış, işlemin detayları ve tutarları açıklamada yer almıyor.",
+      "impact": 1,
+      "amounts": [],
+      "rationale": "Bildirimde işlem tutarı ve taraf bilgisi yok; fiyat etkisi belirsiz."
+    },
+    "1621751": {
+      "symbol": "MANAS",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "30.06.2026 09:36:15",
+      "directionHint": "~",
+      "contentChars": 75341,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T14:00:16.319536+00:00",
+      "directionRefined": "?",
+      "summary": "MANAS için 30.06.2026 tarihinde Pardus Portföy Yönetimi A.Ş. tarafından pay alım satım bildirimi yapılmıştır. İşlem detayları ve miktar belirtilmemiştir.",
+      "impact": 1,
+      "amounts": [],
+      "rationale": "Bildirimde işlem tutarı ve yönü belirtilmediği için fiyat etkisi belirsiz."
+    },
+    "1621742": {
+      "symbol": "PRZMA",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "30.06.2026 09:24:24",
+      "directionHint": "~",
+      "contentChars": 39013,
+      "pdfChars": 1567,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a58019f173253212f52"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1567,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Pay Devri (Virman) : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi PRİZMA PRES MATBAACILIK YAYINCILIK SANAYİ VE TİCARET A.Ş. : Açıklama : 29.06.2026 tarihinde PRİZMA PRES MATBAACILIK YAYINCILIK SANAYİ VE TİCARET A.Ş. payları ile ilgili olarak, Nuran KURU’dan 1.058.823,48 TL nominal tutarlı ve Bilge KURU’dan 529.411,74 TL nominal tutarlı olmak üzere toplam 1.588.235,22 TL nominal tutarlı B Grubu pay devri (virman) işlemi g",
+      "engine": "github",
+      "enrichedAt": "2026-07-03T14:00:20.518198+00:00",
+      "directionRefined": "+",
+      "summary": "Raşit Kuru, PRZMA'da 1.588.235 TL nominal B grubu pay devriyle pay oranını %14,20'ye, oy hakkını %27,27'ye çıkardı.",
+      "impact": 3,
+      "amounts": [
+        "1.058.823 TL",
+        "529.411 TL",
+        "1.588.235 TL",
+        "1.058.823,48 TL",
+        "529.411,74 TL",
+        "1.588.235,22 TL"
+      ],
+      "rationale": "Yönetim kurulu üyesinin payını artırması güven ve kontrolü güçlendirir."
+    },
+    "1621730": {
+      "symbol": "PRZMA",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "30.06.2026 09:13:07",
+      "directionHint": "~",
+      "contentChars": 39013,
+      "pdfChars": 1437,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a58019f1727a8c12d67"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1437,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Pay Devri (Virman) : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi PRİZMA PRES MATBAACILIK YAYINCILIK SANAYİ VE TİCARET A.Ş. : Açıklama : 29.06.2026 tarihinde PRİZMA PRES MATBAACILIK YAYINCILIK SANAYİ VE TİCARET A.Ş. payları ile ilgili olarak Raşit KURU’ya 1.058.823,48 TL nominal tutarlı pay devri (virman) işlemi gerçekleştirilmiştir. Bu işlem ile birlikte 29.06.2026 tarihi itibarıyla PRİZMA PRES MATBAACILIK YAYINCILIK SA",
+      "engine": "groq",
+      "enrichedAt": "2026-07-03T14:00:24.908222+00:00",
+      "directionRefined": "~",
+      "summary": "PRİZMA'da 1,06 milyon TL nominal pay devri",
+      "impact": "3",
+      "amounts": [
+        "1,06 milyon TL",
+        "1.058.823,48 TL"
+      ],
+      "rationale": "Pay devri"
+    },
+    "1621717": {
+      "symbol": "MIATK",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "30.06.2026 08:49:29",
+      "directionHint": "~",
+      "contentChars": 39702,
+      "pdfChars": 1354,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a59019f170c646b2c69"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1354,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Pay Satışı Hk. : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi MİA TEKNOLOJİ A.Ş. : Açıklama : 29.06.2026 tarihinde MİA TEKNOLOJİ A.Ş. payları ile ilgili olarak 40,52 TL fiyattan 4.791.029 TL toplam nominal tutarlı hissemin kurumsal bir yatırımcıya satış işlemi tarafımca gerçekleştirilmiştir. Bu işlemle birlikte MİA TEKNOLOJİ A.Ş. sermayesindeki paylarım 29.06.2026 tarihi itibariyle %11,23, oy haklarım ise %24,60 olmuştur",
+      "engine": "groq",
+      "enrichedAt": "2026-07-03T14:01:15.695635+00:00",
+      "directionRefined": "-",
+      "summary": "Ali Gökhanoğlu 4,79 milyon TL'lik hisse sattı",
+      "impact": "3",
+      "amounts": [
+        "4,79 milyon TL",
+        "40,52 TL",
+        "4.791.029 TL"
+      ],
+      "rationale": "Hisse satışının şirket değerine etkisi"
+    },
+    "1621716": {
+      "symbol": "GSDHO",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "30.06.2026 08:47:58",
+      "directionHint": "~",
+      "contentChars": 39694,
+      "pdfChars": 2207,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a59019f170a3f922c06"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 2207,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Pay Alım Bildirimi : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi GSD HOLDİNG A.Ş. : Açıklama : 29 Haziran 2026 tarihinde GSD Holding A.Ş. payları ile ilgili olarak 5,46-5,87 TL fiyat aralığından 5.768.937 TL nominal tutarlı alış işlemi ortaklığımızca gerçekleştirilmiştir. Bu işlemle birlikte ortaklığımız Delta Global AG’nin GSD Holding A.Ş.’nin sermayesindeki payları 29 Haziran 2026 tarihi itibariyle %2,5231 seviyesine ",
+      "engine": "groq",
+      "enrichedAt": "2026-07-03T14:01:25.886190+00:00",
+      "directionRefined": "+",
+      "summary": "GSDHO'da Delta Global AG 5,46-5,87 TL'den 5,77 milyon TL'lik pay aldı",
+      "impact": "4",
+      "amounts": [
+        "5,77 milyon TL",
+        "5,46-5,87 TL",
+        "5,87 TL",
+        "5.768.937 TL"
+      ],
+      "rationale": "Holding sermayesindeki pay artışı"
+    },
+    "1621715": {
+      "symbol": "ENKAI",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "30.06.2026 08:46:07",
+      "directionHint": "~",
+      "contentChars": 39694,
+      "pdfChars": 1546,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a59019f1707e2cc2bd0"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1546,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Pay Alım Bildirimi : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi ENKA İNŞAAT VE SANAYİ A.Ş. : Açıklama : 29/06/2026 - 29/06/2026 tarihinde payları ile ilgili olarak - TL fiyat aralığından TL ENKA İNŞAAT VE SANAYİ A.Ş. 90,00 90,95 200.000 toplam nominal tutarlı alış işlemi ve/veya TL toplam nominal tutarlı satış işlemi tarafımca/ortaklığımızca gerçekleştirilmiştir. Bu 0 işlemle birlikte sermayesindeki paylarım/oy hakları",
+      "engine": "groq",
+      "enrichedAt": "2026-07-03T14:01:35.571124+00:00",
+      "directionRefined": "+",
+      "summary": "ENKA İNŞAAT VE SANAYİ A.Ş.'de 200.000 pay alınmıştır.",
+      "impact": "3",
+      "amounts": [
+        "200.000 TL"
+      ],
+      "rationale": "İçeriden alım"
+    },
+    "1621714": {
+      "symbol": "PRZMA",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "30.06.2026 08:45:06",
+      "directionHint": "~",
+      "contentChars": 39684,
+      "pdfChars": 1481,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a59019f1705dd582b9a"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1481,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Pay Devri (Virman) : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi PRİZMA PRES MATBAACILIK YAYINCILIK SANAYİ VE TİCARET A.Ş. : Açıklama : 29.06.2026 tarihinde PRİZMA PRES MATBAACILIK YAYINCILIK SANAYİ VE TİCARET A.Ş. payları ile ilgili olarak, Ayşe Gülay KURU’dan tarafıma 1.058.823,48 TL nominal tutarlı B Grubu pay devri (virman) işlemi gerçekleştirilmiştir. Bu işlem ile 29.06.2026 tarihi itibarıyla PRİZMA PRES MATBAACILI",
+      "engine": "groq",
+      "enrichedAt": "2026-07-03T14:01:46.435751+00:00",
+      "directionRefined": "+",
+      "summary": "PRİZMA'da Metin Kuru'ya 1,06 milyon TL nominal pay devri",
+      "impact": "4",
+      "amounts": [
+        "1,06 milyon TL",
+        "1.058.823,48 TL"
+      ],
+      "rationale": "Yönetim Kurulu Başkanı payını artırdı"
+    },
+    "1621713": {
+      "symbol": "SAMAT",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "30.06.2026 08:43:14",
+      "directionHint": "~",
+      "contentChars": 39688,
+      "pdfChars": 2241,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a59019f170302142b60"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 2241,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Pay Alımına İlişkin Bildirim : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi SARAY MATBAACILIK KAĞITÇILIK KIRTASİYECİLİK TİCARET VE SANAYİ A.Ş. : Açıklama : Sermaye Piyasası Kurulu'nun Özel Durumlar Tebliği (II-15.1) uyarınca, \"Sermaye yapısına ve yönetim kontrolüne ilişkin değişiklikler\" başlıklı 12. maddesinin (b) bendinde yer alan; \"Bir kurucuya ait yatırım fonlarının doğrudan veya dolaylı olarak ihraççının sermayesind",
+      "engine": "groq",
+      "enrichedAt": "2026-07-03T14:01:56.025330+00:00",
+      "directionRefined": "+",
+      "summary": "SAMAT'da Abdurrahman Yıldırım'ın yakını 530.000 TL pay aldı",
+      "impact": "3",
+      "amounts": [
+        "530.000 TL",
+        "530.000,00 TL"
+      ],
+      "rationale": "Yönetim kontrolü"
+    },
+    "1621711": {
+      "symbol": "PRZMA",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "30.06.2026 08:41:23",
+      "directionHint": "~",
+      "contentChars": 39694,
+      "pdfChars": 1438,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a59019f170065772b29"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1438,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Pay Devri (Virman) : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi PRİZMA PRES MATBAACILIK YAYINCILIK SANAYİ VE TİCARET A.Ş. : Açıklama : 29.06.2026 tarihinde PRİZMA PRES MATBAACILIK YAYINCILIK SANAYİ VE TİCARET A.Ş. payları ile ilgili olarak Metin KURU’ya 1.058.823,48 TL nominal tutarlı B Grubu pay devri (virman) işlemi gerçekleştirilmiştir. Bu işlem ile birlikte 29.06.2026 tarihi itibarıyla PRİZMA PRES MATBAACILIK YAYIN",
+      "engine": "groq",
+      "enrichedAt": "2026-07-03T14:02:05.256623+00:00",
+      "directionRefined": "-",
+      "summary": "PRİZMA'da 1,06 milyon TL nominal pay devri",
+      "impact": "2",
+      "amounts": [
+        "1,06 milyon TL",
+        "1.058.823,48 TL"
+      ],
+      "rationale": "Pay devri"
+    },
+    "1621710": {
+      "symbol": "ENKAI",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "30.06.2026 08:39:56",
+      "directionHint": "~",
+      "contentChars": 39696,
+      "pdfChars": 1567,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a59019f16fe42f92af3"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1567,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu Pay Alım Bildirimi : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi ENKA İNŞAAT VE SANAYİ A.Ş. : Açıklama : 29/06/2026 - 29/06/2026 tarihinde payları ile ilgili olarak - TL fiyat aralığından TL ENKA İNŞAAT VE SANAYİ A.Ş. 90,00 90,75 200.000 toplam nominal tutarlı alış işlemi ve/veya TL toplam nominal tutarlı satış işlemi tarafımca/ortaklığımızca gerçekleştirilmiştir. Bu 0 işlemle birlikte sermayesindeki paylarım/oy hakları",
+      "engine": "groq",
+      "enrichedAt": "2026-07-03T14:02:16.337710+00:00",
+      "directionRefined": "+",
+      "summary": "ENKA İNŞAAT VE SANAYİ A.Ş.'de 200.000 TL nominal pay alınmıştır.",
+      "impact": "3",
+      "amounts": [
+        "200.000 TL"
+      ],
+      "rationale": "Yönetim Kurulu Başkanı pay alımında bulunmuştur."
+    },
+    "1621609": {
+      "symbol": "HEKTS",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "29.06.2026 18:15:16",
+      "directionHint": "~",
+      "contentChars": 81604,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 12000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "groq",
+      "enrichedAt": "2026-07-03T14:02:25.016821+00:00",
+      "directionRefined": "~",
+      "summary": "HEKTAŞ TİCARET A.Ş.'de pay alım satım bildirimi",
+      "impact": 2,
+      "amounts": [],
+      "rationale": "İçerik bulunamadı"
+    },
+    "1621600": {
+      "symbol": "NTHOL",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "29.06.2026 18:08:58",
+      "directionHint": "~",
+      "contentChars": 39015,
+      "pdfChars": 1511,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f0a085a019f13ec021a1b97"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1511,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu NET HOLDİNG A.Ş. HİSSE ALIMI : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi NET HOLDİNG A.Ş. : Açıklama : 29/06/2026 - 29/06/2026 tarihinde payları ile ilgili olarak - TL fiyat aralığından TL toplam nominal NET HOLDİNG A.Ş. 44,00 44,68 500.000 tutarlı alış işlemi ve/veya TL toplam nominal tutarlı satış işlemi tarafımca/ortaklığımızca gerçekleştirilmiştir. Bu işlemle birlikte 0 NET sermayesindeki paylarım/oy haklarım tari",
+      "engine": "groq",
+      "enrichedAt": "2026-07-03T14:02:35.105017+00:00",
+      "directionRefined": "+",
+      "summary": "BESİM TİBUK 500.000 NTHOL hissesi aldı",
+      "impact": "4",
+      "amounts": [
+        "500.000 TL",
+        "187,1 milyon TL"
+      ],
+      "rationale": "Hisse alımına bağlı olarak sermaye payı arttı"
+    },
+    "1621595": {
+      "symbol": "BIOEN",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "29.06.2026 18:02:26",
+      "directionHint": "~",
+      "contentChars": 39722,
+      "pdfChars": 2077,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a58019f13e47e002373"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 2077,
+      "inputSnippet": " SÜREKLİ BİLGİLERE İLİŞKİN ÖZEL DURUM AÇIKLAMASI Konu PAY SATIM BİLDİRİMİ : Yapılan Açıklama Düzeltme mi? HAYIR : Bildirime Konu Borsa Şirketi BİOTREND ÇEVRE VE ENERJİ YATIRIMLARI A.Ş. : Açıklama : 29/06/2026 tarihinde, Şirketimiz Doğanlar Yatırım Holding A.Ş. tarafından sahip olunan Biotrend Çevre ve Enerji Yatırımları A.Ş. (“BIOEN”) sermayesini temsil eden, MKK nezdinde kaydileştirilmiş ve Borsa’da işlem görmeyen nitelikteki 74.500.000 TL toplam nominal tutarlı payın 18,10 TL’den Borsa İstanbu",
+      "engine": "groq",
+      "enrichedAt": "2026-07-03T14:02:45.011340+00:00",
+      "directionRefined": "-",
+      "summary": "BIOEN'de %14,9 pay devri",
+      "impact": "4",
+      "amounts": [
+        "74,5 milyon TL",
+        "74.500.000 TL",
+        "18,10 TL"
+      ],
+      "rationale": "Pay devri şirket kontrolünü etkileyebilir"
+    },
+    "1621577": {
+      "symbol": "HEKTS",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "29.06.2026 17:37:04",
+      "directionHint": "~",
+      "contentChars": 39862,
+      "pdfChars": 2695,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a58019f13cc9c7b220d",
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a58019f13cc9c82220e"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 2695,
+      "inputSnippet": " PUBLIC PAY ALIM / SATIM İŞLEMLERİNE İLİŞKİN ÖZEL DURUM AÇIKLAMA FORMU 25 Haziran 2026 tarihinde Hektaş Ticaret T.A.Ş. (Şirket) payları ile ilgili olarak N/A ﬁyat aralığından yapılan 212,750,613 pay işlemi ile ortaklığımızın Şirket sermayesindeki toplam pay sahipliği azalmıştır. Bu işlemle birlikte Hektaş Ticaret T.A.Ş. sermayesindeki paylarımız/oy haklarımız 25 Haziran 2026 tarihi itibariyle %5 sınırının altına düşmüştür. Adı Soyadı (*) : HSBC Holidngs plc adına Dilip B Gupta Unvanı : Özel Duru",
+      "engine": "groq",
+      "enrichedAt": "2026-07-03T14:02:56.354204+00:00",
+      "directionRefined": "-",
+      "summary": "HSBC 212,7 milyon HEKTS payını sattı",
+      "impact": "4",
+      "amounts": [
+        "212,7 milyon pay"
+      ],
+      "rationale": "Pay sahipliği %5'in altına düştü"
     }
   }
 }
