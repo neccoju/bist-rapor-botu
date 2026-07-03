@@ -29,6 +29,23 @@ $stocks = @(Invoke-BistStockScan)
 Write-Host "Taranan hisse: $($stocks.Count)"
 if ($stocks.Count -eq 0) { Write-Host 'Tarama bos; cikiliyor.'; return }
 
+# Akilli para verilerini isle ve etkiyi raporla (GunlukRapor ile ayni sira).
+$stocks = @(Add-ForeignOwnershipData -Stocks $stocks)
+$stocks = @(Add-InsiderSignalData -Stocks $stocks -AsOf $AsOf)
+$withForeign = @($stocks | Where-Object { $null -ne (Get-ObjectPropertyValue -Object $_ -Name 'ForeignChg1wBps') })
+Write-Host ("Yabanci oran verisi eslesen hisse: {0}/{1}" -f $withForeign.Count, $stocks.Count)
+$smSample = @($stocks | ForEach-Object {
+        $adj = Get-SmartMoneyAdjustment -Stock $_
+        if ($adj -ne 0) { [pscustomobject]@{ Symbol = $_.Symbol; Adj = $adj; Chg1w = (Get-ObjectPropertyValue -Object $_ -Name 'ForeignChg1wBps') } }
+    } | Where-Object { $_ })
+Write-Host ("Sifir-disi akilli para ayari alan hisse: {0}" -f $smSample.Count)
+foreach ($row in @($smSample | Sort-Object Adj -Descending | Select-Object -First 5)) {
+    Write-Host ("  + {0,-8} ayar={1,5:N1}  1H={2}" -f $row.Symbol, $row.Adj, $row.Chg1w)
+}
+foreach ($row in @($smSample | Sort-Object Adj | Select-Object -First 5)) {
+    Write-Host ("  - {0,-8} ayar={1,5:N1}  1H={2}" -f $row.Symbol, $row.Adj, $row.Chg1w)
+}
+
 $bist100 = 0.0
 try {
     $idx = Get-BistIndexBenchmarks -TimeoutSec 20
