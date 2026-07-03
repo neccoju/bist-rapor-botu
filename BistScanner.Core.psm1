@@ -5155,6 +5155,11 @@ function Get-RawFactorVector {
     $p3m = Get-RfNumber (Get-ObjectPropertyValue -Object $Stock -Name 'Perf3Month')
     $relv = Get-RfNumber (Get-ObjectPropertyValue -Object $Stock -Name 'RelativeVolume')
     $rvol = Get-RfNumber (Get-ObjectPropertyValue -Object $Stock -Name 'VolatilityD')
+    # Yabanci akis faktoru (2026-07-03'ten itibaren PIT'te arsivlenir). IC olcumunde
+    # uc degerler baskin olmasin diye [-3,+3] puana kirpilir; eski snapshot'larda
+    # alan yok -> null -> o gozlem bu faktor icin atlanir (IC hesabi bozulmaz).
+    $fflow = Get-RfNumber (Get-ObjectPropertyValue -Object $Stock -Name 'ForeignChg1wBps')
+    if ($null -ne $fflow) { $fflow = [Math]::Max(-3.0, [Math]::Min(3.0, [double]$fflow)) }
     [ordered]@{
         RSI     = $rsi
         MACDh   = if ($null -ne $mh -and $null -ne $price -and $price -gt 0) { ($mh / $price) * 100 } else { $null }
@@ -5166,6 +5171,7 @@ function Get-RawFactorVector {
         Perf3M  = $p3m
         RelVol  = $relv
         RVol    = $rvol
+        FFlow   = $fflow
     }
 }
 
@@ -5176,6 +5182,9 @@ function Get-StaticFactorWeights {
     return @{
         RSI = -1.49; MACDh = 0.69; WMACDh = 0.35; dSMA20 = -0.13; dSMA50 = 0.82
         dSMA200 = 1.58; Perf1M = 0.86; Perf3M = -1.29; RelVol = -0.40; RVol = -0.62
+        # FFlow (yabanci akis): prior 0 -> skoru BUGUN etkilemez; PIT'te veri
+        # biriktikce oto-kalibrasyon IC olcup agirligi veriye gore verir.
+        FFlow = 0.0
     }
 }
 
