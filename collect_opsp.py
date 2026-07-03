@@ -14,6 +14,13 @@ kalıbı bilinmediğinden bu script ÖNCE TANI yapar:
 
 Kaynak erişilemezse exit 0 + tanılayıcı log (akış bozulmaz).
 Çıktı: { generatedAt, asOf, note, count, items: { SYM: { lentShares, ... } } }
+
+SONUÇ (2026-07-03, probe v1+v2): takasbank.com.tr F5/TSPD bot koruması
+kullanıyor — sayfa JS-challenge kabuğu döner, kaynak istekleri bağlantı
+kesilerek engellenir. Ücretsiz/dürüst HTTP otomasyonuyla erişim YOK; bu
+kaynak KAPALI olarak işaretlendi. Alternatif: Borsa İstanbul datastore
+(ücretli) veya aracı kurum API'leri. Workflow yalnız elle tetiklenir ve
+veri yazmaz; ileride kaynak açılırsa parser buraya eklenir.
 """
 import json, re, sys, urllib.request
 from datetime import date, datetime, timezone
