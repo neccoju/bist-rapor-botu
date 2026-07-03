@@ -1183,6 +1183,12 @@ function Get-MacroSnapshot {
         [void]$metrics.Add($evdsMetric)
     }
 
+    # Akis metrikleri: yabanci net hisse alimi (TCMB haftalik) + yerli hisse fonu
+    # akisi (TEFAS). Rejim sayaclarina (Destekleyici/Baski) katilir; veri yoksa atlanir.
+    foreach ($flowMetric in @(Get-FlowMacroMetrics -TimeoutSec $TimeoutSec)) {
+        [void]$metrics.Add($flowMetric)
+    }
+
     $supportive = @($metrics | Where-Object { $_.Status -match 'Pozitif|Destekleyici|sakin|lehine|düşük|azalıyor|ılımlı|düşüyor' }).Count
     $pressure = @($metrics | Where-Object { $_.Status -match 'baskı|yüksek|Zayıf|artıyor' }).Count
     $overall = if ($supportive -gt ($pressure + 1)) {
@@ -1200,7 +1206,7 @@ function Get-MacroSnapshot {
         Status = $overall
         SupportiveCount = $supportive
         PressureCount = $pressure
-        MeasurementNote = 'Makro görünüm; BIST trendi, banka relatif gücü, USD/TRY, Türkiye 5Y CDS, TR10Y faiz, DXY ve VIX ile izlenir. Düşen CDS/faiz/VIX/DXY ve BIST100ün SMA200 üstünde kalması risk iştahı lehine yorumlanır.'
+        MeasurementNote = 'Makro görünüm; BIST trendi, banka relatif gücü, USD/TRY, Türkiye 5Y CDS, TR10Y faiz, DXY, VIX ve akış verileri (yabancı net hisse alımı, TEFAS hisse fonu akışı) ile izlenir. Düşen CDS/faiz/VIX/DXY, BIST100ün SMA200 üstünde kalması ve pozitif akış risk iştahı lehine yorumlanır.'
         Metrics = $metrics.ToArray()
     }
 }
@@ -2648,7 +2654,10 @@ function Get-BistScore {
         ($macroSectorScore * $weights.MacroSector)
 
     $earningsTimingAdjustment = Get-EarningsTimingAdjustment -Stock $Stock
-    $score = [Math]::Round((Limit-Value -Value ($rawScore - $riskPenalty + $earningsTimingAdjustment)), 1)
+    # Akilli para ayari: yabanci saklama degisimi + icsel islem sinyali.
+    # Sinirli [-6,+6] ve veri-kapili (alanlar islenmemisse 0 — davranis degismez).
+    $smartMoneyAdjustment = Get-SmartMoneyAdjustment -Stock $Stock
+    $score = [Math]::Round((Limit-Value -Value ($rawScore - $riskPenalty + $earningsTimingAdjustment + $smartMoneyAdjustment)), 1)
     $signal = Get-SignalLabel -Score $score
     $riskFlags = @(Get-BistRiskFlags -Stock $Stock)
     $riskLevel = Get-RiskLevel -RiskFlags $riskFlags
@@ -2667,6 +2676,14 @@ function Get-BistScore {
         -RiskPenalty $riskPenalty `
         -RiskFlags $riskFlags `
         -Strategy $Strategy
+    if ($smartMoneyAdjustment -ne 0) {
+        $smDetail = @()
+        $smChg = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Stock -Name 'ForeignChg1wBps')
+        if ($null -ne $smChg -and [Math]::Abs($smChg) -ge 0.10) { $smDetail += ('yabancı oran 1H {0}{1} puan' -f $(if ($smChg -gt 0) { '+' } else { '' }), [Math]::Round($smChg, 2)) }
+        $smIns = [string](Get-ObjectPropertyValue -Object $Stock -Name 'InsiderSignal')
+        if ($smIns -eq '+') { $smDetail += 'içsel işlem: alım' } elseif ($smIns -eq '-') { $smDetail += 'içsel işlem: satım' }
+        $explanation += [Environment]::NewLine + ('Akıllı para ayarı: {0}{1} puan ({2}).' -f $(if ($smartMoneyAdjustment -gt 0) { '+' } else { '' }), [Math]::Round($smartMoneyAdjustment, 1), ($smDetail -join '; '))
+    }
 
     $properties = [ordered]@{}
     foreach ($property in $Stock.PSObject.Properties) {
@@ -2675,7 +2692,7 @@ function Get-BistScore {
                 'TrendScore', 'ValueScore', 'QualityScore', 'EarningsScore', 'MomentumScore',
                 'LiquidityScore', 'MacroSectorScore', 'ConfirmationLabel', 'ConfirmationScore',
                 'TechnicalPassCount', 'TechnicalCheckCount', 'AllTechnicalConfirmed', 'EntryNote',
-                'FailedConfirmations', 'RiskPenalty', 'Strategy'
+                'FailedConfirmations', 'RiskPenalty', 'SmartMoneyAdjustment', 'Strategy'
             )) {
             $properties[$property.Name] = $property.Value
         }
@@ -2701,6 +2718,7 @@ function Get-BistScore {
     $properties.EntryNote = $confirmationProfile.EntryNote
     $properties.FailedConfirmations = $confirmationProfile.FailedChecks
     $properties.RiskPenalty = [Math]::Round($riskPenalty, 1)
+    $properties.SmartMoneyAdjustment = [Math]::Round($smartMoneyAdjustment, 1)
     $properties.Strategy = $Strategy
 
     return [pscustomobject]$properties
@@ -5634,6 +5652,138 @@ function Get-EarningsTimingAdjustment {
     return $adj
 }
 
+function Add-ForeignOwnershipData {
+    <#
+        data/mkk_foreign.json'daki (haftalik MKK collector) hisse bazli yabanci
+        saklama oranini tarama evrenine isler: her hisseye ForeignPct,
+        ForeignChg1wBps, ForeignChg1mBps alanlari eklenir. Dosya yoksa/bozuksa
+        hisseler DEGISMEDEN doner (veri-kapili; skor ayari 0 kalir).
+    #>
+    [CmdletBinding()]
+    param(
+        [object[]]$Stocks = @(),
+        [string]$Path
+    )
+    if ([string]::IsNullOrWhiteSpace($Path)) { $Path = Join-Path $PSScriptRoot 'data\mkk_foreign.json' }
+    $items = $null
+    try {
+        if (Test-Path -LiteralPath $Path) {
+            $ff = Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json
+            $items = Get-ObjectPropertyValue -Object $ff -Name 'items'
+        }
+    }
+    catch { $items = $null }
+    if ($null -eq $items) { return @($Stocks) }
+    foreach ($stock in $Stocks) {
+        if ($null -eq $stock) { continue }
+        $sym = [string](Get-ObjectPropertyValue -Object $stock -Name 'Symbol')
+        if ([string]::IsNullOrWhiteSpace($sym)) { continue }
+        $rec = Get-ObjectPropertyValue -Object $items -Name $sym.ToUpperInvariant()
+        if ($null -eq $rec) { continue }
+        $stock | Add-Member -NotePropertyName 'ForeignPct' -NotePropertyValue (ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $rec -Name 'foreignPct')) -Force
+        $stock | Add-Member -NotePropertyName 'ForeignChg1wBps' -NotePropertyValue (ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $rec -Name 'chg1wBps')) -Force
+        $stock | Add-Member -NotePropertyName 'ForeignChg1mBps' -NotePropertyValue (ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $rec -Name 'chg1mBps')) -Force
+    }
+    return @($Stocks)
+}
+
+function Add-InsiderSignalData {
+    <#
+        data/kap_enrichment.json'daki icsel islem (insider) bildirimlerinden son
+        -MaxAgeDays gun icin hisse bazli yonlu sinyal isler: InsiderSignal '+'
+        (net alim) / '-' (net satim). Ayni hissede iki yon varsa yeni tarihli
+        kazanir. Kategori/onem alaninda 'insider' aranir; LLM yonu
+        (directionRefined) esas, yoksa directionHint. Veri-kapili: dosya yoksa
+        veya insider kaydi yoksa hicbir alan eklenmez (ayar 0 kalir).
+    #>
+    [CmdletBinding()]
+    param(
+        [object[]]$Stocks = @(),
+        [string]$Path,
+        [datetime]$AsOf = (Get-Date),
+        [int]$MaxAgeDays = 7
+    )
+    if ([string]::IsNullOrWhiteSpace($Path)) { $Path = Join-Path $PSScriptRoot 'data\kap_enrichment.json' }
+    $bySym = @{}
+    try {
+        if (Test-Path -LiteralPath $Path) {
+            $enr = Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json
+            $items = Get-ObjectPropertyValue -Object $enr -Name 'items'
+            if ($null -ne $items) {
+                foreach ($prop in $items.PSObject.Properties) {
+                    $it = $prop.Value
+                    $catImp = ('{0} {1}' -f [string](Get-ObjectPropertyValue -Object $it -Name 'category'), [string](Get-ObjectPropertyValue -Object $it -Name 'importance')).ToLowerInvariant()
+                    if ($catImp -notmatch 'insider|icsel|içsel') { continue }
+                    $sym = ([string](Get-ObjectPropertyValue -Object $it -Name 'symbol')).Trim().ToUpperInvariant()
+                    if (-not $sym) { continue }
+                    $dir = [string](Get-ObjectPropertyValue -Object $it -Name 'directionRefined')
+                    if ($dir -notin @('+', '-')) { $dir = [string](Get-ObjectPropertyValue -Object $it -Name 'directionHint') }
+                    if ($dir -notin @('+', '-')) { continue }
+                    $dt = $null
+                    try { $dt = [datetime]::ParseExact([string](Get-ObjectPropertyValue -Object $it -Name 'date'), 'dd.MM.yyyy HH:mm:ss', [Globalization.CultureInfo]::InvariantCulture) } catch { continue }
+                    if (($AsOf - $dt).TotalDays -gt $MaxAgeDays -or $dt -gt $AsOf.AddDays(1)) { continue }
+                    if (-not $bySym.ContainsKey($sym) -or $dt -gt $bySym[$sym].Date) {
+                        $bySym[$sym] = [pscustomobject]@{ Direction = $dir; Date = $dt }
+                    }
+                }
+            }
+        }
+    }
+    catch { $bySym = @{} }
+    if ($bySym.Count -eq 0) { return @($Stocks) }
+    foreach ($stock in $Stocks) {
+        if ($null -eq $stock) { continue }
+        $sym = ([string](Get-ObjectPropertyValue -Object $stock -Name 'Symbol')).Trim().ToUpperInvariant()
+        if ($sym -and $bySym.ContainsKey($sym)) {
+            $stock | Add-Member -NotePropertyName 'InsiderSignal' -NotePropertyValue ([string]$bySym[$sym].Direction) -Force
+        }
+    }
+    return @($Stocks)
+}
+
+function Get-SmartMoneyAdjustment {
+    <#
+        "Akilli para" imzali skor ayari — SINIRLI [-6, +6] ve VERI-KAPILI.
+
+        Girdiler (Add-ForeignOwnershipData / Add-InsiderSignalData isledigi alanlar):
+          - ForeignChg1wBps: yabanci saklama oraninin 1 haftalik degisimi (puan).
+            EM literatüründe yabanci akis momentumu kisa vadeli pozitif ongorucudur
+            (Froot-O'Connell-Seasholes 2001; BIST calismalari ayni yonde).
+            Basamaklar: >=+0.75 -> +4 | +0.30..0.75 -> +2.5 | +0.10..0.30 -> +1
+                        <=-0.75 -> -4 | -0.30..-0.75 -> -2.5 | -0.10..-0.30 -> -1
+          - ForeignChg1mBps: ayni yonde >=|0.5| ise +-1 teyit.
+          - InsiderSignal: son 7 gunde icsel islem bildirimi ('+' alim -> +2,
+            '-' satim -> -2). Icsel alimlarin pozitif anormal getirisi genis
+            literaturle desteklenir (Lakonishok-Lee 2001 vb.).
+
+        Veri yoksa 0 doner (mevcut davranis birebir korunur). Buyukluk sinirli
+        tutulur: kanit PIT arsivinde biriktikce esikler kalibre edilebilir.
+    #>
+    param($Stock)
+
+    $adj = 0.0
+    $chg1w = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Stock -Name 'ForeignChg1wBps')
+    if ($null -ne $chg1w) {
+        if ($chg1w -ge 0.75) { $adj += 4.0 }
+        elseif ($chg1w -ge 0.30) { $adj += 2.5 }
+        elseif ($chg1w -ge 0.10) { $adj += 1.0 }
+        elseif ($chg1w -le -0.75) { $adj -= 4.0 }
+        elseif ($chg1w -le -0.30) { $adj -= 2.5 }
+        elseif ($chg1w -le -0.10) { $adj -= 1.0 }
+        $chg1m = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Stock -Name 'ForeignChg1mBps')
+        if ($null -ne $chg1m -and [Math]::Abs($chg1m) -ge 0.5 -and ($chg1m * $chg1w) -gt 0) {
+            $adj += ([Math]::Sign($chg1w) * 1.0)
+        }
+    }
+    $insider = [string](Get-ObjectPropertyValue -Object $Stock -Name 'InsiderSignal')
+    if ($insider -eq '+') { $adj += 2.0 }
+    elseif ($insider -eq '-') { $adj -= 2.0 }
+
+    if ($adj -gt 6.0) { $adj = 6.0 }
+    elseif ($adj -lt -6.0) { $adj = -6.0 }
+    return $adj
+}
+
 function Update-SignalCalibration {
     <#
         Kendini ogrenen kalibrasyon. Canli PEAD takipcisinin (earnings_reactions)
@@ -6134,6 +6284,74 @@ function Get-EvdsSeries {
     }
 }
 
+function Get-FlowRegimeStatus {
+    <#
+        Akis degerini makro rejim etiketine cevirir (SAF): esik ustunde
+        'Destekleyici', altinda 'Baskı', arada 'Nötr', veri yoksa 'Veri Yok'.
+        Etiketler Get-MacroSnapshot'in sayac regex'leriyle uyumludur.
+    #>
+    param(
+        $Value,
+        [double]$SupportiveMin,
+        [double]$PressureMax
+    )
+    $v = ConvertTo-DoubleOrNull $Value
+    if ($null -eq $v) { return 'Veri Yok' }
+    if ($v -ge $SupportiveMin) { return 'Destekleyici' }
+    if ($v -le $PressureMax) { return 'Baskı' }
+    return 'Nötr'
+}
+
+function Get-FlowMacroMetrics {
+    <#
+        Makro tabloya akis metrikleri uretir (best-effort; veri yoksa bos dizi):
+          1) Yabanci net hisse alimi — TCMB EVDS TP.MKNETHAR.M7, 4 haftalik toplam
+             (mn USD). Esik: +-100 mn $ (tipik haftalik akislarin ~1 std sapmasi).
+          2) Yerli hisse fonu akisi — data/tefas_flows.json flow4wTL (yoksa flow1wTL).
+             Esik: +-1 milyar TL. Ilk kosuda akis null -> metrik atlanir.
+    #>
+    [CmdletBinding()]
+    param([int]$TimeoutSec = 10)
+    $out = @()
+    try {
+        $ff = Get-EvdsForeignEquityFlow -TimeoutSec $TimeoutSec
+        if ($null -ne $ff -and $null -ne $ff.sum4wUsdMn) {
+            $out += [pscustomobject][ordered]@{
+                Id = 'FOREIGN_EQ_FLOW'; Name = 'Yabancı net hisse alımı (4H)'
+                Value = [double]$ff.sum4wUsdMn; Change = $null; ChangePct = $null
+                Unit = 'mn $'
+                Status = Get-FlowRegimeStatus -Value $ff.sum4wUsdMn -SupportiveMin 100 -PressureMax (-100)
+                Source = 'TCMB EVDS (TP.MKNETHAR.M7)'
+                Url = 'https://evds3.tcmb.gov.tr'
+                Note = ('Son hafta: {0} mn $ ({1}).' -f $ff.netUsdMn, $ff.date)
+            }
+        }
+    }
+    catch { }
+    try {
+        $tefasPath = Join-Path $PSScriptRoot 'data\tefas_flows.json'
+        if (Test-Path -LiteralPath $tefasPath) {
+            $tf = Get-Content -LiteralPath $tefasPath -Raw -Encoding UTF8 | ConvertFrom-Json
+            $flowTl = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $tf -Name 'flow4wTL')
+            $flowLabel = '4H'
+            if ($null -eq $flowTl) { $flowTl = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $tf -Name 'flow1wTL'); $flowLabel = '1H' }
+            if ($null -ne $flowTl) {
+                $out += [pscustomobject][ordered]@{
+                    Id = 'TEFAS_EQ_FLOW'; Name = ('Yerli hisse fonu akışı ({0})' -f $flowLabel)
+                    Value = [Math]::Round($flowTl / 1e9, 2); Change = $null; ChangePct = $null
+                    Unit = 'mlr TL'
+                    Status = Get-FlowRegimeStatus -Value $flowTl -SupportiveMin 1e9 -PressureMax (-1e9)
+                    Source = 'TEFAS (pay bazlı, fiyat etkisiz)'
+                    Url = 'https://www.tefas.gov.tr'
+                    Note = ('Veri: {0}; {1} hisse fonu.' -f [string](Get-ObjectPropertyValue -Object $tf -Name 'asOf'), [string](Get-ObjectPropertyValue -Object $tf -Name 'equityFundCount'))
+                }
+            }
+        }
+    }
+    catch { }
+    return @($out)
+}
+
 function Get-EvdsForeignEquityFlow {
     <#
         Yurt disi yerlesiklerin HAFTALIK net hisse senedi islemleri (mn USD).
@@ -6524,6 +6742,10 @@ function Save-PitSnapshot {
                 Perf3Month       = Get-ObjectPropertyValue -Object $s -Name 'Perf3Month'
                 RelativeVolume   = Get-ObjectPropertyValue -Object $s -Name 'RelativeVolume'
                 Volume           = Get-ObjectPropertyValue -Object $s -Name 'Volume'
+                # Yabanci saklama alanlari — ileride akilli-para esiklerinin
+                # IC/walk-forward ile kalibre edilebilmesi icin arsivlenir.
+                ForeignPct       = Get-ObjectPropertyValue -Object $s -Name 'ForeignPct'
+                ForeignChg1wBps  = Get-ObjectPropertyValue -Object $s -Name 'ForeignChg1wBps'
                 LatestReportDate = (Get-ObjectPropertyValue -Object $s -Name 'LatestReportDate')
                 NextEarningsDate = (Get-ObjectPropertyValue -Object $s -Name 'NextEarningsDate')
                 FiscalPeriodEnd  = (Get-ObjectPropertyValue -Object $s -Name 'FiscalPeriodEnd')
@@ -7083,6 +7305,11 @@ Export-ModuleMember -Function `
     Get-RawFactorVector, `
     Get-EvdsSeries, `
     Get-EvdsForeignEquityFlow, `
+    Add-ForeignOwnershipData, `
+    Add-InsiderSignalData, `
+    Get-SmartMoneyAdjustment, `
+    Get-FlowRegimeStatus, `
+    Get-FlowMacroMetrics, `
     Get-ModelPortfolioDefinitions, `
     Get-ModelPortfolioSelection, `
     Get-LastModelPortfolioTradingDay, `

@@ -574,6 +574,68 @@ $rmShort = Get-DashRiskMetrics -PfPoints (New-RiskPts @(0, 1, 2, 3, 4)) -BenchPo
 if (-not $rmShort.insufficient) { throw "4 getiri ile insufficient=true dönmeliydi." }
 Write-Host "Panel risk metrikleri testi başarılı (MaksDD=-5.00, beta=1, korel=1, TE=0; kısa seri veri-kapılı)."
 
+# --- Akıllı para ayarı: yabancı akış + insider (sınırlı, veri-kapılı) ---
+$smNone = Get-SmartMoneyAdjustment -Stock ([pscustomobject]@{ Symbol = 'X' })
+if ($smNone -ne 0) { throw "Veri yokken akıllı para ayarı 0 olmalı: $smNone" }
+$smBig = Get-SmartMoneyAdjustment -Stock ([pscustomobject]@{ ForeignChg1wBps = 1.2 })
+if ([Math]::Abs($smBig - 4.0) -gt 0.001) { throw "Büyük yabancı girişi +4 olmalı: $smBig" }
+$smConf = Get-SmartMoneyAdjustment -Stock ([pscustomobject]@{ ForeignChg1wBps = 1.2; ForeignChg1mBps = 2.0 })
+if ([Math]::Abs($smConf - 5.0) -gt 0.001) { throw "1A teyitli giriş +5 olmalı: $smConf" }
+$smNegIns = Get-SmartMoneyAdjustment -Stock ([pscustomobject]@{ ForeignChg1wBps = (-0.5); InsiderSignal = '-' })
+if ([Math]::Abs($smNegIns - (-4.5)) -gt 0.001) { throw "Çıkış+insider satım -4.5 olmalı: $smNegIns" }
+$smCap = Get-SmartMoneyAdjustment -Stock ([pscustomobject]@{ ForeignChg1wBps = 3.0; ForeignChg1mBps = 5.0; InsiderSignal = '+' })
+if ([Math]::Abs($smCap - 6.0) -gt 0.001) { throw "Tavan +6 aşılmamalı: $smCap" }
+$smFlat = Get-SmartMoneyAdjustment -Stock ([pscustomobject]@{ ForeignChg1wBps = 0.05 })
+if ($smFlat -ne 0) { throw "Gürültü bandında (±0.10) ayar 0 olmalı: $smFlat" }
+
+# Zenginleştirme + skora etki: aynı hisse, yabancı girişli kopya daha yüksek skorlanmalı
+$smTmpDir = Join-Path ([System.IO.Path]::GetTempPath()) ("sm_test_" + [guid]::NewGuid())
+New-Item -ItemType Directory -Path $smTmpDir -Force | Out-Null
+try {
+    $mkkPath = Join-Path $smTmpDir 'mkk_foreign.json'
+    '{ "items": { "TEST": { "foreignPct": 12.5, "prevPct": null, "chg1wBps": 1.5, "chg1mBps": 2.0 } } }' | Set-Content -LiteralPath $mkkPath -Encoding UTF8
+    $smStockA = $sample | Select-Object *
+    $smStockB = $sample | Select-Object *
+    [void](Add-ForeignOwnershipData -Stocks @($smStockB) -Path $mkkPath)
+    if ([Math]::Abs([double]$smStockB.ForeignChg1wBps - 1.5) -gt 0.001) { throw 'Yabancı oran alanları işlenmedi.' }
+    [void](Add-ForeignOwnershipData -Stocks @($smStockA) -Path (Join-Path $smTmpDir 'yok.json'))  # dosya yok -> no-op
+    $scoredA = Get-BistScore -Stock $smStockA
+    $scoredB = Get-BistScore -Stock $smStockB
+    if ($scoredB.SmartMoneyAdjustment -ne 5.0) { throw "Skorlanan hissede ayar 5 beklenirdi: $($scoredB.SmartMoneyAdjustment)" }
+    if (($scoredB.Score - $scoredA.Score) -lt 4.5) { throw "Yabancı girişli kopya belirgin yüksek skorlanmalıydı: $($scoredA.Score) -> $($scoredB.Score)" }
+    if ($scoredB.Explanation -notmatch 'Akıllı para ayarı') { throw 'Açıklamada akıllı para notu yok.' }
+}
+finally { Remove-Item -LiteralPath $smTmpDir -Recurse -Force -ErrorAction SilentlyContinue }
+
+# Insider sinyali işleme (tarih penceresi + yön)
+$insTmp = Join-Path ([System.IO.Path]::GetTempPath()) ("ins_test_" + [guid]::NewGuid() + ".json")
+try {
+    $insAsOf = [datetime]'2026-07-02 18:00:00'
+    @'
+{ "items": {
+  "a": { "symbol": "AAA", "category": "insider", "directionRefined": "+", "date": "30.06.2026 10:00:00" },
+  "b": { "symbol": "BBB", "category": "insider", "directionHint": "-", "date": "01.07.2026 09:00:00" },
+  "c": { "symbol": "CCC", "category": "insider", "directionRefined": "+", "date": "01.06.2026 10:00:00" },
+  "d": { "symbol": "DDD", "category": "Temettu", "directionRefined": "+", "date": "01.07.2026 10:00:00" }
+} }
+'@ | Set-Content -LiteralPath $insTmp -Encoding UTF8
+    $insStocks = @([pscustomobject]@{ Symbol = 'AAA' }, [pscustomobject]@{ Symbol = 'BBB' }, [pscustomobject]@{ Symbol = 'CCC' }, [pscustomobject]@{ Symbol = 'DDD' })
+    [void](Add-InsiderSignalData -Stocks $insStocks -Path $insTmp -AsOf $insAsOf)
+    if ([string](Get-ObjectPropertyValue -Object $insStocks[0] -Name 'InsiderSignal') -ne '+') { throw 'AAA insider alım işlenmedi.' }
+    if ([string](Get-ObjectPropertyValue -Object $insStocks[1] -Name 'InsiderSignal') -ne '-') { throw 'BBB insider satım (hint fallback) işlenmedi.' }
+    if ($null -ne (Get-ObjectPropertyValue -Object $insStocks[2] -Name 'InsiderSignal')) { throw 'CCC 30 günlük eski kayıt işlenmemeliydi.' }
+    if ($null -ne (Get-ObjectPropertyValue -Object $insStocks[3] -Name 'InsiderSignal')) { throw 'DDD insider olmayan kategori işlenmemeliydi.' }
+}
+finally { Remove-Item -LiteralPath $insTmp -ErrorAction SilentlyContinue }
+Write-Host "Akıllı para ayarı testi başarılı (eşikler, tavan ±6, veri-kapılı; skor entegrasyonu +5; insider pencere/yön)."
+
+# --- Akış rejim etiketi (makro sayaçlarla uyumlu) ---
+if ((Get-FlowRegimeStatus -Value 250 -SupportiveMin 100 -PressureMax (-100)) -ne 'Destekleyici') { throw 'Akış rejim: destekleyici bekleniyordu.' }
+if ((Get-FlowRegimeStatus -Value (-250) -SupportiveMin 100 -PressureMax (-100)) -ne 'Baskı') { throw 'Akış rejim: baskı bekleniyordu.' }
+if ((Get-FlowRegimeStatus -Value 10 -SupportiveMin 100 -PressureMax (-100)) -ne 'Nötr') { throw 'Akış rejim: nötr bekleniyordu.' }
+if ((Get-FlowRegimeStatus -Value $null -SupportiveMin 100 -PressureMax (-100)) -ne 'Veri Yok') { throw 'Akış rejim: veri yok bekleniyordu.' }
+Write-Host "Akış rejim etiketi testi başarılı (Destekleyici/Baskı/Nötr/Veri Yok)."
+
 # --- Fiyat yapısı dedektörü (Darvas/Wyckoff) — sentetik serilerle ---
 function New-StructBar {
     param([int]$i, [double]$c, [double]$h, [double]$l, [double]$v)
