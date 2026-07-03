@@ -36,7 +36,7 @@ def fetch(url, timeout=30):
 
 
 def probe_page():
-    """Bulten sayfasindaki dosya/endpoint linklerini loga doker (tani)."""
+    """Bulten sayfasi + JS bundle'lari icinden dosya/API kaliplarini cikarir (tani)."""
     body = fetch(PAGE).decode("utf-8", "replace")
     print(f"[bilgi] sayfa alindi: {len(body)} bayt", flush=True)
     hrefs = re.findall(r'(?:href|src|data-url)=["\']([^"\']+)["\']', body)
@@ -45,13 +45,32 @@ def probe_page():
     for h in hits:
         if h not in seen:
             seen.append(h)
-    print(f"[tani] aday link sayisi: {len(seen)}", flush=True)
+    print(f"[tani] sayfada aday link: {len(seen)}", flush=True)
     for h in seen[:40]:
         print(f"  LINK: {h}", flush=True)
-    # XHR ipucu: sayfa ici fetch/ajax cagrilari
-    for m in re.findall(r'(?:fetch|ajax|axios[.\w]*)\(["\']([^"\']+)["\']', body)[:10]:
-        print(f"  XHR: {m}", flush=True)
-    return seen
+
+    # SPA kabugu: veri XHR'da. Script bundle'lari indirip API yollarini ara.
+    scripts = [s for s in re.findall(r'<script[^>]+src=["\']([^"\']+)["\']', body)]
+    print(f"[tani] script sayisi: {len(scripts)} -> {scripts[:8]}", flush=True)
+    api_paths = []
+    for s in scripts[:6]:
+        surl = s if s.startswith("http") else BASE + (s if s.startswith("/") else "/" + s)
+        try:
+            js = fetch(surl, timeout=25).decode("utf-8", "replace")
+        except Exception as e:
+            print(f"  [tani] bundle alinamadi: {surl} -> {e}", flush=True)
+            continue
+        found = re.findall(r'["\'](/[A-Za-z0-9_\-./]*(?:api|Api|API|service|Service)[A-Za-z0-9_\-./]*)["\']', js)
+        found += re.findall(r'["\'](https?://[^"\']*takasbank[^"\']*(?:api|service)[^"\']*)["\']', js, re.I)
+        uniq = []
+        for f in found:
+            if f not in uniq:
+                uniq.append(f)
+        print(f"  [tani] {surl.split('/')[-1][:40]}: {len(js)} bayt, {len(uniq)} api-yolu", flush=True)
+        for f in uniq[:25]:
+            print(f"    API: {f}", flush=True)
+        api_paths += uniq
+    return seen + api_paths
 
 
 def main():
