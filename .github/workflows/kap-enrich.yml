@@ -30,7 +30,9 @@ on:
       max_items:
         description: "Bu kosuda en fazla yorumlanacak bildirim"
         required: false
-        default: "25"
+        # DIKKAT: API'den girdisiz dispatch'te GitHub BU varsayilanlari doldurur;
+        # run-step'teki '|| ...' yedekleri o durumda hic devreye girmez.
+        default: "40"
       max_age_days:
         description: "Kac gun geriye kadar (son gun = 1; backfill icin 7)"
         required: false
@@ -42,7 +44,7 @@ on:
       importance:
         description: "Hangi onem seviyeleri (virgulle; or. high veya high,insider)"
         required: false
-        default: "high"
+        default: "high,earnings,insider"
       force:
         description: "Zaten yorumlanmislari da yeniden yorumla (true/false)"
         required: false
