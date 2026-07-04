@@ -22,7 +22,33 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # HAFTA SONU KAPISI: cron-job.org tetikleyicisi hafta sonu da atesliyor
+  # (kanit: 27.06 Cts, 28.06 Paz, 04.07 Cts hepsi 15:15'te kostu). BIST hafta
+  # sonu kapali; rapor Cuma verisini tekrar mailler. Bu kapi, tetikleyici ne
+  # olursa olsun Cts/Paz'da raporu ATLAR (mail/strateji koduna dokunmaz; is
+  # 'skipped' gorunur, basarisizlik maili URETMEZ). Hafta ici davranis aynidir.
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.check.outputs.run }}
+    steps:
+      - name: Weekend guard (Istanbul saati)
+        id: check
+        shell: bash
+        run: |
+          # Istanbul sabit UTC+3 (2016'dan beri yaz saati yok) -> guvenilir.
+          dow=$(TZ='Europe/Istanbul' date +%u)   # 1=Pzt ... 6=Cts, 7=Paz
+          if [ "$dow" -ge 6 ]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "Hafta sonu (gun=$dow, Istanbul); BIST kapali -> rapor atlandi."
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "Hafta ici (gun=$dow, Istanbul); rapor calisacak."
+          fi
+
   run-report:
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
     runs-on: windows-2025
     timeout-minutes: 10
 

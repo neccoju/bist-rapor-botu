@@ -84,16 +84,26 @@ def disclosure_id_from_url(url: str):
 
 
 def extract_tickers(borsapy):
-    """borsapy'den tum BIST hisse kodlarini, donen yapidan bagimsiz cikar."""
+    """borsapy'den tum BIST hisse kodlarini, donen yapidan bagimsiz cikar.
+
+    Yalniz companies() gecerli 'tum evren' kaynagi (search_* bos sorgu kabul
+    etmez). Gecici timeout'a karsi 3 deneme + artan bekleme; hepsi basarisizsa
+    bos doner ve cagiran onceki commit'li evrene duser (akis bozulmaz)."""
     candidates = []
-    for fn_name in ("companies", "search_bist", "search_companies"):
+    for fn_name in ("companies",):
         fn = getattr(borsapy, fn_name, None)
         if not callable(fn):
             continue
-        try:
-            res = fn() if fn_name == "companies" else fn("")
-        except Exception as e:
-            print(f"  {fn_name}() hatasi: {type(e).__name__}: {e}")
+        res = None
+        for attempt in range(1, 4):
+            try:
+                res = fn()
+                break
+            except Exception as e:
+                print(f"  {fn_name}() denemesi {attempt}/3 hatasi: {type(e).__name__}: {e}")
+                if attempt < 3:
+                    time.sleep(3.0 * attempt)
+        if res is None:
             continue
         # DataFrame mi?
         if hasattr(res, "columns"):
@@ -293,9 +303,17 @@ def main():
     prev_cursor = int(prev.get("rotationCursor", 0)) if isinstance(prev, dict) else 0
 
     tickers = extract_tickers(borsapy)
+    if not tickers and stocks:
+        # borsapy gecici olarak liste veremedi (or. timeout) ama elimizde onceki
+        # kosunun evreni var -> onu kullan (yeni bildirim gelmese de akis bozulmaz).
+        tickers = sorted(stocks.keys())
+        print(f"Canli liste alinamadi; onceki commit'li evren kullaniliyor ({len(tickers)} kod).")
     if not tickers:
-        print("HATA: hisse listesi alinamadi; cikiliyor.")
-        sys.exit(1)
+        # Ilk kosu + kaynak erisilemez: sessizce ve BASARIYLA cik (MKK/TEFAS ile
+        # ayni felsefe). exit 1 her gecici timeout'ta GitHub 'jobs failed' maili
+        # uretiyordu; gozlem-modu bir toplayici icin bu gurultu istenmez.
+        print("Hisse listesi alinamadi ve onceki evren de yok; bu kosu atlandi (exit 0).")
+        sys.exit(0)
     if args.max_stocks > 0:
         tickers = tickers[: args.max_stocks]
     n = len(tickers)
