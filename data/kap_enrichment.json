@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-07-03T14:46:30.641940+00:00",
+  "generatedAt": "2026-07-06T14:46:13.101904+00:00",
   "source": "borsapy 0.10.2 get_news_content",
-  "count": 155,
+  "count": 158,
   "lastRun": {
-    "targets": 6,
-    "enriched": 6,
+    "targets": 3,
+    "enriched": 3,
     "errors": 0,
-    "elapsedSec": 36
+    "elapsedSec": 16
   },
   "items": {
     "1618795": {
@@ -3481,6 +3481,69 @@
         "1.951.629.000 TL"
       ],
       "rationale": "Kar payı dağıtılmaması yatırımcı beklentisini olumsuz etkiler."
+    },
+    "1625026": {
+      "symbol": "ENERY",
+      "title": "Özel Durum Açıklaması (Genel)",
+      "category": "Ozel Durum (Genel)",
+      "date": "06.07.2026 16:31:44",
+      "directionHint": "?",
+      "contentChars": 59824,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-06T14:45:58.863596+00:00",
+      "directionRefined": "0",
+      "summary": "ENERYA ENERJİ, finansal tablolarına ilişkin genel açıklama yaptı; SPK düzenlemelerine uygun ve doğru bilgi beyan edildi.",
+      "impact": 1,
+      "amounts": [],
+      "rationale": "Standart, rutin açıklama; yeni finansal veri veya önemli gelişme yok."
+    },
+    "1624339": {
+      "symbol": "YEOTK",
+      "title": "Yeni İş İlişkisi",
+      "category": "Ihale/Sozlesme",
+      "date": "06.07.2026 09:19:33",
+      "directionHint": "+",
+      "contentChars": 85218,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-06T14:46:03.626033+00:00",
+      "directionRefined": "?",
+      "summary": "YEOTK yeni bir iş ilişkisi kurduğunu açıkladı, ancak tutar, taraf ve işin detayları belirtilmemiştir.",
+      "impact": 2,
+      "amounts": [],
+      "rationale": "İş ilişkisinin detayları ve finansal büyüklüğü açıklanmadığı için etkisi belirsiz."
+    },
+    "1624337": {
+      "symbol": "ARDYZ",
+      "title": "Yeni İş İlişkisi",
+      "category": "Ihale/Sozlesme",
+      "date": "06.07.2026 09:16:05",
+      "directionHint": "+",
+      "contentChars": 79055,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-06T14:46:10.224511+00:00",
+      "directionRefined": "+",
+      "summary": "ARDYZ yeni bir iş ilişkisi/ihale sözleşmesi imzaladığını açıkladı; tutar ve taraf belirtilmemiştir.",
+      "impact": 2,
+      "amounts": [
+        "554.400 USD",
+        "25.900.348 TL"
+      ],
+      "rationale": "Yeni iş ilişkisi gelir artışı potansiyeli taşır, ancak detaylar verilmemiştir."
     }
   }
 }
