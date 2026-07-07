@@ -37,10 +37,10 @@
     instantEntry: { initialCapitalTL: 100000, dailyBudgetTL: 5000, cashTL: 73428.22, holdingsValueTL: 28427.91, totalValueTL: 101856.13, totalReturnPct: 1.86, totalBoughtTL: 30000, realizedGainTL: 928.22, statusNote: "Bugünkü alım: THYAO 5.000 TL.",
       holdings: [ {ticker:"THYAO",company:"Türk Hava Yolları",valueTL:5120.5,weightPct:18,gainPct:2.4},{ticker:"ARASE",company:"Aras Elektrik",valueTL:6207,weightPct:21.8,gainPct:5.1},{ticker:"DSTKF",company:"Destek Faktoring",valueTL:5200.2,weightPct:18.3,gainPct:-1.2} ] },
     stocks: [
-      { ticker: "CCOLA", company: "Coca-Cola İçecek", price: 612.5, dailyPct: 1.8, weeklyPct: 4.2, rsi: 61.2, macd: 3.4, volume: "4.1M", foreignPct: 38.6, signal: "AL", llmNote: "Defansif tüketim, güçlü bilanço.", action: "alım bölgesi" },
-      { ticker: "DSTKF", company: "Destek Faktoring", price: 14.88, dailyPct: 4.8, weeklyPct: 9.7, rsi: 73.1, macd: 0.9, volume: "31.2M", foreignPct: 2.1, signal: "AL", llmNote: "Hacim patlaması; kâr-al bölgesi.", action: "riskli" },
-      { ticker: "THYAO", company: "Türk Hava Yolları", price: 312.2, dailyPct: 1.1, weeklyPct: 3.0, rsi: 60.4, macd: 4.7, volume: "18.9M", foreignPct: 23.8, signal: "AL", llmNote: "Trend sağlam.", action: "alım bölgesi" },
-      { ticker: "YGGYO", company: "Yeşil GYO", price: 7.34, dailyPct: -2.1, weeklyPct: -5.2, rsi: 31.5, macd: -0.6, volume: "12.4M", foreignPct: 0.4, signal: "BEKLE", llmNote: "Aşırı satım, dönüş teyidi yok.", action: "bekle" }
+      { ticker: "CCOLA", company: "Coca-Cola İçecek", price: 612.5, dailyPct: 1.8, weeklyPct: 4.2, rsi: 61.2, macd: 3.4, volume: "4.1M", foreignPct: 38.6, fundamentalScore: 78, technicalScore: 72, finalScore: 84.2, signal: "AL", llmNote: "Defansif tüketim, güçlü bilanço.", action: "alım bölgesi" },
+      { ticker: "DSTKF", company: "Destek Faktoring", price: 14.88, dailyPct: 4.8, weeklyPct: 9.7, rsi: 73.1, macd: 0.9, volume: "31.2M", foreignPct: 2.1, fundamentalScore: 55, technicalScore: 88, finalScore: 79.5, signal: "AL", llmNote: "Hacim patlaması; kâr-al bölgesi.", action: "riskli" },
+      { ticker: "THYAO", company: "Türk Hava Yolları", price: 312.2, dailyPct: 1.1, weeklyPct: 3.0, rsi: 60.4, macd: 4.7, volume: "18.9M", foreignPct: 23.8, fundamentalScore: 70, technicalScore: 75, finalScore: 82.1, signal: "AL", llmNote: "Trend sağlam.", action: "alım bölgesi" },
+      { ticker: "YGGYO", company: "Yeşil GYO", price: 7.34, dailyPct: -2.1, weeklyPct: -5.2, rsi: 31.5, macd: -0.6, volume: "12.4M", foreignPct: 0.4, fundamentalScore: 48, technicalScore: 40, finalScore: 51.3, signal: "BEKLE", llmNote: "Aşırı satım, dönüş teyidi yok.", action: "bekle" }
     ],
     sectorRotation: [ { sector: "Enerji", dailyPct: 1.4, weeklyPct: 3.8, monthlyPct: 9.2, flow: "giriş" }, { sector: "Ulaştırma", dailyPct: 1.1, weeklyPct: 2.9, monthlyPct: 6.5, flow: "giriş" },
       { sector: "Kimya", dailyPct: -0.5, weeklyPct: -1.1, monthlyPct: -2.4, flow: "çıkış" }, { sector: "Gayrimenkul", dailyPct: -1.3, weeklyPct: -4.0, monthlyPct: -7.8, flow: "çıkış" } ],
@@ -560,6 +560,9 @@
     { key: "macd", label: "MACD", type: "num" },
     { key: "volume", label: "Hacim", type: "str", cls: "td-num" },
     { key: "foreignPct", label: "Yab.%", type: "num" },
+    { key: "fundamentalScore", label: "Temel", type: "num" },
+    { key: "technicalScore", label: "Teknik", type: "num" },
+    { key: "finalScore", label: "Skor", type: "num" },
     { key: "signal", label: "Sinyal", type: "str", noSort: true },
     { key: "llmNote", label: "YZ Yorum", type: "str", noSort: true, cls: "td-note" },
     { key: "action", label: "Aksiyon", type: "str", noSort: true }

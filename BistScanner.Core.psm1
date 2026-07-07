@@ -1244,7 +1244,12 @@ function Get-MacroRegime {
         hic olay yoksa $null (cagiran ayari 0 birakir — veri-kapili).
     #>
     [CmdletBinding()]
-    param([Parameter(Mandatory)]$Snapshot)
+    param(
+        [Parameter(Mandatory)]$Snapshot,
+        # data/macro_news.json okunacak dizin; bos = <repo>/data. $null gecilirse haber katmani atlanmaz,
+        # dosya yoksa zaten sessizce atlanir (veri-kapili).
+        [string]$DataDir
+    )
 
     $metricById = @{}
     foreach ($m in @(Get-ObjectPropertyValue -Object $Snapshot -Name 'Metrics')) {
@@ -1324,6 +1329,37 @@ function Get-MacroRegime {
     if ($null -ne $xuPct -and [Math]::Abs($xuPct) -ge 1.0) {
         & $addEvent 'market_trend' ([Math]::Sign($xuPct)) 0.3 @{} 'short' ("BIST100 günlük %{0}." -f [Math]::Round($xuPct, 1))
     }
+
+    # 8) HABER KATMANI (data/macro_news.json — collect_macro_news.py, kural tabanli
+    #    siniflandirici). Baslik siniflandirmasi kaba oldugundan: guven dosyadaki
+    #    dusuk degerle sinirli, en fazla 4 haber olayi, yalniz son 36 saat.
+    #    Ayni tipte veri-turevli olay varsa haber ATLANIR (veri > baslik).
+    try {
+        if ([string]::IsNullOrWhiteSpace($DataDir)) { $DataDir = Join-Path $PSScriptRoot 'data' }
+        $newsPath = Join-Path $DataDir 'macro_news.json'
+        if (Test-Path -LiteralPath $newsPath) {
+            $newsDoc = Get-Content -LiteralPath $newsPath -Raw -Encoding UTF8 | ConvertFrom-Json
+            $dataTypes = @{}
+            foreach ($e in $events) { $dataTypes[[string]$e.Type] = $true }
+            $newsAdded = 0
+            foreach ($n in @(Get-ObjectPropertyValue -Object $newsDoc -Name 'items')) {
+                if ($newsAdded -ge 4) { break }
+                $ntype = [string](Get-ObjectPropertyValue -Object $n -Name 'eventType')
+                if (-not $ntype -or $dataTypes.ContainsKey($ntype)) { continue }
+                $ndate = $null
+                try { $ndate = [datetime]::Parse([string](Get-ObjectPropertyValue -Object $n -Name 'date')) } catch { }
+                if ($null -ne $ndate -and ((Get-Date).ToUniversalTime() - $ndate.ToUniversalTime()).TotalHours -gt 36) { continue }
+                $ndir = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $n -Name 'direction')
+                $nconf = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $n -Name 'confidence')
+                if ($null -eq $ndir -or $ndir -eq 0) { continue }
+                if ($null -eq $nconf -or $nconf -le 0 -or $nconf -gt 0.5) { $nconf = 0.35 }
+                & $addEvent $ntype ([Math]::Sign($ndir)) $nconf @{} 'short' ("Haber: {0}" -f [string](Get-ObjectPropertyValue -Object $n -Name 'title'))
+                $dataTypes[$ntype] = $true
+                $newsAdded++
+            }
+        }
+    }
+    catch { }
 
     if ($events.Count -eq 0) { return $null }
 
@@ -1682,11 +1718,11 @@ function Get-EvEbitdaComponentScore {
         [string]$Sector
     )
 
-    # TODO(sektor-modeli): GYO'larda FD/FAVOK yaniltici (NAV iskontosu esas) ve
-    # holdinglerde parcalarin toplami/NAV daha anlamli. TradingView sektor
-    # etiketiyle 'Real Estate' icin PB-agirlikli, holding icin notr-agirlikli
-    # ayri yol dusunulmeli; simdilik yalniz Finance ayristiriliyor (bilinen sinir).
-    if ($Sector -eq 'Finance') { return 50 }
+    # Sektor modeli: bankalarda FD/FAVOK tanimsiz, GYO'da yaniltici (NAV esas) ->
+    # her ikisinde notr 50; GYO degerlemesi valueScore'da PB-agirlikli okunur.
+    # TODO(sektor-modeli): holdingler TradingView'da 'Finance' etiketiyle gelir;
+    # NAV-iskonto modeli icin ayri veri gerekir (bilinen sinir).
+    if ($Sector -eq 'Finance' -or $Sector -eq 'Real Estate') { return 50 }
     if ($null -eq $Value) { return 32 }   # eksik temel veri hafif cezali (bkz. F/K)
     if ($Value -le 0) { return 15 }
     if ($Value -le 4) { return 95 }
@@ -2805,6 +2841,11 @@ function Get-BistScore {
     $valueScore = if ($Stock.Sector -eq 'Finance') {
         (0.35 * $peScore) + (0.65 * $pbScore)
     }
+    elseif ($Stock.Sector -eq 'Real Estate') {
+        # GYO sektor modeli: degerleme NAV/defter uzerinden okunur; FD/FAVOK
+        # kira/gelistirme karisik yapida yaniltici oldugundan katilmaz.
+        (0.20 * $peScore) + (0.80 * $pbScore)
+    }
     else {
         (0.45 * $peScore) + (0.25 * $pbScore) + (0.30 * $evEbitdaScore)
     }
@@ -2836,6 +2877,20 @@ function Get-BistScore {
         -MacroSectorScore $macroSectorScore
 
     $weights = Get-StrategyWeights -Strategy $Strategy
+    # REJIME GORE SINIRLI agirlik modulasyonu: risk-off'ta momentumdan kalite/
+    # degere, risk-on'da tersine KUCUK kayma (±0.04; deltalar sifir toplamli,
+    # yeniden normalizasyon gerekmez). Buyuk agirlik oynamak backtest kaniti
+    # ister; bu kucuk ve simetrik egim savunmaci varsayilan olarak guvenlidir.
+    $mrLabelW = [string](Get-ObjectPropertyValue -Object $Stock -Name 'MacroRegimeLabel')
+    if ($mrLabelW -in @('risk-on', 'risk-off')) {
+        $wShift = if ($mrLabelW -eq 'risk-off') { -0.04 } else { 0.04 }
+        $weights = @{
+            Trend = $weights.Trend; Value = [Math]::Max(0.0, $weights.Value - $wShift / 2)
+            Quality = [Math]::Max(0.0, $weights.Quality - $wShift / 2)
+            Earnings = $weights.Earnings; Momentum = [Math]::Max(0.0, $weights.Momentum + $wShift)
+            Liquidity = $weights.Liquidity; MacroSector = $weights.MacroSector
+        }
+    }
     $riskPenalty = Get-RiskPenalty -Stock $Stock
     $rawScore = `
         ($trendScore * $weights.Trend) + `
@@ -4196,7 +4251,8 @@ function Test-ModelPortfolioEligibleStock {
     $macdHistogram = Get-ObjectPropertyValue -Object $Stock -Name 'MacdHistogram'
 
     $roeOk = $null -eq $Stock.ROE -or $Stock.ROE -ge 10
-    $valueOk = $Stock.Sector -eq 'Finance' -or $null -eq $evEbitda -or ($evEbitda -gt 0 -and $evEbitda -le 12)
+    # GYO'da FD/FAVOK filtre kriteri olarak anlamsiz (banka gibi muaf tutulur).
+    $valueOk = $Stock.Sector -in @('Finance', 'Real Estate') -or $null -eq $evEbitda -or ($evEbitda -gt 0 -and $evEbitda -le 12)
     $ebitdaOk = ($null -eq $latestEbitda -or $latestEbitda -gt 0) -and
         ($null -eq $positiveEbitdaCount -or $positiveEbitdaCount -ge 3)
     $macroOk = $null -eq $Stock.MacroSectorScore -or $Stock.MacroSectorScore -ge 35

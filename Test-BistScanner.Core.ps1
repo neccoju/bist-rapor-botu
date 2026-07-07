@@ -648,7 +648,7 @@ Write-Host "Temel veri sanity testi başarılı (eksik=hafif ceza, negatif kâr/
 function New-RegimeSnap { param([object[]]$Metrics) [pscustomobject]@{ Status = 'x'; Metrics = $Metrics } }
 function New-RegimeMetric { param($Id, $Value, $Change, $ChangePct) [pscustomobject]@{ Id = $Id; Value = $Value; Change = $Change; ChangePct = $ChangePct } }
 # S1: Enflasyon düşüyor + CDS geriliyor + kur sakin -> risk-on, Banka tilt pozitif
-$rgOn = Get-MacroRegime -Snapshot (New-RegimeSnap @(
+$rgOn = Get-MacroRegime -DataDir (Join-Path ([IO.Path]::GetTempPath()) 'rg_yok_dizin') -Snapshot (New-RegimeSnap @(
         (New-RegimeMetric 'TR_CPI_YOY' 42.0 (-1.2) $null),
         (New-RegimeMetric 'TR_CDS_5Y' 250 $null (-3.0)),
         (New-RegimeMetric 'USDTRY_Tcmb' 41.2 $null 0.05)
@@ -656,7 +656,7 @@ $rgOn = Get-MacroRegime -Snapshot (New-RegimeSnap @(
 if ($null -eq $rgOn -or $rgOn.Regime -ne 'risk-on') { throw "S1 risk-on bekleniyordu: $($rgOn | ConvertTo-Json -Compress -Depth 3)" }
 if ([double]$rgOn.SectorTilts['Banka'] -le 0) { throw "S1 Banka tilt pozitif olmalıydı: $($rgOn.SectorTilts['Banka'])" }
 # S2: Enflasyon yükseliyor + kur şoku + VIX sıçraması -> risk-off, GYO tilt negatif
-$rgOff = Get-MacroRegime -Snapshot (New-RegimeSnap @(
+$rgOff = Get-MacroRegime -DataDir (Join-Path ([IO.Path]::GetTempPath()) 'rg_yok_dizin') -Snapshot (New-RegimeSnap @(
         (New-RegimeMetric 'TR_CPI_YOY' 55.0 1.4 $null),
         (New-RegimeMetric 'USDTRY_Tcmb' 43.0 $null 2.2),
         (New-RegimeMetric 'VIX' 28 $null 9.0)
@@ -664,14 +664,14 @@ $rgOff = Get-MacroRegime -Snapshot (New-RegimeSnap @(
 if ($null -eq $rgOff -or $rgOff.Regime -ne 'risk-off') { throw "S2 risk-off bekleniyordu: $($rgOff.Regime) skor=$($rgOff.Score)" }
 if ([double]$rgOff.SectorTilts['GYO'] -ge 0) { throw "S2 GYO tilt negatif olmalıydı: $($rgOff.SectorTilts['GYO'])" }
 # S3: Şahin TCMB (fonlama +2 puan) -> interest_rate olayı negatif yön
-$rgHawk = Get-MacroRegime -Snapshot (New-RegimeSnap @((New-RegimeMetric 'TR_FUNDING' 48.0 2.0 $null)))
+$rgHawk = Get-MacroRegime -DataDir (Join-Path ([IO.Path]::GetTempPath()) 'rg_yok_dizin') -Snapshot (New-RegimeSnap @((New-RegimeMetric 'TR_FUNDING' 48.0 2.0 $null)))
 $hawkEvent = @($rgHawk.Events | Where-Object { $_.Type -eq 'interest_rate' }) | Select-Object -First 1
 if ($null -eq $hawkEvent -or $hawkEvent.Direction -ne -1) { throw 'S3 şahin faiz olayı negatif yön üretmeliydi.' }
 # S4: Petrol +%3 -> commodity_oil olayı, Havacılık tilt negatif
-$rgOil = Get-MacroRegime -Snapshot (New-RegimeSnap @((New-RegimeMetric 'BRENT' 92.0 $null 3.0)))
+$rgOil = Get-MacroRegime -DataDir (Join-Path ([IO.Path]::GetTempPath()) 'rg_yok_dizin') -Snapshot (New-RegimeSnap @((New-RegimeMetric 'BRENT' 92.0 $null 3.0)))
 if ([double]$rgOil.SectorTilts['Havacılık'] -ge 0) { throw 'S4 Havacılık tilt negatif olmalıydı.' }
 # S5: Boş/eşik-altı metrikler -> null (veri-kapılı)
-if ($null -ne (Get-MacroRegime -Snapshot (New-RegimeSnap @((New-RegimeMetric 'XU100' 14500 $null 0.2))))) { throw 'S5 olaysız durumda null beklenirdi.' }
+if ($null -ne (Get-MacroRegime -DataDir (Join-Path ([IO.Path]::GetTempPath()) 'rg_yok_dizin') -Snapshot (New-RegimeSnap @((New-RegimeMetric 'XU100' 14500 $null 0.2))))) { throw 'S5 olaysız durumda null beklenirdi.' }
 # S6: Ayar işleme — risk-on'da banka hissesi pozitif, sınır ±3, regime null -> alan yok
 $rgBankStock = [pscustomobject]@{ Symbol = 'BNK'; SectorTR = 'Bankacılık' }
 $rgOtherStock = [pscustomobject]@{ Symbol = 'OTH'; SectorTR = 'Tekstil' }
@@ -687,11 +687,44 @@ if ($null -ne (Get-ObjectPropertyValue -Object $rgNoStock -Name 'MacroRegimeAdju
 $rgScoreA = $sample | Select-Object *
 $rgScoreB = $sample | Select-Object *
 $rgScoreB | Add-Member -NotePropertyName 'MacroRegimeAdjustment' -NotePropertyValue 3.0 -Force
-$rgScoreB | Add-Member -NotePropertyName 'MacroRegimeLabel' -NotePropertyValue 'risk-on' -Force
+# (etiket bilerek verilmiyor: etiket agirlik modulasyonunu da tetikler; burada yalniz +3 ayar izole test edilir)
 $rgScoredA = Get-BistScore -Stock $rgScoreA; $rgScoredB = Get-BistScore -Stock $rgScoreB
 if ([Math]::Abs(($rgScoredB.Score - $rgScoredA.Score) - 3.0) -gt 0.11) { throw "S7 rejim ayarı skora +3 yansımalıydı: $($rgScoredA.Score) -> $($rgScoredB.Score)" }
 if ($rgScoredB.Explanation -notmatch 'Makro rejim ayarı') { throw 'S7 açıklamada rejim notu yok.' }
 Write-Host "Makro rejim motoru testi başarılı (risk-on/off, şahin faiz, petrol, veri-kapılı, skor +3, açıklama)."
+
+# --- Haber katmanı: veri-türevli olay yoksa haber olayı rejime girer ---
+$newsDir = Join-Path ([IO.Path]::GetTempPath()) ("news_test_" + [guid]::NewGuid())
+New-Item -ItemType Directory -Path $newsDir -Force | Out-Null
+try {
+    $newsJson = @{ items = @(@{ id = 'x1'; title = 'Enflasyon beklentilerin altında geriledi'; eventType = 'inflation'; direction = 1; confidence = 0.35; date = (Get-Date).ToUniversalTime().ToString('o') }) } | ConvertTo-Json -Depth 4
+    Set-Content -LiteralPath (Join-Path $newsDir 'macro_news.json') -Value $newsJson -Encoding UTF8
+    $rgNews = Get-MacroRegime -DataDir $newsDir -Snapshot (New-RegimeSnap @((New-RegimeMetric 'XU100' 14500 $null 0.2)))
+    if ($null -eq $rgNews) { throw 'Haber olayı rejim üretmeliydi.' }
+    $newsEvent = @($rgNews.Events | Where-Object { $_.Type -eq 'inflation' }) | Select-Object -First 1
+    if ($null -eq $newsEvent -or $newsEvent.Note -notmatch 'Haber:') { throw 'Haber olayı Events içinde işaretli olmalıydı.' }
+    if ($newsEvent.Confidence -gt 0.5) { throw "Haber güveni düşük sınırlı olmalı: $($newsEvent.Confidence)" }
+    $rgBoth = Get-MacroRegime -DataDir $newsDir -Snapshot (New-RegimeSnap @((New-RegimeMetric 'TR_CPI_YOY' 42.0 (-1.2) $null)))
+    $infEvents = @($rgBoth.Events | Where-Object { $_.Type -eq 'inflation' })
+    if ($infEvents.Count -ne 1 -or $infEvents[0].Note -match 'Haber:') { throw 'Veri varken haber olayı eklenmemeliydi (veri > başlık).' }
+}
+finally { Remove-Item -LiteralPath $newsDir -Recurse -Force -ErrorAction SilentlyContinue }
+Write-Host "Makro haber katmanı testi başarılı (haber-tek başına rejim, düşük güven, veri>başlık önceliği)."
+
+# --- GYO sektör modeli: değerleme PB-ağırlıklı, FD/FAVÖK cezası yok ---
+$gyoStock = $sample | Select-Object *; $gyoStock.Sector = 'Real Estate'; $gyoStock.PB = 0.6; $gyoStock.EvEbitda = 20
+$indStock = $sample | Select-Object *; $indStock.Sector = 'Industrial'; $indStock.PB = 0.6; $indStock.EvEbitda = 20
+$gyoScored = Get-BistScore -Stock $gyoStock; $indScored = Get-BistScore -Stock $indStock
+if ($gyoScored.ValueScore -le $indScored.ValueScore) { throw "GYO'da ucuz defter, kötü FD/FAVÖK'e rağmen öne çıkmalıydı: GYO=$($gyoScored.ValueScore) vs IND=$($indScored.ValueScore)" }
+Write-Host "GYO sektör modeli testi başarılı (PB-ağırlıklı değerleme; FD/FAVÖK GYO'yu cezalandırmıyor)."
+
+# --- Rejime göre ağırlık modülasyonu: momentum-ağır hisse risk-on'da daha yüksek ---
+$wmStock = New-StratTestStock 'WMOD' 'Sektör M' 11 14 1.4 8 26 63 0.6
+$wmOn = $wmStock | Select-Object *; $wmOn | Add-Member -NotePropertyName MacroRegimeLabel -NotePropertyValue 'risk-on' -Force; $wmOn | Add-Member -NotePropertyName MacroRegimeAdjustment -NotePropertyValue 0.0 -Force
+$wmOff = $wmStock | Select-Object *; $wmOff | Add-Member -NotePropertyName MacroRegimeLabel -NotePropertyValue 'risk-off' -Force; $wmOff | Add-Member -NotePropertyName MacroRegimeAdjustment -NotePropertyValue 0.0 -Force
+$wmOnScore = (Get-BistScore -Stock $wmOn).Score; $wmOffScore = (Get-BistScore -Stock $wmOff).Score
+if ($wmOnScore -le $wmOffScore) { throw "Momentum-ağır hisse risk-on'da risk-off'tan yüksek skorlanmalıydı: on=$wmOnScore off=$wmOffScore" }
+Write-Host "Rejim ağırlık modülasyonu testi başarılı (momentum ±0.04; risk-on $wmOnScore > risk-off $wmOffScore)."
 
 # --- RiskAdjusted sıralama: aynı skor, düşük oynaklık öne geçmeli ---
 $raLow = New-StratTestStock 'RALOW' 'Sektör K' 5 8 1.0 4 10 55 0.4

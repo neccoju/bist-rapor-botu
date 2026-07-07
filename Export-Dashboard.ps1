@@ -398,6 +398,19 @@ function ConvertTo-DashboardReport {
                 volume    = if ($null -ne $rv) { ([string]([Math]::Round($rv, 2)) + 'x') } else { $null }
                 foreignPct = if ($null -ne $ffMap -and $tkSym -and $ffMap.ContainsKey($tkSym)) { $ffMap[$tkSym] } else { $null }
                 signal    = (Get-DashStr -Object $_ -Name 'Signal')
+                # 4-skor kirilimi (aciklanabilirlik): temel = deger+kalite+bilanco
+                # ort.; teknik = trend+momentum ort.; makro = MakroSektor bileseni;
+                # final = Score (tum ayarlar dahil). Alan yoksa null.
+                fundamentalScore = $(
+                    $fv = @((Get-DashNum -Object $_ -Name 'ValueScore'), (Get-DashNum -Object $_ -Name 'QualityScore'), (Get-DashNum -Object $_ -Name 'EarningsScore')) | Where-Object { $null -ne $_ }
+                    if ($fv.Count) { [Math]::Round(($fv | Measure-Object -Average).Average, 0) } else { $null }
+                )
+                technicalScore = $(
+                    $tv = @((Get-DashNum -Object $_ -Name 'TrendScore'), (Get-DashNum -Object $_ -Name 'MomentumScore')) | Where-Object { $null -ne $_ }
+                    if ($tv.Count) { [Math]::Round(($tv | Measure-Object -Average).Average, 0) } else { $null }
+                )
+                macroScore = (Get-DashNum -Object $_ -Name 'MacroSectorScore')
+                finalScore = (Get-DashNum -Object $_ -Name 'Score')
                 llmNote   = $null    # bot per-stock LLM yorumu üretmiyor (ileride eklenebilir)
                 action    = (Get-DashStockAction -Stock $_)
             }
