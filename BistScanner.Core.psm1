@@ -1183,6 +1183,22 @@ function Get-MacroSnapshot {
         [void]$metrics.Add($evdsMetric)
     }
 
+    # Brent petrol: Turkiye enflasyon/cari denge kanali (yukselis = baski) +
+    # sektorel ayrisma (havacilik/petrokimya girdisi, rafineri karisik).
+    try {
+        $brent = Get-YahooQuoteSnapshot -Id 'BRENT' -Name 'Brent petrol' -YahooSymbol 'BZ=F' -Unit '$' -Source 'Yahoo Finance' -TimeoutSec $TimeoutSec
+        if ($null -ne $brent -and $null -ne $brent.Value) {
+            $bp = ConvertTo-DoubleOrNull $brent.ChangePct
+            $brent.Status = if ($null -eq $bp) { 'Veri Yok' }
+            elseif ($bp -ge 1.5) { 'Petrol baskısı' }
+            elseif ($bp -le -1.5) { 'Destekleyici' }
+            else { 'Nötr' }
+            $brent.Note = 'Yükselen petrol TR enflasyonu ve cari denge için negatiftir.'
+            [void]$metrics.Add($brent)
+        }
+    }
+    catch { }
+
     # Akis metrikleri: yabanci net hisse alimi (TCMB haftalik) + yerli hisse fonu
     # akisi (TEFAS). Rejim sayaclarina (Destekleyici/Baski) katilir; veri yoksa atlanir.
     foreach ($flowMetric in @(Get-FlowMacroMetrics -TimeoutSec $TimeoutSec)) {
@@ -1209,6 +1225,179 @@ function Get-MacroSnapshot {
         MeasurementNote = 'Makro görünüm; BIST trendi, banka relatif gücü, USD/TRY, Türkiye 5Y CDS, TR10Y faiz, DXY, VIX ve akış verileri (yabancı net hisse alımı, TEFAS hisse fonu akışı) ile izlenir. Düşen CDS/faiz/VIX/DXY, BIST100ün SMA200 üstünde kalması ve pozitif akış risk iştahı lehine yorumlanır.'
         Metrics = $metrics.ToArray()
     }
+}
+
+function Get-MacroRegime {
+    <#
+        DETERMINISTIK makro rejim motoru (Turkiye/BIST ozel). Get-MacroSnapshot
+        metriklerini makro OLAYLARA cevirir, olaylari agirlikli toplayip rejim
+        etiketi ve sektor tiltleri uretir. LLM YOK — tamamen kural tabanli;
+        haber-LLM katmani ileride yalniz olay-cikarimi icin opsiyonel eklenebilir.
+
+        Olay taksonomisi: inflation, interest_rate, cds_risk, fx_pressure,
+        foreign_flow, domestic_flow, global_risk, commodity_oil, market_trend.
+        Her olay: Type, Direction(-1/0/+1; BIST icin), Confidence(0-1),
+        Sectors(@{sektor=tilt -1..+1}), Horizon(short/medium/long), Note.
+
+        Cikti: { Regime='risk-on|neutral|risk-off', Score(-1..+1), Confidence,
+                 Events[], SectorTilts(@{}), Note }. Veri yoksa olay atlanir;
+        hic olay yoksa $null (cagiran ayari 0 birakir — veri-kapili).
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)]$Snapshot)
+
+    $metricById = @{}
+    foreach ($m in @(Get-ObjectPropertyValue -Object $Snapshot -Name 'Metrics')) {
+        $mid = [string](Get-ObjectPropertyValue -Object $m -Name 'Id')
+        if ($mid -and -not $metricById.ContainsKey($mid)) { $metricById[$mid] = $m }
+    }
+    if ($metricById.Count -eq 0) { return $null }
+    $val = { param($id, $name) if ($metricById.ContainsKey($id)) { ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $metricById[$id] -Name $name) } else { $null } }
+
+    $events = [System.Collections.Generic.List[object]]::new()
+    $addEvent = {
+        param($type, $dir, $conf, $sectors, $horizon, $note)
+        [void]$events.Add([pscustomobject]@{ Type = $type; Direction = [int]$dir; Confidence = [double]$conf; Sectors = $sectors; Horizon = $horizon; Note = [string]$note })
+    }
+
+    # 1) inflation + interest_rate (faiz indirimi beklentisi kanali):
+    #    Dusen yillik TUFE -> gevseme beklentisi -> Banka/GYO/ic talep pozitif.
+    $cpiChg = & $val 'TR_CPI_YOY' 'Change'
+    $cpiYoy = & $val 'TR_CPI_YOY' 'Value'
+    if ($null -ne $cpiChg) {
+        if ($cpiChg -le -0.5) { & $addEvent 'inflation' 1 0.7 @{ Banka = 1.0; GYO = 1.0; Holding = 0.5; Perakende = 0.5 } 'medium' ("Yıllık TÜFE {0} puan geriledi; faiz indirimi beklentisi kanalı." -f $cpiChg) }
+        elseif ($cpiChg -ge 0.5) { & $addEvent 'inflation' -1 0.7 @{ Banka = -0.5; GYO = -1.0; Perakende = -0.5; İhracatçı = 0.3 } 'medium' ("Yıllık TÜFE {0} puan yükseldi; sıkı duruş uzayabilir." -f $cpiChg) }
+    }
+    $fundChg = & $val 'TR_FUNDING' 'Change'
+    if ($null -ne $fundChg -and $fundChg -ne 0) {
+        if ($fundChg -lt 0) { & $addEvent 'interest_rate' 1 0.8 @{ Banka = 1.0; GYO = 1.0; Holding = 0.5 } 'medium' ("TCMB fonlama {0} puan düştü (gevşeme döngüsü)." -f $fundChg) }
+        else { & $addEvent 'interest_rate' -1 0.8 @{ Banka = -0.3; GYO = -1.0; Perakende = -0.5 } 'medium' ("TCMB fonlama {0} puan arttı (sıkılaşma)." -f $fundChg) }
+    }
+
+    # 2) cds_risk: CDS gunluk degisim (ulke risk primi).
+    $cdsPct = & $val 'TR_CDS_5Y' 'ChangePct'
+    if ($null -ne $cdsPct) {
+        if ($cdsPct -le -2) { & $addEvent 'cds_risk' 1 0.6 @{ Banka = 0.7; Holding = 0.5 } 'short' ("CDS %{0} geriledi; risk primi iyileşiyor." -f [Math]::Round($cdsPct, 1)) }
+        elseif ($cdsPct -ge 2) { & $addEvent 'cds_risk' -1 0.6 @{ Banka = -0.7; Holding = -0.5 } 'short' ("CDS %{0} yükseldi; risk primi bozuluyor." -f [Math]::Round($cdsPct, 1)) }
+    }
+
+    # 3) fx_pressure: USD/TRY gunluk degisim. Sert TL kaybi geneli baskilar ama
+    #    ihracatciyi ayristirir; sakin kur ic-talep/finansallara alan acar.
+    $fxPct = & $val 'USDTRY_Tcmb' 'ChangePct'
+    if ($null -ne $fxPct) {
+        if ($fxPct -ge 0.8) { & $addEvent 'fx_pressure' -1 ([Math]::Min(0.9, 0.5 + $fxPct / 4)) @{ İhracatçı = 0.8; Banka = -0.7; GYO = -0.7; Perakende = -0.6; Havacılık = -0.4 } 'short' ("USD/TRY %{0} yükseldi; kur baskısı." -f [Math]::Round($fxPct, 2)) }
+        elseif ($fxPct -le 0.2) { & $addEvent 'fx_pressure' 1 0.4 @{ Banka = 0.4; GYO = 0.3; Perakende = 0.3 } 'short' 'Kur sakin; iç talep/finansallar lehine.' }
+    }
+
+    # 4) foreign_flow + domestic_flow (haftalik akislar; mn USD / mlr TL 4H).
+    $ff = & $val 'FOREIGN_EQ_FLOW' 'Value'
+    if ($null -ne $ff) {
+        if ($ff -ge 100) { & $addEvent 'foreign_flow' 1 0.7 @{ Banka = 0.6; Holding = 0.5; Havacılık = 0.4 } 'medium' ("Yabancı 4H net alım {0} mn$ (BIST30 ağırlıklı etki)." -f $ff) }
+        elseif ($ff -le -100) { & $addEvent 'foreign_flow' -1 0.7 @{ Banka = -0.6; Holding = -0.5 } 'medium' ("Yabancı 4H net satış {0} mn$." -f $ff) }
+    }
+    $tf = & $val 'TEFAS_EQ_FLOW' 'Value'
+    if ($null -ne $tf) {
+        if ($tf -ge 1) { & $addEvent 'domestic_flow' 1 0.5 @{} 'short' ("Yerli fon 4H net girişi {0} mlr TL." -f $tf) }
+        elseif ($tf -le -1) { & $addEvent 'domestic_flow' -1 0.5 @{} 'short' ("Yerli fon 4H net çıkışı {0} mlr TL." -f $tf) }
+    }
+
+    # 5) global_risk: VIX + DXY birlikte (EM risk istahi).
+    $vixPct = & $val 'VIX' 'ChangePct'; $dxyPct = & $val 'DXY' 'ChangePct'
+    $globalSig = 0.0
+    if ($null -ne $vixPct) { $globalSig -= [Math]::Sign($vixPct) * [Math]::Min(1.0, [Math]::Abs($vixPct) / 5) }
+    if ($null -ne $dxyPct) { $globalSig -= [Math]::Sign($dxyPct) * [Math]::Min(1.0, [Math]::Abs($dxyPct) / 1.5) * 0.7 }
+    if ($null -ne $vixPct -or $null -ne $dxyPct) {
+        if ($globalSig -ge 0.4) { & $addEvent 'global_risk' 1 ([Math]::Min(0.8, $globalSig)) @{ Banka = 0.4; Havacılık = 0.3 } 'short' 'Küresel risk iştahı destekleyici (VIX/DXY geriliyor).' }
+        elseif ($globalSig -le -0.4) { & $addEvent 'global_risk' -1 ([Math]::Min(0.8, [Math]::Abs($globalSig))) @{ Banka = -0.4; İhracatçı = 0.2 } 'short' 'Küresel risk iştahı bozuluyor (VIX/DXY yükseliyor).' }
+    }
+
+    # 6) commodity_oil: Brent gunluk. Yukselis TR enflasyon/cari icin negatif;
+    #    havacilik/petrokimya girdi maliyeti, rafineri urun marji karisik.
+    $oilPct = & $val 'BRENT' 'ChangePct'
+    if ($null -ne $oilPct) {
+        if ($oilPct -ge 1.5) { & $addEvent 'commodity_oil' -1 ([Math]::Min(0.7, 0.3 + $oilPct / 10)) @{ Havacılık = -0.8; Petrokimya = -0.6; Rafineri = 0.3; Enerji = 0.4 } 'medium' ("Brent %{0} yükseldi; enflasyon/cari denge baskısı." -f [Math]::Round($oilPct, 1)) }
+        elseif ($oilPct -le -1.5) { & $addEvent 'commodity_oil' 1 0.5 @{ Havacılık = 0.8; Petrokimya = 0.5; Rafineri = -0.2 } 'medium' ("Brent %{0} geriledi; maliyet kanalı rahatlıyor." -f [Math]::Round($oilPct, 1)) }
+    }
+
+    # 7) market_trend: BIST100 gunluk yon (zayif teyit sinyali).
+    $xuPct = & $val 'XU100' 'ChangePct'
+    if ($null -ne $xuPct -and [Math]::Abs($xuPct) -ge 1.0) {
+        & $addEvent 'market_trend' ([Math]::Sign($xuPct)) 0.3 @{} 'short' ("BIST100 günlük %{0}." -f [Math]::Round($xuPct, 1))
+    }
+
+    if ($events.Count -eq 0) { return $null }
+
+    # Agirlikli toplam: her olay dir*conf; tip agirliklari esit (taksonomi zaten
+    # secici esiklerle tetikleniyor). Skor [-1,1]'e normalize edilir.
+    $raw = 0.0
+    foreach ($e in $events) { $raw += $e.Direction * $e.Confidence }
+    $score = [Math]::Max(-1.0, [Math]::Min(1.0, $raw / [Math]::Max(3.0, $events.Count)))
+    $regime = if ($score -ge 0.15) { 'risk-on' } elseif ($score -le -0.15) { 'risk-off' } else { 'neutral' }
+    $confidence = [Math]::Min(1.0, ($events | ForEach-Object { $_.Confidence } | Measure-Object -Average).Average * [Math]::Min(1.0, $events.Count / 4.0))
+
+    $tilts = @{}
+    foreach ($e in $events) {
+        if ($null -eq $e.Sectors) { continue }
+        foreach ($k in $e.Sectors.Keys) {
+            $cur = if ($tilts.ContainsKey($k)) { [double]$tilts[$k] } else { 0.0 }
+            $tilts[$k] = $cur + ([double]$e.Sectors[$k]) * $e.Confidence   # tilt isaretleri olay tanımında zaten yönlü
+        }
+    }
+    $keys = @($tilts.Keys)
+    foreach ($k in $keys) { $tilts[$k] = [Math]::Round([Math]::Max(-1.0, [Math]::Min(1.0, [double]$tilts[$k])), 2) }
+
+    return [pscustomobject][ordered]@{
+        Regime      = $regime
+        Score       = [Math]::Round($score, 3)
+        Confidence  = [Math]::Round($confidence, 2)
+        Events      = $events.ToArray()
+        SectorTilts = $tilts
+        Note        = ('{0} olaydan türetildi (deterministik kural motoru; LLM yok).' -f $events.Count)
+    }
+}
+
+function Add-MacroRegimeData {
+    <#
+        Rejim ciktisini hisselere SINIRLI skor ayari olarak isler:
+        MacroRegimeAdjustment = clamp( 2*sektorTilt*conf + rejimTabani, [-3,+3] ).
+        rejimTabani: risk-off'ta -1*conf (genel savunma), risk-on'da +0.5*conf.
+        Sektor eslesmesi SectorTR uzerinden ANAHTAR KELIME ile yapilir (banka,
+        gyo/gayrimenkul, holding, havacilik/ulastirma, petrokimya, enerji,
+        perakende/ticaret). Eslesme yoksa yalniz rejim tabani uygulanir.
+        Veri-kapili: $Regime null ise hicbir alan yazilmaz (ayar 0 kalir).
+    #>
+    [CmdletBinding()]
+    param([object[]]$Stocks = @(), $Regime = $null)
+    if ($null -eq $Regime) { return @($Stocks) }
+    $conf = [double](Get-ObjectPropertyValue -Object $Regime -Name 'Confidence')
+    $regimeName = [string](Get-ObjectPropertyValue -Object $Regime -Name 'Regime')
+    $base = 0.0
+    if ($regimeName -eq 'risk-off') { $base = -1.0 * $conf }
+    elseif ($regimeName -eq 'risk-on') { $base = 0.5 * $conf }
+    $tilts = Get-ObjectPropertyValue -Object $Regime -Name 'SectorTilts'
+    $sectorKeyMap = @(
+        @{ Pattern = 'banka|bank'; Key = 'Banka' },
+        @{ Pattern = 'gayrimenkul|gyo|real estate'; Key = 'GYO' },
+        @{ Pattern = 'holding'; Key = 'Holding' },
+        @{ Pattern = 'havacılık|havacilik|ulaştırma|ulastirma|airline|transport'; Key = 'Havacılık' },
+        @{ Pattern = 'petrokimya|kimya|chemical'; Key = 'Petrokimya' },
+        @{ Pattern = 'enerji|energy|petrol'; Key = 'Enerji' },
+        @{ Pattern = 'perakende|ticaret|retail'; Key = 'Perakende' }
+    )
+    foreach ($stock in $Stocks) {
+        if ($null -eq $stock) { continue }
+        $sec = ([string](Get-ObjectPropertyValue -Object $stock -Name 'SectorTR')).ToLowerInvariant()
+        $tilt = 0.0
+        if ($null -ne $tilts -and $sec) {
+            foreach ($mapEntry in $sectorKeyMap) {
+                if ($sec -match $mapEntry.Pattern -and $tilts.ContainsKey($mapEntry.Key)) { $tilt = [double]$tilts[$mapEntry.Key]; break }
+            }
+        }
+        $adj = [Math]::Max(-3.0, [Math]::Min(3.0, (2.0 * $tilt * $conf) + $base))
+        $stock | Add-Member -NotePropertyName 'MacroRegimeAdjustment' -NotePropertyValue ([Math]::Round($adj, 2)) -Force
+        $stock | Add-Member -NotePropertyName 'MacroRegimeLabel' -NotePropertyValue $regimeName -Force
+    }
+    return @($Stocks)
 }
 
 function Add-QuarterlyFinancials {
@@ -1493,6 +1682,10 @@ function Get-EvEbitdaComponentScore {
         [string]$Sector
     )
 
+    # TODO(sektor-modeli): GYO'larda FD/FAVOK yaniltici (NAV iskontosu esas) ve
+    # holdinglerde parcalarin toplami/NAV daha anlamli. TradingView sektor
+    # etiketiyle 'Real Estate' icin PB-agirlikli, holding icin notr-agirlikli
+    # ayri yol dusunulmeli; simdilik yalniz Finance ayristiriliyor (bilinen sinir).
     if ($Sector -eq 'Finance') { return 50 }
     if ($null -eq $Value) { return 32 }   # eksik temel veri hafif cezali (bkz. F/K)
     if ($Value -le 0) { return 15 }
@@ -2657,7 +2850,11 @@ function Get-BistScore {
     # Akilli para ayari: yabanci saklama degisimi + icsel islem sinyali.
     # Sinirli [-6,+6] ve veri-kapili (alanlar islenmemisse 0 — davranis degismez).
     $smartMoneyAdjustment = Get-SmartMoneyAdjustment -Stock $Stock
-    $score = [Math]::Round((Limit-Value -Value ($rawScore - $riskPenalty + $earningsTimingAdjustment + $smartMoneyAdjustment)), 1)
+    # Makro rejim ayari: Add-MacroRegimeData'nin isledigi sinirli [-3,+3] deger.
+    # Alan yoksa 0 (veri-kapili; rejim motoru calismadiysa davranis degismez).
+    $macroRegimeAdjustment = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Stock -Name 'MacroRegimeAdjustment')
+    if ($null -eq $macroRegimeAdjustment) { $macroRegimeAdjustment = 0.0 }
+    $score = [Math]::Round((Limit-Value -Value ($rawScore - $riskPenalty + $earningsTimingAdjustment + $smartMoneyAdjustment + $macroRegimeAdjustment)), 1)
     $signal = Get-SignalLabel -Score $score
     $riskFlags = @(Get-BistRiskFlags -Stock $Stock)
     $riskLevel = Get-RiskLevel -RiskFlags $riskFlags
@@ -2684,6 +2881,10 @@ function Get-BistScore {
         if ($smIns -eq '+') { $smDetail += 'içsel işlem: alım' } elseif ($smIns -eq '-') { $smDetail += 'içsel işlem: satım' }
         $explanation += [Environment]::NewLine + ('Akıllı para ayarı: {0}{1} puan ({2}).' -f $(if ($smartMoneyAdjustment -gt 0) { '+' } else { '' }), [Math]::Round($smartMoneyAdjustment, 1), ($smDetail -join '; '))
     }
+    if ($macroRegimeAdjustment -ne 0) {
+        $mrLabel = [string](Get-ObjectPropertyValue -Object $Stock -Name 'MacroRegimeLabel')
+        $explanation += [Environment]::NewLine + ('Makro rejim ayarı: {0}{1} puan (rejim: {2}).' -f $(if ($macroRegimeAdjustment -gt 0) { '+' } else { '' }), [Math]::Round($macroRegimeAdjustment, 1), $mrLabel)
+    }
 
     $properties = [ordered]@{}
     foreach ($property in $Stock.PSObject.Properties) {
@@ -2692,7 +2893,7 @@ function Get-BistScore {
                 'TrendScore', 'ValueScore', 'QualityScore', 'EarningsScore', 'MomentumScore',
                 'LiquidityScore', 'MacroSectorScore', 'ConfirmationLabel', 'ConfirmationScore',
                 'TechnicalPassCount', 'TechnicalCheckCount', 'AllTechnicalConfirmed', 'EntryNote',
-                'FailedConfirmations', 'RiskPenalty', 'SmartMoneyAdjustment', 'Strategy'
+                'FailedConfirmations', 'RiskPenalty', 'SmartMoneyAdjustment', 'MacroRegimeAdjustment', 'Strategy'
             )) {
             $properties[$property.Name] = $property.Value
         }
@@ -2719,6 +2920,7 @@ function Get-BistScore {
     $properties.FailedConfirmations = $confirmationProfile.FailedChecks
     $properties.RiskPenalty = [Math]::Round($riskPenalty, 1)
     $properties.SmartMoneyAdjustment = [Math]::Round($smartMoneyAdjustment, 1)
+    $properties.MacroRegimeAdjustment = [Math]::Round($macroRegimeAdjustment, 1)
     $properties.Strategy = $Strategy
 
     return [pscustomobject]$properties
@@ -3873,7 +4075,7 @@ function Get-ModelPortfolioDefinitions {
             Id = 'RiskDengeli'
             Name = 'Risk Dengeli Model Portföyü'
             Strategy = 'Dengeli'
-            RankBy = 'Score'
+            RankBy = 'RiskAdjusted'
             WeightingMethod = 'InverseVolatility'
             MinWeightPct = 8.0
             MaxWeightPct = 28.0
@@ -4106,6 +4308,23 @@ function Get-ModelPortfolioSelection {
                 Sort-Object @{ Expression = { [double](Get-ObjectPropertyValue -Object $_ -Name 'LearnedFactorScore100') }; Descending = $true }
         )
     }
+    elseif ($RankBy -eq 'RiskAdjusted') {
+        # RISK-AYARLI siralama (RiskDengeli): strateji skoru / gunluk oynaklik.
+        # Onceki durumda RiskDengeli, Dengeli ile AYNI anahtar ('Score') ile
+        # siralandigi icin SECIM birebir ozdesti (5/5 ortusme); ayrisma yalniz
+        # agirliklamadaydi. Bu anahtar dusuk-oynaklikli adaylari one cikararak
+        # secimi de gercekten risk-dengeli yapar. Vol verisi yoksa tipik 3.0 kabul.
+        $candidates = @(
+            $scoredAll |
+                Where-Object { Test-ModelPortfolioEligibleStock -Stock $_ } |
+                Sort-Object @{ Expression = {
+                        $s = Get-StrategySelectionScore -Stock $_ -Strategy $Strategy
+                        $v = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $_ -Name 'VolatilityD')
+                        if ($null -eq $v -or $v -le 0) { $v = 3.0 }
+                        $s / (1.0 + $v)
+                    }; Descending = $true }
+        )
+    }
     else {
         # Strateji-spesifik siralama: her portfoy kendi ekseninde ayrisir
         # (Dengeli=genel Score; Momentum/Deger/Kalite kendi bilesenine agirlikli).
@@ -4115,6 +4334,9 @@ function Get-ModelPortfolioSelection {
                 Sort-Object @{ Expression = { Get-StrategySelectionScore -Stock $_ -Strategy $Strategy }; Descending = $true }
         )
     }
+    # Gozlemlenebilirlik: dar uygun-havuz, "hep ayni hisseler" sikayetinin ana
+    # nedenlerinden biridir; her secimde havuz boyutu loglanir.
+    Write-Host ("[secim] {0}/{1}: uygun havuz {2}/{3} hisse" -f $Strategy, $RankBy, $candidates.Count, $scoredAll.Count)
 
     $selected = [System.Collections.Generic.List[object]]::new()
     $selectedSymbols = @{}
@@ -6544,15 +6766,24 @@ function Get-EvdsMacroMetrics {
             })
     }
 
-    # TUFE (yillik enflasyon, son 13 ayligin ilk-son orani)
-    $cpi = Get-EvdsSeries -Series 'TP.FG.J0' -Frequency 5 -StartDate ((Get-Date).AddMonths(-14)) -TimeoutSec $TimeoutSec
+    # TUFE (yillik enflasyon + YON: bir onceki ayin yillik degeriyle fark).
+    # Yon, rejim motoru icin kritiktir: dusen yillik enflasyon = faiz indirimi
+    # beklentisi kanali (deterministik 'beklentiden dusuk' vekili).
+    $cpi = Get-EvdsSeries -Series 'TP.FG.J0' -Frequency 5 -StartDate ((Get-Date).AddMonths(-16)) -TimeoutSec $TimeoutSec
     if ($null -ne $cpi -and $cpi.Points.Count -ge 13) {
         $pts = $cpi.Points; $latest = $pts[$pts.Count - 1].Value; $yearAgo = $pts[$pts.Count - 13].Value
         if ($yearAgo -gt 0) {
             $yoy = (($latest / $yearAgo) - 1) * 100
+            $yoyChange = $null
+            if ($pts.Count -ge 14) {
+                $prevLatest = $pts[$pts.Count - 2].Value; $prevYearAgo = $pts[$pts.Count - 14].Value
+                if ($prevYearAgo -gt 0) { $yoyChange = [Math]::Round($yoy - ((($prevLatest / $prevYearAgo) - 1) * 100), 1) }
+            }
             [void]$metrics.Add([pscustomobject][ordered]@{
-                    Id = 'TR_CPI_YOY'; Name = 'TÜFE (yıllık)'; Value = [Math]::Round($yoy, 1); Change = $null; ChangePct = $null; Unit = '%'
-                    Status = if ($yoy -lt 40) { 'Enflasyon ılımlı' } else { 'Enflasyon yüksek' }
+                    Id = 'TR_CPI_YOY'; Name = 'TÜFE (yıllık)'; Value = [Math]::Round($yoy, 1); Change = $yoyChange; ChangePct = $null; Unit = '%'
+                    Status = if ($null -ne $yoyChange -and $yoyChange -lt -0.2) { 'Enflasyon düşüyor' }
+                    elseif ($null -ne $yoyChange -and $yoyChange -gt 0.2) { 'Enflasyon artıyor' }
+                    elseif ($yoy -lt 40) { 'Enflasyon ılımlı' } else { 'Enflasyon yüksek' }
                     Source = 'TCMB EVDS'; Url = 'https://evds2.tcmb.gov.tr/'; Note = "Son endeks tarihi: $($pts[$pts.Count-1].Date)"
                 })
         }
@@ -7319,6 +7550,8 @@ Export-ModuleMember -Function `
     Get-SmartMoneyAdjustment, `
     Get-FlowRegimeStatus, `
     Get-FlowMacroMetrics, `
+    Get-MacroRegime, `
+    Add-MacroRegimeData, `
     Get-ModelPortfolioDefinitions, `
     Get-ModelPortfolioSelection, `
     Get-LastModelPortfolioTradingDay, `

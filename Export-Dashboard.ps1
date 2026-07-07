@@ -495,8 +495,29 @@ function ConvertTo-DashboardReport {
             $pre = Get-DashNum -Object $MacroSnapshot -Name 'PressureCount'
             $riskApp = $null
             if ($null -ne $sup -and $null -ne $pre -and ($sup + $pre) -gt 0) { $riskApp = [Math]::Round(100.0 * $sup / ($sup + $pre), 0) }
+            # Rejim ozeti (varsa): deterministik motorun etiketi + en guclu tiltler.
+            $regimeObj = Get-DashProp -Object $MacroSnapshot -Name 'Regime'
+            $regimePanel = $null
+            if ($null -ne $regimeObj) {
+                $tiltRows = @()
+                $tiltMap = Get-DashProp -Object $regimeObj -Name 'SectorTilts'
+                if ($null -ne $tiltMap) {
+                    $tiltRows = @($tiltMap.Keys | ForEach-Object { [pscustomobject]@{ sector = [string]$_; tilt = [double]$tiltMap[$_] } } |
+                            Sort-Object @{ Expression = { [Math]::Abs($_.tilt) }; Descending = $true } | Select-Object -First 4)
+                }
+                $regimePanel = [pscustomobject]@{
+                    label = (Get-DashStr -Object $regimeObj -Name 'Regime')
+                    score = (Get-DashNum -Object $regimeObj -Name 'Score')
+                    confidence = (Get-DashNum -Object $regimeObj -Name 'Confidence')
+                    tilts = $tiltRows
+                    events = @(Get-DashProp -Object $regimeObj -Name 'Events' | ForEach-Object {
+                            [pscustomobject]@{ type = (Get-DashStr -Object $_ -Name 'Type'); direction = (Get-DashNum -Object $_ -Name 'Direction'); note = (Get-DashStr -Object $_ -Name 'Note') }
+                        } | Select-Object -First 6)
+                }
+            }
             $macro = [pscustomobject]@{ status = (Get-DashStr -Object $MacroSnapshot -Name 'Status')
                 supportiveCount = $sup; pressureCount = $pre; riskAppetite = $riskApp
+                regime = $regimePanel
                 note = (Get-DashStr -Object $MacroSnapshot -Name 'MeasurementNote'); items = $mItems }
         } catch { $macro = $null }
     }
@@ -626,7 +647,8 @@ function ConvertTo-DashboardReport {
             benchmarkReturnPct = (Get-DashNum -Object $_ -Name 'BenchmarkReturnPct')
             alphaPct           = (Get-DashNum -Object $_ -Name 'AlphaPct')
             holdings = @($ph | ForEach-Object {
-                [pscustomobject]@{ ticker = (Get-DashStr -Object $_ -Name 'Symbol'); weightPct = (Get-DashNum -Object $_ -Name 'WeightPct') }
+                [pscustomobject]@{ ticker = (Get-DashStr -Object $_ -Name 'Symbol'); weightPct = (Get-DashNum -Object $_ -Name 'WeightPct')
+                    selectionReason = (Get-DashStr -Object $_ -Name 'SelectionReason') }
             })
         }
     })

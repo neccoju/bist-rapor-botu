@@ -964,6 +964,37 @@
     "supportiveCount": 4,
     "pressureCount": 3,
     "riskAppetite": 57,
+    "regime": {
+      "label": "risk-on",
+      "score": 0.28,
+      "confidence": 0.62,
+      "tilts": [
+        {
+          "sector": "Banka",
+          "tilt": 0.8
+        },
+        {
+          "sector": "GYO",
+          "tilt": 0.7
+        },
+        {
+          "sector": "Havacılık",
+          "tilt": -0.4
+        }
+      ],
+      "events": [
+        {
+          "type": "inflation",
+          "direction": 1,
+          "note": "Yıllık TÜFE 1,2 puan geriledi; faiz indirimi beklentisi kanalı."
+        },
+        {
+          "type": "cds_risk",
+          "direction": 1,
+          "note": "CDS %3 geriledi; risk primi iyileşiyor."
+        }
+      ]
+    },
     "note": "Makro görünüm; BIST trendi, USD/TRY, CDS, TR10Y, DXY ve VIX ile izlenir.",
     "items": [
       {

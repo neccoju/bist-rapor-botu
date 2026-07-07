@@ -629,6 +629,79 @@ try {
 finally { Remove-Item -LiteralPath $insTmp -ErrorAction SilentlyContinue }
 Write-Host "Akıllı para ayarı testi başarılı (eşikler, tavan ±6, veri-kapılı; skor entegrasyonu +5; insider pencere/yön)."
 
+# --- Temel veri sanity (G2 audit kilitleri): eksik/negatif/uç değer davranışı ---
+$g2Mod = Get-Module 'BistScanner.Core'
+if ((& $g2Mod { Get-PEComponentScore -Value $null }) -ne 32) { throw 'F/K eksik veri 32 (hafif ceza) olmalı.' }
+if ((& $g2Mod { Get-PEComponentScore -Value (-4) }) -ne 15) { throw 'Negatif F/K (zarar) 15 olmalı.' }
+if ((& $g2Mod { Get-PBComponentScore -Value (-1) }) -ne 20) { throw 'Negatif PD/DD (negatif özkaynak) 20 olmalı.' }
+if ((& $g2Mod { Get-ROEComponentScore -Value (-10) }) -ne 15) { throw 'Negatif ROE 15 olmalı.' }
+if ((& $g2Mod { Get-EvEbitdaComponentScore -Value 5 -Sector 'Finance' }) -ne 50) { throw 'Finansta FD/FAVÖK nötr 50 olmalı (metrik anlamsız).' }
+if ($null -ne (& $g2Mod { Convert-TryToUsd -Value 100 -Rate 0 })) { throw 'Sıfır kurda dönüşüm null olmalı (sıfıra bölme koruması).' }
+$fundMissing = $sample | Select-Object *
+$fundMissing.QuarterlyFinancials = @()
+$fundMissing | Add-Member -NotePropertyName 'PositiveQuarterCount' -NotePropertyValue $null -Force
+$fmScore = & $g2Mod { param($s) Get-EarningsComponentScore -Stock $s } $fundMissing
+if ($fmScore -ne 40) { throw "Bilançosuz hisse bilanço puanı 40 olmalı: $fmScore" }
+Write-Host "Temel veri sanity testi başarılı (eksik=hafif ceza, negatif kâr/özkaynak cezalı, finans istisnası, sıfır-kur koruması, bilançosuz=40)."
+
+# --- Makro rejim motoru (deterministik; senaryo testleri) ---
+function New-RegimeSnap { param([object[]]$Metrics) [pscustomobject]@{ Status = 'x'; Metrics = $Metrics } }
+function New-RegimeMetric { param($Id, $Value, $Change, $ChangePct) [pscustomobject]@{ Id = $Id; Value = $Value; Change = $Change; ChangePct = $ChangePct } }
+# S1: Enflasyon düşüyor + CDS geriliyor + kur sakin -> risk-on, Banka tilt pozitif
+$rgOn = Get-MacroRegime -Snapshot (New-RegimeSnap @(
+        (New-RegimeMetric 'TR_CPI_YOY' 42.0 (-1.2) $null),
+        (New-RegimeMetric 'TR_CDS_5Y' 250 $null (-3.0)),
+        (New-RegimeMetric 'USDTRY_Tcmb' 41.2 $null 0.05)
+    ))
+if ($null -eq $rgOn -or $rgOn.Regime -ne 'risk-on') { throw "S1 risk-on bekleniyordu: $($rgOn | ConvertTo-Json -Compress -Depth 3)" }
+if ([double]$rgOn.SectorTilts['Banka'] -le 0) { throw "S1 Banka tilt pozitif olmalıydı: $($rgOn.SectorTilts['Banka'])" }
+# S2: Enflasyon yükseliyor + kur şoku + VIX sıçraması -> risk-off, GYO tilt negatif
+$rgOff = Get-MacroRegime -Snapshot (New-RegimeSnap @(
+        (New-RegimeMetric 'TR_CPI_YOY' 55.0 1.4 $null),
+        (New-RegimeMetric 'USDTRY_Tcmb' 43.0 $null 2.2),
+        (New-RegimeMetric 'VIX' 28 $null 9.0)
+    ))
+if ($null -eq $rgOff -or $rgOff.Regime -ne 'risk-off') { throw "S2 risk-off bekleniyordu: $($rgOff.Regime) skor=$($rgOff.Score)" }
+if ([double]$rgOff.SectorTilts['GYO'] -ge 0) { throw "S2 GYO tilt negatif olmalıydı: $($rgOff.SectorTilts['GYO'])" }
+# S3: Şahin TCMB (fonlama +2 puan) -> interest_rate olayı negatif yön
+$rgHawk = Get-MacroRegime -Snapshot (New-RegimeSnap @((New-RegimeMetric 'TR_FUNDING' 48.0 2.0 $null)))
+$hawkEvent = @($rgHawk.Events | Where-Object { $_.Type -eq 'interest_rate' }) | Select-Object -First 1
+if ($null -eq $hawkEvent -or $hawkEvent.Direction -ne -1) { throw 'S3 şahin faiz olayı negatif yön üretmeliydi.' }
+# S4: Petrol +%3 -> commodity_oil olayı, Havacılık tilt negatif
+$rgOil = Get-MacroRegime -Snapshot (New-RegimeSnap @((New-RegimeMetric 'BRENT' 92.0 $null 3.0)))
+if ([double]$rgOil.SectorTilts['Havacılık'] -ge 0) { throw 'S4 Havacılık tilt negatif olmalıydı.' }
+# S5: Boş/eşik-altı metrikler -> null (veri-kapılı)
+if ($null -ne (Get-MacroRegime -Snapshot (New-RegimeSnap @((New-RegimeMetric 'XU100' 14500 $null 0.2))))) { throw 'S5 olaysız durumda null beklenirdi.' }
+# S6: Ayar işleme — risk-on'da banka hissesi pozitif, sınır ±3, regime null -> alan yok
+$rgBankStock = [pscustomobject]@{ Symbol = 'BNK'; SectorTR = 'Bankacılık' }
+$rgOtherStock = [pscustomobject]@{ Symbol = 'OTH'; SectorTR = 'Tekstil' }
+[void](Add-MacroRegimeData -Stocks @($rgBankStock, $rgOtherStock) -Regime $rgOn)
+$bnkAdj = [double](Get-ObjectPropertyValue -Object $rgBankStock -Name 'MacroRegimeAdjustment')
+if ($bnkAdj -le 0 -or $bnkAdj -gt 3) { throw "S6 banka ayarı (0,3] aralığında olmalıydı: $bnkAdj" }
+$othAdj = [double](Get-ObjectPropertyValue -Object $rgOtherStock -Name 'MacroRegimeAdjustment')
+if ([Math]::Abs($othAdj) -gt 1.0) { throw "S6 tilt'siz sektörde yalnız rejim tabanı beklenirdi: $othAdj" }
+$rgNoStock = [pscustomobject]@{ Symbol = 'NIL'; SectorTR = 'Bankacılık' }
+[void](Add-MacroRegimeData -Stocks @($rgNoStock) -Regime $null)
+if ($null -ne (Get-ObjectPropertyValue -Object $rgNoStock -Name 'MacroRegimeAdjustment')) { throw 'S6 regime null iken alan yazılmamalıydı.' }
+# S7: Skor entegrasyonu — aynı hisse, +3 rejim ayarı ile ~3 puan yüksek skorlanmalı
+$rgScoreA = $sample | Select-Object *
+$rgScoreB = $sample | Select-Object *
+$rgScoreB | Add-Member -NotePropertyName 'MacroRegimeAdjustment' -NotePropertyValue 3.0 -Force
+$rgScoreB | Add-Member -NotePropertyName 'MacroRegimeLabel' -NotePropertyValue 'risk-on' -Force
+$rgScoredA = Get-BistScore -Stock $rgScoreA; $rgScoredB = Get-BistScore -Stock $rgScoreB
+if ([Math]::Abs(($rgScoredB.Score - $rgScoredA.Score) - 3.0) -gt 0.11) { throw "S7 rejim ayarı skora +3 yansımalıydı: $($rgScoredA.Score) -> $($rgScoredB.Score)" }
+if ($rgScoredB.Explanation -notmatch 'Makro rejim ayarı') { throw 'S7 açıklamada rejim notu yok.' }
+Write-Host "Makro rejim motoru testi başarılı (risk-on/off, şahin faiz, petrol, veri-kapılı, skor +3, açıklama)."
+
+# --- RiskAdjusted sıralama: aynı skor, düşük oynaklık öne geçmeli ---
+$raLow = New-StratTestStock 'RALOW' 'Sektör K' 5 8 1.0 4 10 55 0.4
+$raHigh = New-StratTestStock 'RAHIGH' 'Sektör L' 5 8 1.0 4 10 55 0.4
+$raLow | Add-Member -NotePropertyName 'VolatilityD' -NotePropertyValue 1.2 -Force
+$raHigh | Add-Member -NotePropertyName 'VolatilityD' -NotePropertyValue 6.5 -Force
+$raPick = @(Get-ModelPortfolioSelection -Stocks @($raHigh, $raLow) -Strategy 'Dengeli' -Count 1 -RankBy 'RiskAdjusted' | ForEach-Object { [string]$_.Symbol })
+if ($raPick[0] -ne 'RALOW') { throw "RiskAdjusted düşük oynaklığı seçmeliydi: $($raPick -join ',')" }
+Write-Host "RiskAdjusted sıralama testi başarılı (aynı skor, düşük vol öne geçti; RiskDengeli seçimi Dengeli'den ayrıştı)."
+
 # --- Akış rejim etiketi (makro sayaçlarla uyumlu) ---
 if ((Get-FlowRegimeStatus -Value 250 -SupportiveMin 100 -PressureMax (-100)) -ne 'Destekleyici') { throw 'Akış rejim: destekleyici bekleniyordu.' }
 if ((Get-FlowRegimeStatus -Value (-250) -SupportiveMin 100 -PressureMax (-100)) -ne 'Baskı') { throw 'Akış rejim: baskı bekleniyordu.' }

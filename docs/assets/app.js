@@ -438,7 +438,18 @@
           (has(it.status) ? '<span class="badge ' + macroStatusClass(it.status) + '" style="margin-top:4px">' + esc(it.status) + "</span>" : "") +
         "</div>";
       }).join("") + "</div>" : inlineEmpty("Makro gösterge listesi boş.");
-    host.innerHTML = meter + chips + (has(m.note) ? '<p class="ie__note">' + esc(m.note) + "</p>" : "");
+    let regimeRow = "";
+    const rg = m.regime;
+    if (rg && has(rg.label)) {
+      const cls = rg.label === "risk-on" ? "badge--pos" : rg.label === "risk-off" ? "badge--neg" : "badge--neutral";
+      regimeRow = '<div class="chiprow" style="margin:10px 0">' +
+        '<span class="badge ' + cls + '">Rejim: ' + esc(rg.label) + (isNum(rg.confidence) ? " · güven " + fmtTR(rg.confidence * 100, 0) + "%" : "") + "</span>" +
+        arr(rg.tilts).map((t) => '<span class="badge ' + (t.tilt >= 0 ? "badge--pos" : "badge--neg") + '">' + esc(t.sector) + " " + (t.tilt >= 0 ? "+" : "−") + fmtTR(Math.abs(t.tilt), 1) + "</span>").join("") +
+        "</div>" +
+        (arr(rg.events).length ? '<ul class="plainlist" style="margin-bottom:10px">' + arr(rg.events).map((e) =>
+          "<li><b>" + esc(e.type || "—") + "</b> <span class='badge " + (e.direction > 0 ? "badge--pos" : e.direction < 0 ? "badge--neg" : "badge--neutral") + "'>" + (e.direction > 0 ? "+" : e.direction < 0 ? "−" : "~") + "</span> <span class='flat'>" + esc(e.note || "") + "</span></li>").join("") + "</ul>" : "");
+    }
+    host.innerHTML = meter + regimeRow + chips + (has(m.note) ? '<p class="ie__note">' + esc(m.note) + "</p>" : "");
   }
 
   /* ---------------- 4b-2) Risk metrikleri tablosu ---------------- */

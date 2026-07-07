@@ -2153,6 +2153,21 @@ try {
     try { $stocks = @(Add-ForeignOwnershipData -Stocks $stocks) } catch { Write-Warning "Yabanci oran verisi islenemedi: $($_.Exception.Message)" }
     try { $stocks = @(Add-InsiderSignalData -Stocks $stocks -AsOf $runAt) } catch { Write-Warning "Insider sinyali islenemedi: $($_.Exception.Message)" }
 
+    # Makro rejim: makro anlik goruntuyu ERKEN cek (asagidaki gec cekim, null ise
+    # yedek olarak kalir), deterministik rejim motorunu calistir ve sinirli sektor
+    # tilt'ini skorlamadan once isle. Best-effort: hata olursa rapor etkilenmez.
+    $macroSnapshot = $null
+    $macroRegime = $null
+    try {
+        $macroSnapshot = Get-MacroSnapshot -AsOf $runAt -TimeoutSec $macroTimeoutSec
+        $macroRegime = Get-MacroRegime -Snapshot $macroSnapshot
+        if ($null -ne $macroRegime) {
+            $stocks = @(Add-MacroRegimeData -Stocks $stocks -Regime $macroRegime)
+            Write-Host ("Makro rejim: {0} (skor {1}, guven {2}; {3} olay)" -f $macroRegime.Regime, $macroRegime.Score, $macroRegime.Confidence, @($macroRegime.Events).Count)
+        }
+    }
+    catch { Write-Warning "Makro rejim motoru calismadi (rapor etkilenmez): $($_.Exception.Message)" }
+
     $stageStartedAt = Get-Date
     $scored = @(Get-BistScores -Stocks $stocks -Strategy $strategy | Sort-Object Score -Descending)
     # Ham-faktor eklenti skoru (kesitsel): backtest bulgusu, botun skorunun ~2 kati IC.
@@ -2304,7 +2319,14 @@ try {
     Write-TimingLog -Step 'Performans karsilastirma grafigi' -StartedAt $stageStartedAt
 
     $stageStartedAt = Get-Date
-    $macroSnapshot = Get-MacroSnapshot -IndexSnapshot $indexSnapshot -AsOf $runAt -TimeoutSec $macroTimeoutSec
+    # Erken cekim (rejim motoru icin, skorlamadan once) basarisiz olduysa yedek.
+    if ($null -eq $macroSnapshot) {
+        $macroSnapshot = Get-MacroSnapshot -IndexSnapshot $indexSnapshot -AsOf $runAt -TimeoutSec $macroTimeoutSec
+    }
+    # Rejim ozetini panel koprusune tasi (Export-Dashboard makro blogu okur).
+    if ($null -ne $macroSnapshot -and $null -ne $macroRegime) {
+        $macroSnapshot | Add-Member -NotePropertyName 'Regime' -NotePropertyValue $macroRegime -Force
+    }
     Write-TimingLog -Step 'Makro gorunum' -StartedAt $stageStartedAt
 
     # Point-in-time (PIT) anlik goruntu arsivi: o gun gozlenen evren + temel veri +
