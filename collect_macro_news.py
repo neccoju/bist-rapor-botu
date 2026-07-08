@@ -59,12 +59,26 @@ def tr_lower(s):
     return str(s or "").replace("İ", "i").replace("I", "ı").lower().replace("̇", "")
 
 
+# Olumsuzlama kalıpları: yön fiili bu eklerle geliyorsa eşleşme İPTAL edilir
+# ("düşmedi", "artmadı", "beklenmiyor", "değil"). Türkçe olumsuzluk ekleri.
+NEGATION = re.compile(r"(medi|madı|müyor|mıyor|muyor|mıyacak|meyecek|"
+                      r"beklenmiyor|değil|olmadı|edilmedi)\b")
+# Tahmin/beklenti dili: bu başlıklarda YÖN, gerçekleşen değil revizyonun ima
+# ettiği gelecek fiyat olabilir (EIA vakası). Kural motoru bunları elemez ama
+# GÜVENİ düşürür; kesin yön kararı LLM'e/insana bırakılır.
+FORECAST = re.compile(r"(tahmin|beklenti|öngör|hedef|projeksiyon|revize)")
+
+
 def classify(title):
-    """Başlığı ilk eşleşen kurala göre sınıflar; eşleşme yoksa None."""
+    """Başlığı ilk eşleşen kurala göre sınıflar; eşleşme yoksa None.
+    Olumsuzlama içeren başlık ELENİR (yanlış yön riski); tahmin dili güveni düşürür."""
     t = tr_lower(title)
+    if NEGATION.search(t):
+        return None
     for etype, direction, pattern in RULES:
         if re.search(tr_lower(pattern), t):
-            return {"eventType": etype, "direction": direction, "confidence": 0.35}
+            conf = 0.25 if FORECAST.search(t) else 0.35
+            return {"eventType": etype, "direction": direction, "confidence": conf}
     return None
 
 
@@ -107,7 +121,12 @@ def classify_with_llm(titles, timeout=30):
             {"role": "system", "content":
              "Türkiye/BIST makro haber sınıflandırıcısısın. Her başlık için BIST etkisi yönünü değerlendir. "
              "YALNIZ JSON dizisi döndür: [{\"i\":<indeks>,\"type\":<tip>,\"direction\":1|-1}] — sınıflanamayanı dahil etme. "
-             f"Geçerli tipler: {sorted(VALID_TYPES)}. direction=1 BIST için olumlu, -1 olumsuz."},
+             f"Geçerli tipler: {sorted(VALID_TYPES)}. direction=1 BIST için olumlu, -1 olumsuz. "
+             "KURAL 1 (olumsuzlama): 'düşmedi/artmadı/beklenmiyor' gibi olumsuz başlıkta yönü TERSİNE çevir veya dahil etme. "
+             "KURAL 2 (tahmin dili): Tahmin/beklenti revizyonlarında yön, GERÇEKLEŞEN fiyatı değil, revizyonun ima ettiği "
+             "GELECEK fiyatı yansıtır. Örnek: 'EIA petrol fiyatı tahminini düşürdü' -> gelecekte petrol UCUZ -> Türkiye "
+             "enflasyon/cari için OLUMLU -> commodity_oil direction=1 (gerçekleşen bir yükseliş DEĞİL). "
+             "Örnek: 'Brent petrol bugün yükseldi' -> gerçekleşen yükseliş -> commodity_oil direction=-1."},
             {"role": "user", "content": numbered},
         ],
     }).encode()

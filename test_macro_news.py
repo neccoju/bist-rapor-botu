@@ -16,6 +16,8 @@ CASES = [
     ("Moody's Türkiye'nin kredi notunu yükseltti", "political_regulatory", +1),
     ("TCMB'den Faiz İndirimi Sinyali Geldi", "interest_rate", +1),  # Turkce 'İ' casefold kilidi
     ("SIKILAŞMA SÜRÜYOR: faiz artırımı masada", "interest_rate", -1),  # buyuk-I/ı yolu
+    ("Enflasyon beklenenden düşmedi, baskı sürüyor", None, None),  # olumsuzlama -> elenmeli
+    ("Brent petrol bu hafta artmadı", None, None),  # olumsuzlama -> elenmeli
     ("Galatasaray derbisinde kritik sonuç", None, None),  # alakasiz -> None
 ]
 
@@ -42,4 +44,12 @@ assert good == {0: {"eventType": "inflation", "direction": 1, "confidence": 0.4}
 assert parse_llm_reply("bozuk cikti", 3) == {}
 assert parse_llm_reply('[]', 3) == {}
 print("parse_llm_reply testleri gecti (3)")
+
+# Tahmin dili guveni dusurmeli (0.25), gerceklesen olay 0.35
+from collect_macro_news import classify as _cls
+fc = _cls("Brent petrol tahmini yükseldi")
+assert fc is not None and abs(fc["confidence"] - 0.25) < 1e-9, fc
+rl = _cls("Brent petrol bugün yükseldi")
+assert rl is not None and abs(rl["confidence"] - 0.35) < 1e-9, rl
+print("tahmin-dili guven testi gecti (2)")
 print(f"tum testler gecti ({len(CASES)}+3)")
