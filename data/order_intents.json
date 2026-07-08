@@ -1,9 +1,38 @@
 ﻿{
     "Version":  1,
-    "UpdatedAt":  "2026-07-07T18:15:53.0078012Z",
+    "UpdatedAt":  "2026-07-08T18:16:01.0090939Z",
     "Mode":  "PaperOnly",
     "Notes":  "Gerçek emir değildir; raporun ürettiği teorik işlem niyetlerinin denetim kaydıdır.",
     "Intents":  [
-
+                    {
+                        "Id":  "InstantEntry:InstantEntry:17:AKSA:2026-07-08T18:16:01.0090939Z",
+                        "CreatedAt":  "2026-07-08T18:16:01.0090939Z",
+                        "Source":  "InstantEntry",
+                        "PortfolioId":  "InstantEntry",
+                        "PortfolioName":  "Anlık Fırsat Portföyü",
+                        "Side":  "Sell",
+                        "Symbol":  "AKSA",
+                        "Company":  "AKSA AKRİLİK KİMYA SANAYİİ A.Ş.",
+                        "Price":  11.4,
+                        "Quantity":  460.829493,
+                        "AmountTL":  5253.46,
+                        "Note":  "Iz-suren stop: tepe kazanc %13.6, tepeden %7.5 geri verildi. Gerçekleşen K/Z 253.46 TL.",
+                        "Mode":  "PaperOnly"
+                    },
+                    {
+                        "Id":  "InstantEntry:InstantEntry:18:TNZTP:2026-07-08T18:16:01.0090939Z",
+                        "CreatedAt":  "2026-07-08T18:16:01.0090939Z",
+                        "Source":  "InstantEntry",
+                        "PortfolioId":  "InstantEntry",
+                        "PortfolioName":  "Anlık Fırsat Portföyü",
+                        "Side":  "Sell",
+                        "Symbol":  "TNZTP",
+                        "Company":  "TAPDİ OKSİJEN ÖZEL SAĞLIK VE EĞİTİM HİZMETLERİ SANAYİ TİCARET A.Ş.",
+                        "Price":  23.38,
+                        "Quantity":  761.701128,
+                        "AmountTL":  17808.57,
+                        "Note":  "Zarar kes: getiri %-11.0 \u003c= stop %-8.0. Gerçekleşen K/Z -2,191.43 TL.",
+                        "Mode":  "PaperOnly"
+                    }
                 ]
 }
