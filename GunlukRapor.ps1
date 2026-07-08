@@ -2139,6 +2139,17 @@ try {
     $stocks = @(Invoke-BistStockScan)
     Write-TimingLog -Step 'Canli BIST taramasi' -StartedAt $stageStartedAt
 
+    # KRITIK KAYNAK KAPISI: TradingView tek evren kaynagi. Saglikli tarama 500+
+    # hisse doner; <100 ise kaynak kirilmis demektir (sema/endpoint degisikligi).
+    # Boyle bir durumda state'i bozacak bir rapor URETMEK yerine ERKEN dur ->
+    # workflow basarisizlik yolu (bildirim maili) tetiklenir. Esik cok dusuk
+    # tutuldu ki normal daralmalar (tatil oncesi vb.) yanlis alarm vermesin.
+    $minUniverse = [int](Get-EnvironmentValue -Names @('BIST_MIN_UNIVERSE') -Default '100')
+    if ($stocks.Count -lt $minUniverse) {
+        throw ("KRITIK: BIST taramasi yalniz $($stocks.Count) hisse dondu (esik $minUniverse). " +
+            "TradingView kaynagi kirilmis olabilir; rapor URETILMEDI (state korunuyor). Kaynak sema/endpoint kontrol edilmeli.")
+    }
+
     # Kendini ogrenen sinyal kalibrasyonunu skorlamadan ONCE yukle (varsa).
     # Get-BistScore, bilanço zamanlama ayarini bu kalibrasyona gore uygular.
     $calibrationPath = Join-Path $PSScriptRoot 'data\signal_calibration.json'

@@ -101,6 +101,24 @@ def parse_rows(rows):
     return items
 
 
+def fetch_with_retry(attempts=3):
+    """Birincil kaynaga (Is Yatirim screener) artan beklemeli retry.
+    NOT: Hisse-bazli yabanci oran icin BAGIMSIZ ucretsiz ikinci kaynak yok —
+    VAP 404, borsapy de ayni Is Yatirim endpoint'ini kullanir (bkz. oturum
+    incelemesi). Bu yuzden 'yedek kaynak' yerine gecici-hataya karsi retry;
+    kalici kirilmada dosya EZILMEZ (rapor son commit'li veriyi okumaya devam)."""
+    last = None
+    for i in range(1, attempts + 1):
+        try:
+            return parse_rows(fetch_screener())
+        except Exception as e:
+            last = e
+            print(f"[probe] isyatirim-screener denemesi {i}/{attempts}: {type(e).__name__}: {e}", flush=True)
+            if i < attempts:
+                time.sleep(3.0 * i)
+    raise last
+
+
 def main():
     prev = {}
     try:
@@ -109,10 +127,9 @@ def main():
     except Exception:
         pass
     try:
-        rows = fetch_screener()
-        data = parse_rows(rows)
+        data = fetch_with_retry()
     except Exception as e:
-        print(f"[probe] isyatirim-screener basarisiz -> {type(e).__name__}: {e}", flush=True)
+        print(f"[probe] isyatirim-screener {type(e).__name__}: {e}", flush=True)
         print("[sonuc] kaynak calismadi; dosya degistirilmedi.")
         return 0  # akisi bozma; log yol gosterir
     out = {"generatedAt": datetime.now(timezone.utc).isoformat(),
