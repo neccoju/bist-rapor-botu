@@ -693,6 +693,14 @@ if ([Math]::Abs(($rgScoredB.Score - $rgScoredA.Score) - 3.0) -gt 0.11) { throw "
 if ($rgScoredB.Explanation -notmatch 'Makro rejim ayarı') { throw 'S7 açıklamada rejim notu yok.' }
 Write-Host "Makro rejim motoru testi başarılı (risk-on/off, şahin faiz, petrol, veri-kapılı, skor +3, açıklama)."
 
+# --- Çıkış kuralı (Get-SignalVerdict): önceden taahhüt edilmiş karar ---
+if ((Get-SignalVerdict -MeanIC 0.05 -TStat 1.0 -Samples 3).verdict -ne 'YETERSIZ') { throw 'Az örnekte YETERSIZ olmalı.' }
+if ((Get-SignalVerdict -MeanIC (-0.04) -TStat (-1.8) -Samples 8).verdict -ne 'KAPAT') { throw 'Negatif IC + |t|>=1.5 -> KAPAT olmalı.' }
+if ((Get-SignalVerdict -MeanIC 0.03 -TStat 1.2 -Samples 8).verdict -ne 'ZAYIFLAT') { throw 'Zayıf kanıt (|t|<2) -> ZAYIFLAT olmalı.' }
+if ((Get-SignalVerdict -MeanIC 0.06 -TStat 2.5 -Samples 8).verdict -ne 'KORU') { throw 'Kanıtlı pozitif (t>=2) -> KORU olmalı.' }
+if ((Get-SignalVerdict -MeanIC 0.0 -TStat 2.1 -Samples 8).verdict -ne 'IZLE') { throw 'Nötr IC + güçlü t -> IZLE olmalı.' }
+Write-Host "Sinyal çıkış kuralı testi başarılı (YETERSIZ/KAPAT/ZAYIFLAT/KORU/IZLE)."
+
 # --- Ayar etki ölçümü (gölge seçim): ayarlar seçimi değiştirince yakalamalı ---
 function New-ImpactStock {
     param([string]$Sym, [string]$Sec, [double]$Score, [double]$Sm, [double]$Mr)

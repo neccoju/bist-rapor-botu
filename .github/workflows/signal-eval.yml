@@ -1,0 +1,72 @@
+name: Signal Evaluation (ayar IC + rejim ayrismasi — karar destek)
+
+# Her ayin 2'si (18:00 UTC) PIT arsivinden akilli-para/rejim AYARLARININ gercek
+# ongoruculugunu (IC + t-stat) ve rejim ileri-getiri ayrismasini olcer;
+# Get-SignalVerdict cikis kurali onerilerini data/signal_evaluation.json'a yazar.
+# CANLI AGIRLIKLARI DEGISTIRMEZ — karar destek. VERI-KAPILI: yeterli donem
+# birikene kadar dosya uretmez (bir sonraki ay tekrar dener).
+on:
+  schedule:
+    - cron: "0 18 2 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: signal-eval
+  cancel-in-progress: false
+
+jobs:
+  evaluate:
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - name: Checkout (main)
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: true
+
+      - name: Fetch pit-archive snapshots
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Continue'
+          git fetch origin pit-archive --depth=1
+          $wt = Join-Path $env:RUNNER_TEMP 'pitarch'
+          if (Test-Path $wt) { git worktree remove --force $wt 2>$null }
+          git worktree add --detach $wt origin/pit-archive
+          New-Item -ItemType Directory -Force -Path 'data/pit' | Out-Null
+          $src = Join-Path $wt 'pit'
+          if (Test-Path $src) {
+            Copy-Item (Join-Path $src '*.json') 'data/pit' -Force -ErrorAction SilentlyContinue
+            Write-Host ("pit-archive'den kopyalanan snapshot: " + @(Get-ChildItem 'data/pit' -Filter '*.json').Count)
+          }
+          else { Write-Host 'pit-archive henuz bos.' }
+          git worktree remove --force $wt 2>$null
+
+      - name: Run signal evaluation
+        shell: powershell
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\Invoke-SignalEvaluation.ps1
+
+      - name: Commit evaluation to main
+        if: success()
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Continue'
+          if (-not (Test-Path -LiteralPath 'data/signal_evaluation.json')) {
+            Write-Host 'Degerlendirme dosyasi yok (yetersiz veri); commit atlandi.'
+            exit 0
+          }
+          git config user.name 'bist-signaleval-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f data/signal_evaluation.json
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) { Write-Host 'Degerlendirme degismedi; commit yok.'; exit 0 }
+          git commit -m 'chore(eval): sinyal degerlendirme guncellendi [skip ci]'
+          for ($i = 0; $i -lt 4; $i++) {
+            git push origin "HEAD:${env:GITHUB_REF_NAME}"
+            if ($LASTEXITCODE -eq 0) { break }
+            git pull --rebase origin "${env:GITHUB_REF_NAME}"
+            Start-Sleep -Seconds ([Math]::Pow(2, $i + 1))
+          }

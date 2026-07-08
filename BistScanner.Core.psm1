@@ -6039,6 +6039,31 @@ function Get-EarningsTimingAdjustment {
     return $adj
 }
 
+function Get-SignalVerdict {
+    <#
+        ONCEDEN TAAHHUT EDILMIS cikis kurali (SAF): bir ayarin ileri-getiri IC'si
+        ve donemler-arasi t-istatistiginden karar uretir. Amac: karar gununde
+        "biraz daha bekleyelim" onyargisini onlemek — kural simdi yazili.
+
+        - Yetersiz ornek (Samples < MinSamples): 'YETERSIZ' (karar yok, veri bekle)
+        - meanIC < 0 ve |t| >= 1.5      : 'KAPAT'   (ayar 0'a cekilmeli — zararli)
+        - |t| < 2 (zayif kanit)          : 'ZAYIFLAT' (buyukluk yariya)
+        - meanIC > 0 ve t >= 2           : 'KORU'    (kanitli; buyukluk korunur)
+        - diger                          : 'IZLE'    (notr; degisiklik yok)
+    #>
+    param(
+        [double]$MeanIC,
+        [double]$TStat,
+        [int]$Samples,
+        [int]$MinSamples = 6
+    )
+    if ($Samples -lt $MinSamples) { return [pscustomobject]@{ verdict = 'YETERSIZ'; action = 'veri bekle'; reason = "yalniz $Samples donem (>= $MinSamples gerekli)" } }
+    if ($MeanIC -lt 0 -and [Math]::Abs($TStat) -ge 1.5) { return [pscustomobject]@{ verdict = 'KAPAT'; action = 'buyukluk 0'; reason = "negatif IC ($([Math]::Round($MeanIC,3))), |t|=$([Math]::Round([Math]::Abs($TStat),2))" } }
+    if ([Math]::Abs($TStat) -lt 2.0) { return [pscustomobject]@{ verdict = 'ZAYIFLAT'; action = 'buyukluk x0.5'; reason = "zayif kanit |t|=$([Math]::Round([Math]::Abs($TStat),2)) < 2" } }
+    if ($MeanIC -gt 0 -and $TStat -ge 2.0) { return [pscustomobject]@{ verdict = 'KORU'; action = 'degisiklik yok'; reason = "kanitli pozitif IC ($([Math]::Round($MeanIC,3))), t=$([Math]::Round($TStat,2))" } }
+    return [pscustomobject]@{ verdict = 'IZLE'; action = 'degisiklik yok'; reason = 'notr' }
+}
+
 function Add-HoldingFlag {
     <#
         config/holdings.json statik listesindeki hisselere IsHolding=$true isler.
@@ -7751,6 +7776,7 @@ Export-ModuleMember -Function `
     Get-AdjustmentImpactLog, `
     Add-JsonlLine, `
     Add-HoldingFlag, `
+    Get-SignalVerdict, `
     Get-ModelPortfolioDefinitions, `
     Get-ModelPortfolioSelection, `
     Get-LastModelPortfolioTradingDay, `
