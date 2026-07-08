@@ -693,6 +693,54 @@ if ([Math]::Abs(($rgScoredB.Score - $rgScoredA.Score) - 3.0) -gt 0.11) { throw "
 if ($rgScoredB.Explanation -notmatch 'Makro rejim ayarı') { throw 'S7 açıklamada rejim notu yok.' }
 Write-Host "Makro rejim motoru testi başarılı (risk-on/off, şahin faiz, petrol, veri-kapılı, skor +3, açıklama)."
 
+# --- Ayar etki ölçümü (gölge seçim): ayarlar seçimi değiştirince yakalamalı ---
+function New-ImpactStock {
+    param([string]$Sym, [string]$Sec, [double]$Score, [double]$Sm, [double]$Mr)
+    # Uygunluk filtresi (StrictMode) skorlanmis obje bekler; once GERCEK skorla,
+    # sonra Score/ayar/sektor alanlarini test degerleriyle override et.
+    $s = Get-BistScore -Stock ($sample | Select-Object *)
+    $s | Add-Member -NotePropertyName 'Symbol' -NotePropertyValue $Sym -Force
+    $s | Add-Member -NotePropertyName 'Sector' -NotePropertyValue $Sec -Force
+    $s | Add-Member -NotePropertyName 'SectorTR' -NotePropertyValue $Sec -Force
+    $s | Add-Member -NotePropertyName 'Score' -NotePropertyValue $Score -Force
+    $s | Add-Member -NotePropertyName 'SmartMoneyAdjustment' -NotePropertyValue $Sm -Force
+    $s | Add-Member -NotePropertyName 'MacroRegimeAdjustment' -NotePropertyValue $Mr -Force
+    $s | Add-Member -NotePropertyName 'VolatilityD' -NotePropertyValue 2.0 -Force
+    return $s
+}
+# Score = FINAL (ayarlı) skor. HH: final 66 (ayarsız 60) -> ayarla girer;
+# LL: final 58 (ayarsız 63) -> ayarla düşer. Ayarsız top5=...,LL; ayarlı top5=...,HH.
+$impactStocks = @(
+    (New-ImpactStock 'AA' 'S1' 90 0 0), (New-ImpactStock 'BB' 'S2' 85 0 0),
+    (New-ImpactStock 'CC' 'S3' 80 0 0), (New-ImpactStock 'DD' 'S4' 75 0 0),
+    (New-ImpactStock 'LL' 'S5' 58 (-5) 0),   # ayarsız 63 (5.), ayarlı 58 -> düşer
+    (New-ImpactStock 'HH' 'S6' 66 6 0)       # ayarsız 60 (6.), ayarlı 66 -> girer
+)
+$impact = Get-AdjustmentImpactLog -Stocks $impactStocks -Count 5
+if ($null -eq $impact) { throw 'Etki ölçümü null döndü.' }
+if (-not $impact.changed) { throw 'Ayarlar seçimi değiştirdi; changed=true olmalıydı.' }
+if ($impact.added -notcontains 'HH') { throw "Ayarların eklediği HH added'da olmalı: $($impact.added -join ',')" }
+if ($impact.dropped -notcontains 'LL') { throw "Ayarların dışladığı LL dropped'ta olmalı: $($impact.dropped -join ',')" }
+# Ayarlar sıfırken değişiklik olmamalı
+$flatStocks = @(
+    (New-ImpactStock 'AA' 'S1' 90 0 0), (New-ImpactStock 'BB' 'S2' 85 0 0),
+    (New-ImpactStock 'CC' 'S3' 80 0 0), (New-ImpactStock 'DD' 'S4' 75 0 0),
+    (New-ImpactStock 'EE' 'S5' 70 0 0), (New-ImpactStock 'FF' 'S6' 60 0 0)
+)
+$flatImpact = Get-AdjustmentImpactLog -Stocks $flatStocks -Count 5
+if ($flatImpact.changed) { throw 'Ayar sıfırken seçim değişmemeliydi.' }
+# JSONL yazımı
+$jlPath = Join-Path ([IO.Path]::GetTempPath()) ("jl_" + [guid]::NewGuid() + ".jsonl")
+try {
+    [void](Add-JsonlLine -Path $jlPath -Object ([pscustomobject]@{ a = 1; b = 'x' }))
+    [void](Add-JsonlLine -Path $jlPath -Object ([pscustomobject]@{ a = 2; b = 'y' }))
+    $lines = @(Get-Content -LiteralPath $jlPath)
+    if ($lines.Count -ne 2) { throw "JSONL 2 satır olmalıydı: $($lines.Count)" }
+    if (($lines[0] | ConvertFrom-Json).a -ne 1) { throw 'JSONL ilk satır bozuk.' }
+}
+finally { Remove-Item -LiteralPath $jlPath -ErrorAction SilentlyContinue }
+Write-Host "Ayar etki ölçümü testi başarılı (added/dropped tespiti, ayar-sıfır no-op, JSONL append)."
+
 # --- Veri sağlığı rozetleri: taze / bayat / yok ---
 $dhDir = Join-Path ([IO.Path]::GetTempPath()) ("dh_test_" + [guid]::NewGuid())
 New-Item -ItemType Directory -Path $dhDir -Force | Out-Null

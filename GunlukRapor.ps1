@@ -2182,6 +2182,30 @@ try {
     $scored = @(Add-RelativeStrengthRank -Stocks $scored)
     Write-TimingLog -Step 'Skorlama' -StartedAt $stageStartedAt
 
+    # OLCUM ALTYAPISI (karar etkisi YOK): ayarlarin GERCEK katkisini biriktir.
+    # 1) regime_log.jsonl — gunluk rejim etiketi/skoru (eslik degisikligi analizi).
+    # 2) shadow_selection.jsonl — ayarli vs ayarsiz Dengeli secimi farki.
+    # Ikisi de best-effort; hata rapor akisini bozmaz.
+    try {
+        $regimeLine = [ordered]@{
+            asOf = $runAt.ToString('yyyy-MM-dd')
+            regime = if ($null -ne $macroRegime) { [string]$macroRegime.Regime } else { $null }
+            score = if ($null -ne $macroRegime) { $macroRegime.Score } else { $null }
+            confidence = if ($null -ne $macroRegime) { $macroRegime.Confidence } else { $null }
+            events = if ($null -ne $macroRegime) { @($macroRegime.Events | ForEach-Object { @{ type = $_.Type; dir = $_.Direction } }) } else { @() }
+        }
+        [void](Add-JsonlLine -Path (Join-Path $PSScriptRoot 'data\regime_log.jsonl') -Object $regimeLine)
+
+        $impact = Get-AdjustmentImpactLog -Stocks $scored
+        if ($null -ne $impact) {
+            $impact | Add-Member -NotePropertyName 'asOf' -NotePropertyValue $runAt.ToString('yyyy-MM-dd') -Force
+            [void](Add-JsonlLine -Path (Join-Path $PSScriptRoot 'data\shadow_selection.jsonl') -Object $impact)
+            Write-Host ("Ayar etki olcumu: ayarlar Dengeli secimini {0} degistirdi (ekledi: {1}; disladi: {2})" -f `
+                    $(if ($impact.changed) { 'DEGISTIRDI' } else { 'degistirmedi' }), (@($impact.added) -join ','), (@($impact.dropped) -join ','))
+        }
+    }
+    catch { Write-Warning "Olcum logu yazilamadi (rapor etkilenmez): $($_.Exception.Message)" }
+
     # FAZ A (gozlem modu): piyasa genisligi. Skoru/secimi DEGISTIRMEZ; bağlamdır.
     $marketBreadth = $null
     try { $marketBreadth = Get-MarketBreadth -Stocks $scored }

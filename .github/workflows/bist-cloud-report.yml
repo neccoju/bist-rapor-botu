@@ -220,6 +220,8 @@ jobs:
             'data/order_intents.json',
             'data/paper_broker.json',
             'data/latest_point_in_time_snapshot.json',
+            'data/regime_log.jsonl',
+            'data/shadow_selection.jsonl',
             'docs/data/latest_report.json'
           ) | Where-Object { Test-Path -LiteralPath $_ }
           # NOT: Tarihli PIT arsivleri (data/pit + data/point_in_time_snapshots) ARTIK

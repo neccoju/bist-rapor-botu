@@ -4324,6 +4324,93 @@ function Get-StrategySelectionScore {
     }
 }
 
+function Get-AdjustmentImpactLog {
+    <#
+        OLCUM (karar etkisi YOK): akilli-para + makro-rejim ayarlarinin secimi
+        GERCEKTEN degistirip degistirmedigini olcer. Dengeli ekseninde (secim =
+        Score, ayarlarin tam kaldiraci burada) ayarli vs AYARSIZ ilk-N secimi
+        karsilastirir. Ayarsiz skor stored alanlardan REKONSTRUKTE edilir:
+        unadjusted = Score - SmartMoneyAdjustment - MacroRegimeAdjustment
+        (yeniden skorlama YOK, tam ve ucuz). Sektor tavani her ikisine uygulanir.
+
+        Doner: { asOf, count, actual[], shadow[], added[], dropped[], changed(bool),
+                 detail[] }. added = ayarlarin ekledigi isimler; dropped = ayarlarin
+                 disladigi isimler. Bu, IC'den once konusan erken bir isaret verir.
+    #>
+    [CmdletBinding()]
+    param(
+        [object[]]$Stocks = @(),
+        [int]$Count = 5,
+        [int]$MaxPerSector = 2
+    )
+    $eligible = @($Stocks | Where-Object { Test-ModelPortfolioEligibleStock -Stock $_ })
+    if ($eligible.Count -lt $Count) { return $null }
+
+    $greedy = {
+        param($ranked)
+        $sel = [System.Collections.Generic.List[string]]::new()
+        $secCount = @{}
+        foreach ($c in $ranked) {
+            $sec = [string](Get-ObjectPropertyValue -Object $c -Name 'SectorTR')
+            $sc = if ($secCount.ContainsKey($sec)) { [int]$secCount[$sec] } else { 0 }
+            if ($sc -ge $MaxPerSector) { continue }
+            [void]$sel.Add([string](Get-ObjectPropertyValue -Object $c -Name 'Symbol'))
+            $secCount[$sec] = $sc + 1
+            if ($sel.Count -ge $Count) { break }
+        }
+        return @($sel)
+    }
+    $scoreOf = { param($s, $adjusted)
+        $sc = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'Score')
+        if ($null -eq $sc) { return -1.0 }
+        if ($adjusted) { return $sc }
+        $sm = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'SmartMoneyAdjustment')
+        $mr = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'MacroRegimeAdjustment')
+        return $sc - $(if ($null -ne $sm) { $sm } else { 0.0 }) - $(if ($null -ne $mr) { $mr } else { 0.0 })
+    }
+    $actualRanked = @($eligible | Sort-Object @{ Expression = { & $scoreOf $_ $true }; Descending = $true })
+    $shadowRanked = @($eligible | Sort-Object @{ Expression = { & $scoreOf $_ $false }; Descending = $true })
+    $actual = & $greedy $actualRanked
+    $shadow = & $greedy $shadowRanked
+    $added = @($actual | Where-Object { $shadow -notcontains $_ })
+    $dropped = @($shadow | Where-Object { $actual -notcontains $_ })
+    $detail = @($eligible | Where-Object { $added -contains (Get-ObjectPropertyValue -Object $_ -Name 'Symbol') -or $dropped -contains (Get-ObjectPropertyValue -Object $_ -Name 'Symbol') } |
+        ForEach-Object {
+            [pscustomobject]@{
+                symbol = [string](Get-ObjectPropertyValue -Object $_ -Name 'Symbol')
+                score = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $_ -Name 'Score')
+                smartMoney = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $_ -Name 'SmartMoneyAdjustment')
+                macroRegime = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $_ -Name 'MacroRegimeAdjustment')
+            }
+        })
+    return [pscustomobject][ordered]@{
+        count = $Count
+        actual = $actual
+        shadow = $shadow
+        added = $added
+        dropped = $dropped
+        changed = ($added.Count -gt 0)
+        detail = $detail
+    }
+}
+
+function Add-JsonlLine {
+    <#
+        JSONL (satir-basi-JSON) dosyasina TEK satir ekler; olcum loglari icin
+        (regime_log, shadow_selection). Best-effort: dizin yoksa olusturur,
+        hata olursa sessizce gecer (olcum, raporu ASLA bozmaz).
+    #>
+    param([string]$Path, $Object)
+    try {
+        $dir = Split-Path -Parent $Path
+        if ($dir -and -not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
+        $line = ($Object | ConvertTo-Json -Depth 6 -Compress)
+        Add-Content -LiteralPath $Path -Value $line -Encoding UTF8
+        return $true
+    }
+    catch { return $false }
+}
+
 function Get-ModelPortfolioSelection {
     [CmdletBinding()]
     param(
@@ -7616,6 +7703,8 @@ Export-ModuleMember -Function `
     Get-FlowMacroMetrics, `
     Get-MacroRegime, `
     Add-MacroRegimeData, `
+    Get-AdjustmentImpactLog, `
+    Add-JsonlLine, `
     Get-ModelPortfolioDefinitions, `
     Get-ModelPortfolioSelection, `
     Get-LastModelPortfolioTradingDay, `
