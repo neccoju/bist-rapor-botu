@@ -14,16 +14,16 @@ rejim motoru haber olaylarını en fazla 4 adetle sınırlar. LLM yorumlama katm
 ileride bu dosyanın üstüne (enrich deseniyle) eklenebilir; kural sınıflandırıcı
 kalıcı fallback'tir. Kaynak erişilemezse exit 0 + log (akış bozulmaz).
 """
-import hashlib, json, re, sys, time, urllib.request
+import hashlib, json, re, sys, time, urllib.parse, urllib.request
 from datetime import datetime, timezone
 from xml.etree import ElementTree
 
 OUT = "data/macro_news.json"
 UA = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) BIST-Rapor-Botu/1.0"}
 QUERIES = [
-    "TCMB faiz karar%C4%B1",
-    "T%C3%BCrkiye enflasyon TUIK",
-    "T%C3%BCrkiye CDS risk primi",
+    "TCMB faiz kararı",
+    "Türkiye enflasyon TÜİK",
+    "Türkiye CDS risk primi",
     "dolar kuru TCMB rezerv",
     "brent petrol fiyat",
 ]
@@ -62,7 +62,8 @@ def classify(title):
 
 
 def fetch_rss(query, timeout=20):
-    url = f"https://news.google.com/rss/search?q={query}&hl=tr&gl=TR&ceid=TR:tr"
+    q = urllib.parse.quote(query)   # bosluk/Turkce karakterler encode edilmeli (InvalidURL duzeltmesi)
+    url = f"https://news.google.com/rss/search?q={q}&hl=tr&gl=TR&ceid=TR:tr"
     req = urllib.request.Request(url, headers=UA)
     with urllib.request.urlopen(req, timeout=timeout) as r:
         root = ElementTree.fromstring(r.read())
