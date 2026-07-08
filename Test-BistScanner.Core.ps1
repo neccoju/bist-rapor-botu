@@ -693,6 +693,21 @@ if ([Math]::Abs(($rgScoredB.Score - $rgScoredA.Score) - 3.0) -gt 0.11) { throw "
 if ($rgScoredB.Explanation -notmatch 'Makro rejim ayarı') { throw 'S7 açıklamada rejim notu yok.' }
 Write-Host "Makro rejim motoru testi başarılı (risk-on/off, şahin faiz, petrol, veri-kapılı, skor +3, açıklama)."
 
+# --- Veri sağlığı rozetleri: taze / bayat / yok ---
+$dhDir = Join-Path ([IO.Path]::GetTempPath()) ("dh_test_" + [guid]::NewGuid())
+New-Item -ItemType Directory -Path $dhDir -Force | Out-Null
+try {
+    @{ generatedAt = (Get-Date).ToUniversalTime().ToString('o'); items = @{} } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $dhDir 'mkk_foreign.json') -Encoding UTF8
+    @{ generatedAt = (Get-Date).ToUniversalTime().AddDays(-30).ToString('o') } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $dhDir 'macro_news.json') -Encoding UTF8
+    $dh = @(Get-DashDataHealth -DataDir $dhDir)
+    $dhMap = @{}; foreach ($row in $dh) { $dhMap[$row.file] = $row.status }
+    if ($dhMap['mkk_foreign.json'] -ne 'taze') { throw "mkk taze olmalıydı: $($dhMap['mkk_foreign.json'])" }
+    if ($dhMap['macro_news.json'] -ne 'bayat') { throw "30 günlük haber bayat olmalıydı: $($dhMap['macro_news.json'])" }
+    if ($dhMap['tefas_flows.json'] -ne 'yok') { throw "olmayan dosya 'yok' olmalıydı: $($dhMap['tefas_flows.json'])" }
+}
+finally { Remove-Item -LiteralPath $dhDir -Recurse -Force -ErrorAction SilentlyContinue }
+Write-Host "Veri sağlığı rozetleri testi başarılı (taze/bayat/yok)."
+
 # --- Haber katmanı: veri-türevli olay yoksa haber olayı rejime girer ---
 $newsDir = Join-Path ([IO.Path]::GetTempPath()) ("news_test_" + [guid]::NewGuid())
 New-Item -ItemType Directory -Path $newsDir -Force | Out-Null
@@ -776,7 +791,7 @@ Write-Host "Fiyat yapısı dedektörü testi başarılı (Darvas kırılımı + 
 
 # --- Panel JSON şema sözleşmesi (boş girdiyle bile anahtarlar mevcut olmalı) ---
 $schemaR = ConvertTo-DashboardReport -Stocks @() -AsOf ([datetime]'2026-07-01T12:00:00')
-$mustKeys = @('meta','summary','performance','allocation','modelPortfolios','instantEntry','stocks','sectorRotation','sectorFlow','riskMetrics','macro','kapNews','foreignFlow','tefasFlow','heatmap','smartMoney','technicalSignals','llmCommentary','actionItems')
+$mustKeys = @('meta','summary','performance','allocation','modelPortfolios','instantEntry','stocks','sectorRotation','sectorFlow','riskMetrics','macro','kapNews','foreignFlow','tefasFlow','dataHealth','heatmap','smartMoney','technicalSignals','llmCommentary','actionItems')
 $missingK = @($mustKeys | Where-Object { $null -eq $schemaR.PSObject.Properties[$_] })
 if ($missingK.Count) { throw "Panel şemasında eksik anahtar: $($missingK -join ', ')" }
 Write-Host "Panel JSON şema testi başarılı ($($mustKeys.Count) zorunlu anahtar mevcut)."
@@ -1028,6 +1043,7 @@ try {
     # onceki surum yalniz duz alan okudugu icin Macro dugumune hep null yaziyordu.
     $pitMacro = [pscustomobject]@{
         Status = 'Nötr'; SupportiveCount = 3; PressureCount = 2
+        Regime = [pscustomobject]@{ Regime = 'risk-on'; Score = 0.31; Confidence = 0.6 }
         Metrics = @(
             [pscustomobject]@{ Id = 'USDTRY_Tcmb'; Name = 'USD/TRY'; Value = 41.25 },
             [pscustomobject]@{ Id = 'TR_10Y'; Name = 'TR 10Y'; Value = 29.8 },
@@ -1045,6 +1061,8 @@ try {
     if ([Math]::Abs([double]$pitRead.Macro.Bist100 - 14539.8) -gt 0.001) { throw "PIT Macro.Bist100 cozulmedi: $($pitRead.Macro.Bist100)" }
     if ($null -ne $pitRead.Macro.Dxy) { throw 'PIT Macro.Dxy: verilmedi, null kalmaliydi.' }
     if ([string]$pitRead.Macro.Status -ne 'Nötr') { throw "PIT Macro.Status yanlis: $($pitRead.Macro.Status)" }
+    if ([string]$pitRead.Macro.RegimeLabel -ne 'risk-on') { throw "PIT rejim arsivi yazilmadi: $($pitRead.Macro.RegimeLabel)" }
+    if ([Math]::Abs([double]$pitRead.Macro.RegimeScore - 0.31) -gt 0.001) { throw "PIT RegimeScore yanlis: $($pitRead.Macro.RegimeScore)" }
     $pitMissing = Get-PitSnapshot -Date ([datetime]'2026-06-10') -Directory $pitDir
     if ($null -ne $pitMissing) { throw 'PIT exact-eslesme yoksa null donmeliydi.' }
     $pitBefore = Get-PitSnapshot -Date ([datetime]'2026-06-20') -Directory $pitDir -OnOrBefore

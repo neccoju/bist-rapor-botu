@@ -32,18 +32,26 @@ jobs:
     outputs:
       run: ${{ steps.check.outputs.run }}
     steps:
-      - name: Weekend guard (Istanbul saati)
+      - name: Weekend & holiday guard (Istanbul saati)
         id: check
         shell: bash
         run: |
           # Istanbul sabit UTC+3 (2016'dan beri yaz saati yok) -> guvenilir.
           dow=$(TZ='Europe/Istanbul' date +%u)   # 1=Pzt ... 6=Cts, 7=Paz
+          today=$(TZ='Europe/Istanbul' date +%F)
+          # BIST tam-kapali resmi tatiller (yariM gunler haric — o gunler seans var).
+          # DIKKAT: dini bayram tarihleri (Ramazan/Kurban) yilda bir kez, resmi
+          # takvim kesinlesince ELLE eklenmeli. 2026'nin kalan bayramlari gecti.
+          HOLIDAYS="2026-07-15 2026-10-29 2027-01-01 2027-04-23 2027-05-19 2027-07-15 2027-08-30 2027-10-29"
           if [ "$dow" -ge 6 ]; then
             echo "run=false" >> "$GITHUB_OUTPUT"
             echo "Hafta sonu (gun=$dow, Istanbul); BIST kapali -> rapor atlandi."
+          elif echo " $HOLIDAYS " | grep -q " $today "; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "Resmi tatil ($today); BIST kapali -> rapor atlandi."
           else
             echo "run=true" >> "$GITHUB_OUTPUT"
-            echo "Hafta ici (gun=$dow, Istanbul); rapor calisacak."
+            echo "Islem gunu ($today, gun=$dow); rapor calisacak."
           fi
 
   run-report:

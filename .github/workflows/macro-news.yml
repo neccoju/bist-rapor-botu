@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: write
+  models: read   # opsiyonel LLM katmani (GitHub Models, ucretsiz; token yoksa kural-motoru tek basina)
 
 concurrency:
   group: macro-news
@@ -34,6 +35,8 @@ jobs:
         run: python test_macro_news.py
 
       - name: Collect macro news
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python collect_macro_news.py
 
       - name: Commit data

@@ -68,6 +68,63 @@ def classify(title):
     return None
 
 
+VALID_TYPES = {"inflation", "interest_rate", "central_bank_tone", "cds_risk",
+               "fx_pressure", "foreign_flow", "global_risk", "commodity_oil",
+               "political_regulatory"}
+
+
+def parse_llm_reply(text, n_titles):
+    """LLM yanıtını güvenle ayrıştırır: JSON dizisi [{i,type,direction}|null].
+    Geçersiz tip/indeks/yön elenir (SAF — testlenebilir)."""
+    try:
+        m = re.search(r"\[.*\]", str(text), re.S)
+        rows = json.loads(m.group(0)) if m else []
+    except (ValueError, AttributeError):
+        return {}
+    out = {}
+    for r in rows:
+        if not isinstance(r, dict):
+            continue
+        i, t, d = r.get("i"), r.get("type"), r.get("direction")
+        if (isinstance(i, int) and 0 <= i < n_titles and t in VALID_TYPES
+                and d in (-1, 1)):
+            out[i] = {"eventType": t, "direction": d, "confidence": 0.4}
+    return out
+
+
+def classify_with_llm(titles, timeout=30):
+    """Kural-eşleşmeyen başlıkları GitHub Models ile sınıflar (OPSİYONEL katman).
+    GITHUB_TOKEN yoksa/istek düşerse boş döner — kural motoru kalıcı fallback."""
+    import os
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    if not token or not titles:
+        return {}
+    numbered = "\n".join(f"{i}: {t}" for i, t in enumerate(titles))
+    body = json.dumps({
+        "model": "openai/gpt-4o-mini",
+        "temperature": 0,
+        "messages": [
+            {"role": "system", "content":
+             "Türkiye/BIST makro haber sınıflandırıcısısın. Her başlık için BIST etkisi yönünü değerlendir. "
+             "YALNIZ JSON dizisi döndür: [{\"i\":<indeks>,\"type\":<tip>,\"direction\":1|-1}] — sınıflanamayanı dahil etme. "
+             f"Geçerli tipler: {sorted(VALID_TYPES)}. direction=1 BIST için olumlu, -1 olumsuz."},
+            {"role": "user", "content": numbered},
+        ],
+    }).encode()
+    req = urllib.request.Request(
+        "https://models.github.ai/inference/chat/completions", data=body,
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json",
+                 "Accept": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            resp = json.loads(r.read().decode("utf-8", "replace"))
+        content = resp["choices"][0]["message"]["content"]
+    except Exception as e:
+        print(f"[uyari] LLM siniflandirma atlandi: {type(e).__name__}: {e}", flush=True)
+        return {}
+    return parse_llm_reply(content, len(titles))
+
+
 def fetch_rss(query, timeout=20):
     q = urllib.parse.quote(query)   # bosluk/Turkce karakterler encode edilmeli (InvalidURL duzeltmesi)
     url = f"https://news.google.com/rss/search?q={q}&hl=tr&gl=TR&ceid=TR:tr"
@@ -117,7 +174,7 @@ def load_previous_items(now):
 
 def main():
     now = datetime.now(timezone.utc)
-    items, seen, errs = [], set(), []
+    items, seen, errs, unmatched = [], set(), [], []
     for it in load_previous_items(now):
         if it.get("id") not in seen:
             seen.add(it.get("id"))
@@ -138,15 +195,25 @@ def main():
                 continue
             cls = classify(r["title"])
             if cls is None:
-                continue  # siniflanamayan basliklar yazilmaz (gurultu)
+                # Kurala uymayanlar LLM katmanina aday (opsiyonel ikinci gecis)
+                unmatched.append({"id": key, "title": r["title"], "source": r["source"],
+                                  "date": (dt or now).isoformat()})
+                continue
             items.append({"id": key, "title": r["title"], "source": r["source"],
-                          "date": (dt or now).isoformat(), **cls})
+                          "date": (dt or now).isoformat(), "engine": "rule", **cls})
         time.sleep(1)
     if errs:
         print("[uyari] erisilemeyen sorgular:", *errs, sep="\n  ", flush=True)
     if errs and len(errs) == len(QUERIES):
         print("[sonuc] hicbir kaynak calismadi; dosya degistirilmedi (eski olaylar korunur).")
         return 0
+    # LLM katmani (opsiyonel): kurala uymayan basliklardan en yeni 12'si.
+    if unmatched:
+        cand = unmatched[:12]
+        llm = classify_with_llm([c["title"] for c in cand])
+        for i, cls in llm.items():
+            items.append({**cand[i], "engine": "llm", **cls})
+        print(f"[bilgi] LLM katmani: {len(cand)} aday -> {len(llm)} siniflandi", flush=True)
     items.sort(key=lambda it: str(it.get("date", "")), reverse=True)
     out = {"generatedAt": now.isoformat(),
            "source": "Google News RSS (TR) + kural tabanli siniflandirici",

@@ -34,4 +34,12 @@ for title, etype, direction in CASES:
 if fails:
     print(f"{fails} test FAIL")
     sys.exit(1)
-print(f"tum testler gecti ({len(CASES)})")
+
+# parse_llm_reply: gecerli/gecersiz LLM yanitlari guvenle ayristirilmali
+from collect_macro_news import parse_llm_reply
+good = parse_llm_reply('Sonuç: [{"i":0,"type":"inflation","direction":1},{"i":1,"type":"uydurma","direction":1},{"i":9,"type":"cds_risk","direction":-1},{"i":2,"type":"fx_pressure","direction":0}]', 3)
+assert good == {0: {"eventType": "inflation", "direction": 1, "confidence": 0.4}}, good  # gecersiz tip/indeks/yon elendi
+assert parse_llm_reply("bozuk cikti", 3) == {}
+assert parse_llm_reply('[]', 3) == {}
+print("parse_llm_reply testleri gecti (3)")
+print(f"tum testler gecti ({len(CASES)}+3)")

@@ -251,6 +251,40 @@ function Get-DashTefasFlow {
     catch { return $null }
 }
 
+function Get-DashDataHealth {
+    <#
+        Saglayici saglik ozeti: her collector dosyasinin son basarili veri yasi.
+        Sessiz kirilmalarin (kaynak API degisti, cron durdu) erken uyarisi.
+        status: taze | bayat | yok. Best-effort; okunamayan dosya 'yok' sayilir.
+    #>
+    param([string]$DataDir)
+    if ([string]::IsNullOrWhiteSpace($DataDir)) { $DataDir = Join-Path $PSScriptRoot 'data' }
+    $sources = @(
+        @{ File = 'mkk_foreign.json'; Name = 'Yabancı oran'; FreshHours = 36 },
+        @{ File = 'tefas_flows.json'; Name = 'TEFAS akış'; FreshHours = 192 },
+        @{ File = 'macro_news.json'; Name = 'Makro haber'; FreshHours = 36 },
+        @{ File = 'kap_enrichment.json'; Name = 'KAP yorum'; FreshHours = 36 }
+    )
+    $nowUtc = (Get-Date).ToUniversalTime()
+    return @($sources | ForEach-Object {
+            $src = $_
+            $ageH = $null; $status = 'yok'
+            try {
+                $p = Join-Path $DataDir $src.File
+                if (Test-Path -LiteralPath $p) {
+                    $doc = Get-Content -LiteralPath $p -Raw -Encoding UTF8 | ConvertFrom-Json
+                    $gen = Get-DashStr -Object $doc -Name 'generatedAt'
+                    if ($gen) {
+                        $ageH = [Math]::Round(($nowUtc - ([datetime]::Parse($gen)).ToUniversalTime()).TotalHours, 1)
+                        $status = if ($ageH -le $src.FreshHours) { 'taze' } else { 'bayat' }
+                    }
+                }
+            }
+            catch { $status = 'yok' }
+            [pscustomobject]@{ source = [string]$src.Name; file = [string]$src.File; ageHours = $ageH; status = $status }
+        })
+}
+
 function ConvertTo-DashboardReport {
     [CmdletBinding()]
     param(
@@ -538,6 +572,9 @@ function ConvertTo-DashboardReport {
     # ---- kapNews (LLM ile zenginlestirilmis KAP bildirimleri — dosyadan best-effort) ----
     $kapNews = Get-DashKapNews -DataDir $DataDir
 
+    # ---- dataHealth (saglayici saglik rozetleri — sessiz kirilma erken uyarisi) ----
+    $dataHealth = @(Get-DashDataHealth -DataDir $DataDir)
+
     # ---- technicalSignals (RSI/trend/MACD/kırılım — tek anlık görüntüden dürüst türevler) ----
     $ob = @($Stocks | Where-Object { $r = Get-DashNum -Object $_ -Name 'RSI'; $null -ne $r -and $r -ge 70 } | Sort-Object @{ Expression = { Get-DashNum -Object $_ -Name 'RSI' }; Descending = $true } | Select-Object -First 8 | ForEach-Object { [pscustomobject]@{ ticker = (Get-DashStr -Object $_ -Name 'Symbol'); rsi = (Get-DashNum -Object $_ -Name 'RSI') } })
     $os = @($Stocks | Where-Object { $r = Get-DashNum -Object $_ -Name 'RSI'; $null -ne $r -and $r -le 30 } | Sort-Object @{ Expression = { Get-DashNum -Object $_ -Name 'RSI' } } | Select-Object -First 8 | ForEach-Object { [pscustomobject]@{ ticker = (Get-DashStr -Object $_ -Name 'Symbol'); rsi = (Get-DashNum -Object $_ -Name 'RSI') } })
@@ -704,6 +741,7 @@ function ConvertTo-DashboardReport {
         kapNews = $kapNews
         foreignFlow = $foreignFlowPanel
         tefasFlow = $tefasFlow
+        dataHealth = $dataHealth
         heatmap = $heatmap
         sectorRotation = $sectorRotation
         sectorFlow = $sectorFlow

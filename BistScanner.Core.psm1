@@ -7038,10 +7038,12 @@ function Save-PitSnapshot {
                 Perf3Month       = Get-ObjectPropertyValue -Object $s -Name 'Perf3Month'
                 RelativeVolume   = Get-ObjectPropertyValue -Object $s -Name 'RelativeVolume'
                 Volume           = Get-ObjectPropertyValue -Object $s -Name 'Volume'
-                # Yabanci saklama alanlari — ileride akilli-para esiklerinin
-                # IC/walk-forward ile kalibre edilebilmesi icin arsivlenir.
+                # Akilli-para/rejim alanlari — ayarlarin GERCEK ongoruculugunun
+                # (IC) ileride olculebilmesi icin as-observed arsivlenir.
                 ForeignPct       = Get-ObjectPropertyValue -Object $s -Name 'ForeignPct'
                 ForeignChg1wBps  = Get-ObjectPropertyValue -Object $s -Name 'ForeignChg1wBps'
+                InsiderSignal    = Get-ObjectPropertyValue -Object $s -Name 'InsiderSignal'
+                MacroRegimeAdjustment = Get-ObjectPropertyValue -Object $s -Name 'MacroRegimeAdjustment'
                 LatestReportDate = (Get-ObjectPropertyValue -Object $s -Name 'LatestReportDate')
                 NextEarningsDate = (Get-ObjectPropertyValue -Object $s -Name 'NextEarningsDate')
                 FiscalPeriodEnd  = (Get-ObjectPropertyValue -Object $s -Name 'FiscalPeriodEnd')
@@ -7066,6 +7068,9 @@ function Save-PitSnapshot {
             if ($metricById.ContainsKey($metricId)) { return $metricById[$metricId] }
             return $null
         }
+        # Rejim arsivi: gunluk rejim etiketi/skoru PIT'e yazilir ki ileride
+        # "rejim -> 1 ay ileri getiri" olculebilsin (rejim motorunun dogrulamasi).
+        $regimeObj = Get-ObjectPropertyValue -Object $Macro -Name 'Regime'
         $macroNote = [pscustomobject][ordered]@{
             UsdTry  = & $pickMacro 'UsdTry' 'USDTRY_Tcmb'
             Tr10Y   = & $pickMacro 'Tr10Y' 'TR_10Y'
@@ -7074,6 +7079,9 @@ function Save-PitSnapshot {
             Cds5Y   = & $pickMacro 'Cds5Y' 'TR_CDS_5Y'
             Bist100 = & $pickMacro 'Bist100' 'XU100'
             Status  = [string](Get-ObjectPropertyValue -Object $Macro -Name 'Status')
+            RegimeLabel = [string](Get-ObjectPropertyValue -Object $regimeObj -Name 'Regime')
+            RegimeScore = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $regimeObj -Name 'Score')
+            RegimeConfidence = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $regimeObj -Name 'Confidence')
         }
     }
 

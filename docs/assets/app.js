@@ -449,7 +449,18 @@
         (arr(rg.events).length ? '<ul class="plainlist" style="margin-bottom:10px">' + arr(rg.events).map((e) =>
           "<li><b>" + esc(e.type || "—") + "</b> <span class='badge " + (e.direction > 0 ? "badge--pos" : e.direction < 0 ? "badge--neg" : "badge--neutral") + "'>" + (e.direction > 0 ? "+" : e.direction < 0 ? "−" : "~") + "</span> <span class='flat'>" + esc(e.note || "") + "</span></li>").join("") + "</ul>" : "");
     }
-    host.innerHTML = meter + regimeRow + chips + (has(m.note) ? '<p class="ie__note">' + esc(m.note) + "</p>" : "");
+    let healthRow = "";
+    const dh = arr(report.dataHealth);
+    if (dh.length) {
+      healthRow = '<div class="chiprow" style="margin-top:10px">' +
+        '<span class="flat" style="font-size:11px">Veri sağlığı:</span>' +
+        dh.map((s) => {
+          const cls = s.status === "taze" ? "badge--pos" : s.status === "bayat" ? "badge--warn" : "badge--neg";
+          const age = isNum(s.ageHours) ? (s.ageHours < 48 ? fmtTR(s.ageHours, 0) + "s" : fmtTR(s.ageHours / 24, 0) + "g") : "—";
+          return '<span class="badge ' + cls + '" title="' + esc(s.file || "") + '">' + esc(s.source || "—") + " · " + age + "</span>";
+        }).join("") + "</div>";
+    }
+    host.innerHTML = meter + regimeRow + chips + healthRow + (has(m.note) ? '<p class="ie__note">' + esc(m.note) + "</p>" : "");
   }
 
   /* ---------------- 4b-2) Risk metrikleri tablosu ---------------- */
