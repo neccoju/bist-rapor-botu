@@ -52,11 +52,18 @@ RULES = [
 ]
 
 
+def tr_lower(s):
+    """Türkçe-güvenli küçültme: 'İ'.lower() Unicode'da 'i'+U+0307 (birleşen
+    nokta) üretir ve 'indirim' desenini KIRAR; 'I' da 'ı' olmalı. Önce map,
+    sonra lower."""
+    return str(s or "").replace("İ", "i").replace("I", "ı").lower().replace("̇", "")
+
+
 def classify(title):
     """Başlığı ilk eşleşen kurala göre sınıflar; eşleşme yoksa None."""
-    t = str(title or "").lower()
+    t = tr_lower(title)
     for etype, direction, pattern in RULES:
-        if re.search(pattern.lower(), t):
+        if re.search(tr_lower(pattern), t):
             return {"eventType": etype, "direction": direction, "confidence": 0.35}
     return None
 
@@ -89,9 +96,32 @@ def parse_pubdate(s):
     return None
 
 
+def load_previous_items(now):
+    """Önceki koşunun hâlâ taze (<MAX_AGE_HOURS) olayları korunur — sınıflanabilir
+    haber çıkmayan bir koşu, dünün geçerli olaylarını boş dosyayla EZMESİN."""
+    try:
+        with open(OUT, encoding="utf-8") as f:
+            old = json.load(f).get("items", [])
+    except Exception:
+        return []
+    kept = []
+    for it in old:
+        try:
+            dt = datetime.fromisoformat(str(it.get("date")))
+        except (ValueError, TypeError):
+            continue
+        if (now - dt).total_seconds() <= MAX_AGE_HOURS * 3600:
+            kept.append(it)
+    return kept
+
+
 def main():
     now = datetime.now(timezone.utc)
     items, seen, errs = [], set(), []
+    for it in load_previous_items(now):
+        if it.get("id") not in seen:
+            seen.add(it.get("id"))
+            items.append(it)
     for q in QUERIES:
         try:
             rows = fetch_rss(q)
@@ -114,9 +144,10 @@ def main():
         time.sleep(1)
     if errs:
         print("[uyari] erisilemeyen sorgular:", *errs, sep="\n  ", flush=True)
-    if not items and errs and len(errs) == len(QUERIES):
-        print("[sonuc] hicbir kaynak calismadi; dosya degistirilmedi.")
+    if errs and len(errs) == len(QUERIES):
+        print("[sonuc] hicbir kaynak calismadi; dosya degistirilmedi (eski olaylar korunur).")
         return 0
+    items.sort(key=lambda it: str(it.get("date", "")), reverse=True)
     out = {"generatedAt": now.isoformat(),
            "source": "Google News RSS (TR) + kural tabanli siniflandirici",
            "note": "Baslik-kurali siniflandirmasi kabadir; rejim motoru bu olaylari dusuk guvenle ve sinirli sayida kullanir.",

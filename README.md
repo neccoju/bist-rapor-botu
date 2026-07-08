@@ -268,6 +268,29 @@ korur; Öğrenen Algoritma öğrenilmiş ağırlıkları uygular — ikisi **yan
 - **Maksimum düşüş (drawdown)** her değerlemede izlenir.
 - **Lider strateji:** rapor, alfaya göre en iyi stratejiyi öne çıkarır.
 
+## Akıllı Para ve Makro Rejim Girdileri (skor ayarları)
+
+Klasik 7 bileşenin üstüne, hepsi **sınırlı ve veri-kapılı** (kaynak dosya yoksa
+etki 0; mevcut davranış birebir korunur) dört ayar katmanı skora eklenir:
+
+| Katman | Kaynak dosya | Etki | Üretici |
+|---|---|---|---|
+| Yabancı saklama Δ1H | `data/mkk_foreign.json` | ±5 puan (İş Yatırım/MKK; 1A teyidi ±1) | `mkk-collector.yml` (hafta içi 05:23) |
+| İçsel işlem (insider) | `data/kap_enrichment.json` | ±2 puan (son 7 gün, LLM yönü) | `kap-enrich.yml` |
+| Makro rejim | `Get-MacroRegime` (canlı) | ±3 puan sektör tilt + rejim tabanı | rapor koşusu içinde |
+| Haber olayları | `data/macro_news.json` | rejime düşük güvenle (≤0.5) katılır | `macro-news.yml` (hafta içi 14:40) |
+
+**Makro rejim motoru** deterministiktir (LLM yok): TÜFE yönü, TCMB fonlama,
+CDS, USD/TRY, yabancı/TEFAS akışları, VIX+DXY, Brent ve BIST100 trendinden
+olay taksonomisi üretir (`inflation`, `interest_rate`, `cds_risk`,
+`fx_pressure`, `foreign_flow`, `global_risk`, `commodity_oil`...), ağırlıklı
+toplamdan **risk-on / neutral / risk-off** etiketi ve sektör tiltleri çıkarır.
+Rejim ayrıca bileşen ağırlıklarını küçük ve simetrik oynatır (momentum ±0.04).
+Haber katmanı kural tabanlı başlık sınıflandırmasıdır; **veri > başlık**
+önceliği vardır (aynı tipte veri-türevli olay varsa haber atlanır). Yabancı
+akış faktörü (`FFlow`) ayrıca ölçüm modunda PIT arşivine yazılır; aylık
+oto-kalibrasyon yeterli veri birikince ağırlığını IC ile veriye bağlar.
+
 ## Platform Kontrolleri
 
 - **Risk kuralları:** `config/report_settings.*.json` içindeki `RiskRules`

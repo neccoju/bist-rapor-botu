@@ -14,6 +14,8 @@ CASES = [
     ("Dolar kuru rekor tazeledi", "fx_pressure", -1),
     ("Brent petrol yükseldi, 90 doları aştı", "commodity_oil", -1),
     ("Moody's Türkiye'nin kredi notunu yükseltti", "political_regulatory", +1),
+    ("TCMB'den Faiz İndirimi Sinyali Geldi", "interest_rate", +1),  # Turkce 'İ' casefold kilidi
+    ("SIKILAŞMA SÜRÜYOR: faiz artırımı masada", "interest_rate", -1),  # buyuk-I/ı yolu
     ("Galatasaray derbisinde kritik sonuç", None, None),  # alakasiz -> None
 ]
 

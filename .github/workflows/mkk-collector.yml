@@ -1,10 +1,13 @@
 name: MKK Foreign Ratio Collector
 
-# Yabanci saklama oranlari (MKK kaynakli, ~T-10 gecikmeli) haftalik toplanir.
+# Yabanci saklama oranlari (MKK kaynakli) toplanir.
 # Kaynak erisilemezse script exit 0 doner (akis bozulmaz) ve log neden gosterir.
 on:
   schedule:
-    - cron: "23 5 * * 1"   # pazartesi 05:23 UTC (haftalik yeterli; veri zaten gecikmeli)
+    # HAFTA ICI HER GUN: Is Yatirim screener'daki 'cari yabanci orani' ve 1H
+    # degisim GUNLUK yenilenir; haftalik cron akilli-para sinyalini 4 gun
+    # bayat birakiyordu (veri-tazeligi incelemesi bulgusu).
+    - cron: "23 5 * * 1-5"
   workflow_dispatch:
 
 permissions:
