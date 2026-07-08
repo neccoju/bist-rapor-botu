@@ -104,6 +104,23 @@
   }
   function inlineEmpty(msg) { return '<div class="inline-empty">' + esc(msg || "Bu alan henüz üretilmedi.") + "</div>"; }
   function arr(v) { return Array.isArray(v) ? v : []; }
+  // reportDate (YYYY-MM-DD) ile bugün arasındaki İŞ GÜNÜ sayısı (Cts/Paz hariç).
+  // Geçersiz tarihte null. Bayat-veri banner'ı için (sebep-bağımsız staleness).
+  function businessDaysSince(dateStr) {
+    if (!has(dateStr)) return null;
+    const d = new Date(dateStr + "T00:00:00");
+    if (isNaN(d.getTime())) return null;
+    const now = new Date();
+    let count = 0;
+    const cur = new Date(d.getTime());
+    cur.setDate(cur.getDate() + 1);
+    while (cur <= now) {
+      const wd = cur.getDay();
+      if (wd !== 0 && wd !== 6) count++;
+      cur.setDate(cur.getDate() + 1);
+    }
+    return count;
+  }
 
   /* ---------------- 1) Header ---------------- */
   function renderHeader(report) {
@@ -115,6 +132,13 @@
       if (has(m.lastUpdatedText)) bits.push("<span>Son güncelleme: <b>" + esc(m.lastUpdatedText) + "</b></span>");
       if (has(m.strategy)) bits.push("<span>Strateji: <b>" + esc(m.strategy) + "</b></span>");
       if (isNum(m.scannedCount)) bits.push("<span><b>" + fmtTR(m.scannedCount, 0) + "</b> hisse tarandı</span>");
+      // BAYAT-VERİ BANNER'ı: rapor tarihi, hafta sonu hariç 2 iş gününden eskiyse
+      // (tarama başarısız / workflow durmuş / kaynak kırılmış) kullanıcı KÖR
+      // KALMASIN diye görünür uyarı. Sebep-bağımsız: yalnız reportDate yaşına bakar.
+      const staleDays = businessDaysSince(m.reportDate);
+      if (staleDays !== null && staleDays >= 2 && !m.isSample) {
+        bits.push('<span class="badge badge--warn" title="Rapor ' + staleDays + ' iş günüdür yenilenmedi">⚠️ Veri güncel değil (' + staleDays + ' iş günü)</span>');
+      }
       meta.innerHTML = bits.length ? bits.join("") : inlineEmpty("Rapor üst bilgisi yok.");
     }
     const status = $("#marketStatus"), statusText = $("#marketStatusText");
