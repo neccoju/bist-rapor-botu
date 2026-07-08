@@ -1,23 +1,83 @@
 {
- "generatedAt": "2026-07-08T06:22:26.598450+00:00",
+ "generatedAt": "2026-07-08T08:32:45.145704+00:00",
  "source": "Google News RSS (TR) + kural tabanli siniflandirici",
  "note": "Baslik-kurali siniflandirmasi kabadir; rejim motoru bu olaylari dusuk guvenle ve sinirli sayida kullanir.",
- "count": 2,
+ "count": 8,
  "items": [
   {
-   "id": "59e014c92af7",
-   "title": "Petrol fiyatları Hürmüz riskleri ile yükseldi - Investing.com Türkiye",
-   "source": "Investing.com Türkiye",
-   "date": "2026-07-07T01:13:44+00:00",
+   "id": "aac96f08a7c6",
+   "title": "Brent petrol tahmini 65 dolara çekildi - Ekonomi Manşet",
+   "source": "Ekonomi Manşet",
+   "date": "2026-07-08T07:04:48+00:00",
+   "engine": "llm",
+   "eventType": "commodity_oil",
+   "direction": 1,
+   "confidence": 0.4
+  },
+  {
+   "id": "363f9723bda3",
+   "title": "ABD Enerji Enformasyon İdaresi petrol fiyatı tahminini düşürdü - Uzmanpara",
+   "source": "Uzmanpara",
+   "date": "2026-07-08T07:01:20+00:00",
+   "engine": "llm",
+   "eventType": "commodity_oil",
+   "direction": -1,
+   "confidence": 0.4
+  },
+  {
+   "id": "c4d13ec2b1ef",
+   "title": "Sürücülerin gözü aydın, fiyatlar geriliyor! Brent petrol için tarihi düşüş tahmini - Konya Yenigün Gazetesi",
+   "source": "Konya Yenigün Gazetesi",
+   "date": "2026-07-08T06:44:00+00:00",
+   "engine": "llm",
+   "eventType": "commodity_oil",
+   "direction": 1,
+   "confidence": 0.4
+  },
+  {
+   "id": "0d27d318f3c4",
+   "title": "Brent Petrol Fiyatları Yükseldi - Son Dakika",
+   "source": "Son Dakika",
+   "date": "2026-07-08T06:41:21+00:00",
+   "engine": "rule",
    "eventType": "commodity_oil",
    "direction": -1,
    "confidence": 0.35
+  },
+  {
+   "id": "ac1a44cfabc6",
+   "title": "ABD’nin kritik hamlesi sonrası petrol yeniden yükseldi: Petrol fiyat tahminleri değişti! İşte detaylar... - Sabah",
+   "source": "Sabah",
+   "date": "2026-07-08T06:21:25+00:00",
+   "engine": "rule",
+   "eventType": "commodity_oil",
+   "direction": -1,
+   "confidence": 0.35
+  },
+  {
+   "id": "1cb1d4e600f4",
+   "title": "Motorine iki günde ikinci zam - Gazete Oksijen",
+   "source": "Gazete Oksijen",
+   "date": "2026-07-08T04:56:00+00:00",
+   "engine": "llm",
+   "eventType": "commodity_oil",
+   "direction": -1,
+   "confidence": 0.4
   },
   {
    "id": "cccadbf1d795",
    "title": "Petrol fiyatları yükseldi (7 Temmuz 2026) - Yeniçağ Gazetesi",
    "source": "Yeniçağ Gazetesi",
    "date": "2026-07-07T06:53:12+00:00",
+   "eventType": "commodity_oil",
+   "direction": -1,
+   "confidence": 0.35
+  },
+  {
+   "id": "59e014c92af7",
+   "title": "Petrol fiyatları Hürmüz riskleri ile yükseldi - Investing.com Türkiye",
+   "source": "Investing.com Türkiye",
+   "date": "2026-07-07T01:13:44+00:00",
    "eventType": "commodity_oil",
    "direction": -1,
    "confidence": 0.35
