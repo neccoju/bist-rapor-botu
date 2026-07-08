@@ -2834,11 +2834,23 @@ function Get-BistScore {
     $movingAverageScore = ($movingAverageScores | Measure-Object -Average).Average
     $trendScore = (0.55 * $recommendationScore) + (0.45 * $movingAverageScore)
 
+    # Holding modeli: config/holdings.json listesindeki hisseler (Add-HoldingFlag)
+    # TradingView'da tutarsiz etiketlenir (bazi 'Finance', bazi baska). Bu bayrak
+    # onlari TEK TIP ele alir: FD/FAVOK ve borc muaf (yapisal kaldirac normaldir),
+    # degerleme PB-agirlikli (konsolide F/K tek-sefer istirak kar/zarariyla carpilir;
+    # NAV/defter daha guvenilir). Bilinen sinir: gercek NAV iskontosu icin istirak
+    # verisi gerekir (medium-term TODO). Etkin sektor Finance gibi muafiyet alir.
+    $isHolding = [bool](Get-ObjectPropertyValue -Object $Stock -Name 'IsHolding')
+    $effSector = if ($isHolding) { 'Finance' } else { $Stock.Sector }
+
     $peScore = Get-PEComponentScore -Value $Stock.PE
     $pbScore = Get-PBComponentScore -Value $Stock.PB
     $evEbitda = Get-ObjectPropertyValue -Object $Stock -Name 'EvEbitda'
-    $evEbitdaScore = Get-EvEbitdaComponentScore -Value $evEbitda -Sector $Stock.Sector
-    $valueScore = if ($Stock.Sector -eq 'Finance') {
+    $evEbitdaScore = Get-EvEbitdaComponentScore -Value $evEbitda -Sector $effSector
+    $valueScore = if ($isHolding) {
+        (0.20 * $peScore) + (0.80 * $pbScore)
+    }
+    elseif ($Stock.Sector -eq 'Finance') {
         (0.35 * $peScore) + (0.65 * $pbScore)
     }
     elseif ($Stock.Sector -eq 'Real Estate') {
@@ -2851,7 +2863,7 @@ function Get-BistScore {
     }
 
     $roeScore = Get-ROEComponentScore -Value $Stock.ROE
-    $debtScore = Get-DebtComponentScore -Value $Stock.DebtToEquity -Sector $Stock.Sector
+    $debtScore = Get-DebtComponentScore -Value $Stock.DebtToEquity -Sector $effSector
     $qualityScore = (0.75 * $roeScore) + (0.25 * $debtScore)
     $earningsScore = Get-EarningsComponentScore -Stock $Stock
 
@@ -4251,8 +4263,9 @@ function Test-ModelPortfolioEligibleStock {
     $macdHistogram = Get-ObjectPropertyValue -Object $Stock -Name 'MacdHistogram'
 
     $roeOk = $null -eq $Stock.ROE -or $Stock.ROE -ge 10
-    # GYO'da FD/FAVOK filtre kriteri olarak anlamsiz (banka gibi muaf tutulur).
-    $valueOk = $Stock.Sector -in @('Finance', 'Real Estate') -or $null -eq $evEbitda -or ($evEbitda -gt 0 -and $evEbitda -le 12)
+    # GYO/holdingde FD/FAVOK filtre kriteri olarak anlamsiz (banka gibi muaf).
+    $isHoldingElig = [bool](Get-ObjectPropertyValue -Object $Stock -Name 'IsHolding')
+    $valueOk = $isHoldingElig -or $Stock.Sector -in @('Finance', 'Real Estate') -or $null -eq $evEbitda -or ($evEbitda -gt 0 -and $evEbitda -le 12)
     $ebitdaOk = ($null -eq $latestEbitda -or $latestEbitda -gt 0) -and
         ($null -eq $positiveEbitdaCount -or $positiveEbitdaCount -ge 3)
     $macroOk = $null -eq $Stock.MacroSectorScore -or $Stock.MacroSectorScore -ge 35
@@ -6026,6 +6039,38 @@ function Get-EarningsTimingAdjustment {
     return $adj
 }
 
+function Add-HoldingFlag {
+    <#
+        config/holdings.json statik listesindeki hisselere IsHolding=$true isler.
+        Holdingler TradingView'da tutarsiz etiketlendigi icin (bazi 'Finance')
+        bu bayrak Get-BistScore'da TEK TIP muamele (PB-agirlikli deger, FD/FAVOK+
+        borc muaf) saglar. Best-effort: dosya yoksa hicbir hisse isaretlenmez.
+    #>
+    [CmdletBinding()]
+    param([object[]]$Stocks = @(), [string]$Path)
+    if ([string]::IsNullOrWhiteSpace($Path)) { $Path = Join-Path $PSScriptRoot 'config\holdings.json' }
+    $set = @{}
+    try {
+        if (Test-Path -LiteralPath $Path) {
+            $doc = Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json
+            foreach ($s in @(Get-ObjectPropertyValue -Object $doc -Name 'symbols')) {
+                $u = ([string]$s).Trim().ToUpperInvariant()
+                if ($u) { $set[$u] = $true }
+            }
+        }
+    }
+    catch { $set = @{} }
+    if ($set.Count -eq 0) { return @($Stocks) }
+    foreach ($stock in $Stocks) {
+        if ($null -eq $stock) { continue }
+        $sym = ([string](Get-ObjectPropertyValue -Object $stock -Name 'Symbol')).Trim().ToUpperInvariant()
+        if ($sym -and $set.ContainsKey($sym)) {
+            $stock | Add-Member -NotePropertyName 'IsHolding' -NotePropertyValue $true -Force
+        }
+    }
+    return @($Stocks)
+}
+
 function Add-ForeignOwnershipData {
     <#
         data/mkk_foreign.json'daki (haftalik MKK collector) hisse bazli yabanci
@@ -7705,6 +7750,7 @@ Export-ModuleMember -Function `
     Add-MacroRegimeData, `
     Get-AdjustmentImpactLog, `
     Add-JsonlLine, `
+    Add-HoldingFlag, `
     Get-ModelPortfolioDefinitions, `
     Get-ModelPortfolioSelection, `
     Get-LastModelPortfolioTradingDay, `

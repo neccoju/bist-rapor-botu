@@ -2150,6 +2150,7 @@ try {
 
     # Akilli para verilerini skorlamadan ONCE isle (veri-kapili; dosya yoksa no-op):
     # yabanci saklama degisimi (mkk_foreign.json) + icsel islem sinyali (kap_enrichment).
+    try { $stocks = @(Add-HoldingFlag -Stocks $stocks) } catch { Write-Warning "Holding bayragi islenemedi: $($_.Exception.Message)" }
     try { $stocks = @(Add-ForeignOwnershipData -Stocks $stocks) } catch { Write-Warning "Yabanci oran verisi islenemedi: $($_.Exception.Message)" }
     try { $stocks = @(Add-InsiderSignalData -Stocks $stocks -AsOf $runAt) } catch { Write-Warning "Insider sinyali islenemedi: $($_.Exception.Message)" }
 

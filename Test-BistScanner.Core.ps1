@@ -774,6 +774,25 @@ try {
 finally { Remove-Item -LiteralPath $newsDir -Recurse -Force -ErrorAction SilentlyContinue }
 Write-Host "Makro haber katmanı testi başarılı (haber-tek başına rejim, düşük güven, veri>başlık önceliği)."
 
+# --- Holding modeli: statik liste bayrağı + PB-ağırlıklı, FD/FAVÖK muaf ---
+$holdDir = Join-Path ([IO.Path]::GetTempPath()) ("hold_test_" + [guid]::NewGuid())
+New-Item -ItemType Directory -Path $holdDir -Force | Out-Null
+try {
+    '{ "symbols": ["HOLDX"] }' | Set-Content -LiteralPath (Join-Path $holdDir 'holdings.json') -Encoding UTF8
+    $hStock = $sample | Select-Object *; $hStock.Symbol = 'HOLDX'; $hStock.Sector = 'Industrial'; $hStock.SectorTR = 'Sanayi'; $hStock.PB = 0.6; $hStock.EvEbitda = 25
+    $nStock = $sample | Select-Object *; $nStock.Symbol = 'OPERX'; $nStock.Sector = 'Industrial'; $nStock.SectorTR = 'Sanayi'; $nStock.PB = 0.6; $nStock.EvEbitda = 25
+    [void](Add-HoldingFlag -Stocks @($hStock) -Path (Join-Path $holdDir 'holdings.json'))
+    if (-not [bool](Get-ObjectPropertyValue -Object $hStock -Name 'IsHolding')) { throw 'HOLDX holding bayrağı işlenmedi.' }
+    $hScored = Get-BistScore -Stock $hStock; $nScored = Get-BistScore -Stock $nStock
+    # Holding: ucuz defter + kötü FD/FAVÖK'e rağmen operasyonelden yüksek değer puanı
+    if ($hScored.ValueScore -le $nScored.ValueScore) { throw "Holding PB-ağırlıklı değeri operasyonelden yüksek olmalıydı: H=$($hScored.ValueScore) N=$($nScored.ValueScore)" }
+    # Liste dışı hisse işaretlenmemeli
+    [void](Add-HoldingFlag -Stocks @($nStock) -Path (Join-Path $holdDir 'holdings.json'))
+    if ($null -ne (Get-ObjectPropertyValue -Object $nStock -Name 'IsHolding')) { throw 'Liste dışı OPERX işaretlenmemeliydi.' }
+}
+finally { Remove-Item -LiteralPath $holdDir -Recurse -Force -ErrorAction SilentlyContinue }
+Write-Host "Holding modeli testi başarılı (statik liste bayrağı; PB-ağırlıklı değer, FD/FAVÖK muaf; liste dışı işaretlenmiyor)."
+
 # --- GYO sektör modeli: değerleme PB-ağırlıklı, FD/FAVÖK cezası yok ---
 $gyoStock = $sample | Select-Object *; $gyoStock.Sector = 'Real Estate'; $gyoStock.PB = 0.6; $gyoStock.EvEbitda = 20
 $indStock = $sample | Select-Object *; $indStock.Sector = 'Industrial'; $indStock.PB = 0.6; $indStock.EvEbitda = 20
