@@ -1113,6 +1113,7 @@ function Get-MacroSnapshot {
                 Id = $indexInfo.Id
                 Name = $indexInfo.Name
                 Value = Get-ObjectPropertyValue -Object $index -Name 'Price'
+                Sma200 = Get-ObjectPropertyValue -Object $index -Name 'SMA200'   # rejim-nakit hedefi trend kapisi icin
                 Change = $null
                 ChangePct = Get-ObjectPropertyValue -Object $index -Name 'ChangePct'
                 Unit = 'puan'
@@ -6039,6 +6040,32 @@ function Get-EarningsTimingAdjustment {
     return $adj
 }
 
+function Get-RegimeCashTarget {
+    <#
+        REJIM-GUDUMLU NAKIT HEDEFI (SAF). Rejim etiketi + BIST100'un SMA200'e gore
+        konumundan savunmaci nakit orani uretir (0.0 - 0.40). Iki bagimsiz savunma
+        sinyali (risk-off VE trend-altı) tam savunmayi tetikler; tek sinyal yarim.
+
+        Bugun YALNIZ OLCUM: regime_log'a ve PIT'e yazilir, ileri-getiri ile faydasi
+        signal-eval'de olculur. CANLI TAHSISI DEGISTIRMEZ (once kanit, sonra pilot).
+
+        Doner: 0.40 (risk-off + trend-alti) | 0.20 (tek savunma) | 0.10 (notr) |
+               0.0 (risk-on + trend-ustu). Veri eksikse notr 0.10 tabani.
+    #>
+    param(
+        [string]$RegimeLabel,
+        $Bist100BelowSma200   # $true / $false / $null (bilinmiyor)
+    )
+    $riskOff = $RegimeLabel -eq 'risk-off'
+    $riskOn = $RegimeLabel -eq 'risk-on'
+    $below = ($Bist100BelowSma200 -eq $true)
+    $aboveKnown = ($Bist100BelowSma200 -eq $false)
+    if ($riskOff -and $below) { return 0.40 }
+    if ($riskOff -or $below) { return 0.20 }
+    if ($riskOn -and $aboveKnown) { return 0.0 }
+    return 0.10
+}
+
 function Get-SignalVerdict {
     <#
         ONCEDEN TAAHHUT EDILMIS cikis kurali (SAF): bir ayarin ileri-getiri IC'si
@@ -7226,8 +7253,16 @@ function Save-PitSnapshot {
             return $null
         }
         # Rejim arsivi: gunluk rejim etiketi/skoru PIT'e yazilir ki ileride
-        # "rejim -> 1 ay ileri getiri" olculebilsin (rejim motorunun dogrulamasi).
+        # "rejim -> 1 ay ileri getiri" ve "nakit hedefi -> ileri getiri" olculebilsin.
         $regimeObj = Get-ObjectPropertyValue -Object $Macro -Name 'Regime'
+        $regimeLabelPit = [string](Get-ObjectPropertyValue -Object $regimeObj -Name 'Regime')
+        # Nakit hedefi (golge): XU100 Value/Sma200'den trend kapisi + rejim.
+        $belowSmaPit = $null
+        $xuPit = @(Get-ObjectPropertyValue -Object $Macro -Name 'Metrics') | Where-Object { [string]$_.Id -eq 'XU100' } | Select-Object -First 1
+        $xuPricePit = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $xuPit -Name 'Value')
+        $xuSmaPit = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $xuPit -Name 'Sma200')
+        if ($null -ne $xuPricePit -and $null -ne $xuSmaPit -and $xuSmaPit -gt 0) { $belowSmaPit = ($xuPricePit -lt $xuSmaPit) }
+        $cashTargetPit = Get-RegimeCashTarget -RegimeLabel $regimeLabelPit -Bist100BelowSma200 $belowSmaPit
         $macroNote = [pscustomobject][ordered]@{
             UsdTry  = & $pickMacro 'UsdTry' 'USDTRY_Tcmb'
             Tr10Y   = & $pickMacro 'Tr10Y' 'TR_10Y'
@@ -7236,9 +7271,11 @@ function Save-PitSnapshot {
             Cds5Y   = & $pickMacro 'Cds5Y' 'TR_CDS_5Y'
             Bist100 = & $pickMacro 'Bist100' 'XU100'
             Status  = [string](Get-ObjectPropertyValue -Object $Macro -Name 'Status')
-            RegimeLabel = [string](Get-ObjectPropertyValue -Object $regimeObj -Name 'Regime')
+            RegimeLabel = $regimeLabelPit
             RegimeScore = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $regimeObj -Name 'Score')
             RegimeConfidence = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $regimeObj -Name 'Confidence')
+            BelowSma200 = $belowSmaPit
+            CashTargetPct = [Math]::Round($cashTargetPit * 100, 0)
         }
     }
 
@@ -7777,6 +7814,7 @@ Export-ModuleMember -Function `
     Add-JsonlLine, `
     Add-HoldingFlag, `
     Get-SignalVerdict, `
+    Get-RegimeCashTarget, `
     Get-ModelPortfolioDefinitions, `
     Get-ModelPortfolioSelection, `
     Get-LastModelPortfolioTradingDay, `

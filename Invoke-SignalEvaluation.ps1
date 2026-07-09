@@ -49,8 +49,11 @@ foreach ($f in $files) {
         $sym = [string](Get-ObjectPropertyValue -Object $c -Name 'Symbol')
         if ($sym) { $map[$sym] = $c }
     }
-    $regime = Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $obj -Name 'Macro') -Name 'RegimeLabel'
-    if ($map.Count -gt 0) { [void]$snaps.Add([pscustomobject]@{ Date = $dt; Map = $map; Regime = [string]$regime }) }
+    $macroNode = Get-ObjectPropertyValue -Object $obj -Name 'Macro'
+    $regime = Get-ObjectPropertyValue -Object $macroNode -Name 'RegimeLabel'
+    $cashT = Get-ObjectPropertyValue -Object $macroNode -Name 'CashTargetPct'
+    $bist = Get-ObjectPropertyValue -Object $macroNode -Name 'Bist100'
+    if ($map.Count -gt 0) { [void]$snaps.Add([pscustomobject]@{ Date = $dt; Map = $map; Regime = [string]$regime; CashTarget = $cashT; Bist100 = $bist }) }
 }
 $snaps = @($snaps | Sort-Object Date)
 Write-Host "Gecerli snapshot: $($snaps.Count)"
@@ -59,6 +62,8 @@ Write-Host "Gecerli snapshot: $($snaps.Count)"
 $adjFields = @('SmartMoneyAdjustment', 'MacroRegimeAdjustment', 'ForeignChg1wBps')
 $icByField = @{}; foreach ($fn in $adjFields) { $icByField[$fn] = New-Object System.Collections.Generic.List[double] }
 $regimeFwd = @{ 'risk-on' = (New-Object System.Collections.Generic.List[double]); 'risk-off' = (New-Object System.Collections.Generic.List[double]); 'neutral' = (New-Object System.Collections.Generic.List[double]) }
+$overlayDefensive = New-Object System.Collections.Generic.List[double]   # nakit-onerilen gunlerde BIST fwd
+$overlayInvested = New-Object System.Collections.Generic.List[double]    # tam-yatirim gunlerinde BIST fwd
 $periodsUsed = 0
 $nextEligible = [datetime]::MinValue
 
@@ -103,6 +108,16 @@ for ($i = 0; $i -lt $snaps.Count; $i++) {
         $meanRet = ($rets | Measure-Object -Average).Average
         [void]$regimeFwd[$reg].Add([double]$meanRet)
     }
+    # OVERLAY OLCUMU: nakit-onerilen (cashTargetPct >= 20) gunlerde BIST100 ileri
+    # getirisi negatifse nakit katmani KORUR. BIST100 fwd getirisi = snapshot'taki
+    # XU100 fiyatinin ileri degisimi (piyasa geneli proxy).
+    $ct = ConvertTo-DoubleOrNull $snaps[$i].CashTarget
+    $b0 = ConvertTo-DoubleOrNull $snaps[$i].Bist100
+    $b1 = ConvertTo-DoubleOrNull $fwd.Bist100
+    if ($null -ne $ct -and $null -ne $b0 -and $null -ne $b1 -and $b0 -gt 0) {
+        $bistFwd = ($b1 / $b0 - 1.0) * 100.0
+        if ($ct -ge 20) { [void]$overlayDefensive.Add([double]$bistFwd) } else { [void]$overlayInvested.Add([double]$bistFwd) }
+    }
 }
 
 Write-Host "Bagimsiz donem: $periodsUsed (gereken min: $MinPeriods)"
@@ -141,6 +156,15 @@ $offMean = ($regimeSummary | Where-Object { $_.regime -eq 'risk-off' }).meanFwdR
 $regimeWorks = ($null -ne $onMean -and $null -ne $offMean -and $onMean -gt $offMean)
 Write-Host ("Rejim ayrismasi: risk-on {0}% vs risk-off {1}% -> {2}" -f $onMean, $offMean, $(if ($regimeWorks) { 'BEKLENEN YON' } else { 'ZAYIF/TERS' }))
 
+# OVERLAY degerlendirmesi: nakit-onerilen gunlerin BIST fwd getirisi tam-yatirim
+# gunlerinden DUSUKSE nakit katmani drawdown'i azaltir (overlay faydali).
+$defArr = @($overlayDefensive.ToArray()); $invArr = @($overlayInvested.ToArray())
+$defMean = if ($defArr.Count) { [Math]::Round(($defArr | Measure-Object -Average).Average, 2) } else { $null }
+$invMean = if ($invArr.Count) { [Math]::Round(($invArr | Measure-Object -Average).Average, 2) } else { $null }
+$overlayHelps = ($null -ne $defMean -and $null -ne $invMean -and $defMean -lt $invMean)
+$overlayVerdict = if ($defArr.Count -lt $MinPeriods) { 'YETERSIZ' } elseif ($overlayHelps -and $defMean -lt 0) { 'FAYDALI' } elseif ($overlayHelps) { 'ZAYIF-FAYDA' } else { 'FAYDASIZ' }
+Write-Host ("Nakit overlay: savunma-gunu BIST fwd {0}% vs yatirim-gunu {1}% -> {2}" -f $defMean, $invMean, $overlayVerdict)
+
 $payload = [pscustomobject][ordered]@{
     generatedAt = (Get-Date).ToUniversalTime().ToString('o')
     periodsUsed = $periodsUsed
@@ -148,6 +172,12 @@ $payload = [pscustomobject][ordered]@{
     note = 'Ayar IC + rejim ileri-getiri ayrismasi. CANLI AGIRLIKLARI DEGISTIRMEZ; Get-SignalVerdict cikis kurali onerisidir, karar kullaniciya aittir.'
     adjustments = $findings
     regime = [pscustomobject]@{ summary = $regimeSummary; separationAsExpected = $regimeWorks }
+    cashOverlay = [pscustomobject]@{
+        defensiveDays = $defArr.Count; defensiveBistFwdPct = $defMean
+        investedDays = $invArr.Count; investedBistFwdPct = $invMean
+        verdict = $overlayVerdict
+        note = 'Nakit-onerilen gunlerin BIST fwd getirisi yatirim-gununden dusukse overlay drawdown azaltir. FAYDALI ise RiskDengeli pilotu dusunulebilir (canli tahsis su an DEGISMIYOR).'
+    }
 }
 $dir = Split-Path -Parent $OutPath
 if ($dir -and -not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }

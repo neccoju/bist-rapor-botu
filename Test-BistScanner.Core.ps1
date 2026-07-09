@@ -693,6 +693,15 @@ if ([Math]::Abs(($rgScoredB.Score - $rgScoredA.Score) - 3.0) -gt 0.11) { throw "
 if ($rgScoredB.Explanation -notmatch 'Makro rejim ayarı') { throw 'S7 açıklamada rejim notu yok.' }
 Write-Host "Makro rejim motoru testi başarılı (risk-on/off, şahin faiz, petrol, veri-kapılı, skor +3, açıklama)."
 
+# --- Rejim-güdümlü nakit hedefi (Get-RegimeCashTarget) ---
+if ((Get-RegimeCashTarget -RegimeLabel 'risk-off' -Bist100BelowSma200 $true) -ne 0.40) { throw 'risk-off + trend-altı -> %40 nakit olmalı.' }
+if ((Get-RegimeCashTarget -RegimeLabel 'risk-off' -Bist100BelowSma200 $false) -ne 0.20) { throw 'risk-off tek başına -> %20 olmalı.' }
+if ((Get-RegimeCashTarget -RegimeLabel 'neutral' -Bist100BelowSma200 $true) -ne 0.20) { throw 'trend-altı tek başına -> %20 olmalı.' }
+if ((Get-RegimeCashTarget -RegimeLabel 'risk-on' -Bist100BelowSma200 $false) -ne 0.0) { throw 'risk-on + trend-üstü -> %0 olmalı.' }
+if ((Get-RegimeCashTarget -RegimeLabel 'neutral' -Bist100BelowSma200 $false) -ne 0.10) { throw 'nötr + trend-üstü -> %10 tampon olmalı.' }
+if ((Get-RegimeCashTarget -RegimeLabel $null -Bist100BelowSma200 $null) -ne 0.10) { throw 'veri yok -> %10 taban olmalı.' }
+Write-Host "Rejim-nakit hedefi testi başarılı (%40/%20/%10/%0; veri-eksik taban)."
+
 # --- Çıkış kuralı (Get-SignalVerdict): önceden taahhüt edilmiş karar ---
 if ((Get-SignalVerdict -MeanIC 0.05 -TStat 1.0 -Samples 3).verdict -ne 'YETERSIZ') { throw 'Az örnekte YETERSIZ olmalı.' }
 if ((Get-SignalVerdict -MeanIC (-0.04) -TStat (-1.8) -Samples 8).verdict -ne 'KAPAT') { throw 'Negatif IC + |t|>=1.5 -> KAPAT olmalı.' }

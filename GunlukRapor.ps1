@@ -2199,14 +2199,31 @@ try {
     # 2) shadow_selection.jsonl — ayarli vs ayarsiz Dengeli secimi farki.
     # Ikisi de best-effort; hata rapor akisini bozmaz.
     try {
+        # Rejim-nakit hedefi (GOLGE OLCUM): BIST100'un SMA200'e gore konumu +
+        # rejim etiketinden savunmaci nakit orani. Canli tahsisi DEGISTIRMEZ;
+        # regime_log + PIT'e yazilir, faydasi signal-eval ile ileri-getiriden olculur.
+        $regimeLabelNow = if ($null -ne $macroRegime) { [string]$macroRegime.Regime } else { $null }
+        $belowSma200 = $null
+        try {
+            $xu = @(Get-ObjectPropertyValue -Object $macroSnapshot -Name 'Metrics') | Where-Object { [string]$_.Id -eq 'XU100' } | Select-Object -First 1
+            $xuPrice = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $xu -Name 'Value')
+            $xuSma = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $xu -Name 'Sma200')
+            if ($null -ne $xuPrice -and $null -ne $xuSma -and $xuSma -gt 0) { $belowSma200 = ($xuPrice -lt $xuSma) }
+        }
+        catch { $belowSma200 = $null }
+        $cashTarget = Get-RegimeCashTarget -RegimeLabel $regimeLabelNow -Bist100BelowSma200 $belowSma200
+
         $regimeLine = [ordered]@{
             asOf = $runAt.ToString('yyyy-MM-dd')
-            regime = if ($null -ne $macroRegime) { [string]$macroRegime.Regime } else { $null }
+            regime = $regimeLabelNow
             score = if ($null -ne $macroRegime) { $macroRegime.Score } else { $null }
             confidence = if ($null -ne $macroRegime) { $macroRegime.Confidence } else { $null }
+            belowSma200 = $belowSma200
+            cashTargetPct = [Math]::Round($cashTarget * 100, 0)
             events = if ($null -ne $macroRegime) { @($macroRegime.Events | ForEach-Object { @{ type = $_.Type; dir = $_.Direction } }) } else { @() }
         }
         [void](Add-JsonlLine -Path (Join-Path $PSScriptRoot 'data\regime_log.jsonl') -Object $regimeLine)
+        Write-Host ("Rejim-nakit hedefi (golge): %{0} nakit (rejim={1}, SMA200-alti={2})" -f $regimeLine.cashTargetPct, $regimeLabelNow, $belowSma200)
 
         $impact = Get-AdjustmentImpactLog -Stocks $scored
         if ($null -ne $impact) {
