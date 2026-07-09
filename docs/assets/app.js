@@ -83,11 +83,19 @@
   const fmtTR = (n, d = 2) => new Intl.NumberFormat("tr-TR", { minimumFractionDigits: d, maximumFractionDigits: d }).format(n);
   const isNum = (v) => typeof v === "number" && isFinite(v);
   const has = (v) => v !== null && v !== undefined && v !== "";
-  const SERIES_COLORS = { bist100: "#e7ecf3", nasdaq: "#1db17a", sp500: "#22a3c0", gold: "#d9a23b", usdtry: "#9a7bff", deposit: "#e5849b" };
-  const PALETTE = ["#6e8bff", "#e7ecf3", "#1db17a", "#d9a23b", "#22a3c0", "#9a7bff", "#e5849b"];
-  // Model portföy çizgileri için ayrı, canlı bir palet (BIST100/Altın gibi benchmark
-  // renkleriyle çakışmasın) — portföyler solid+kalın, benchmark'lar dashed+ince çizilir.
-  const PF_PALETTE = ["#6e8bff", "#f0a23c", "#31c48d", "#f4615f", "#a78bfa", "#22c1c3", "#e879b9"];
+  // Kategorik seri paleti — TEMA-DUYARLI: aynı 8 renk tonunun açık/koyu yüzeye göre
+  // seçilmiş adımları (yüzeye karşı kontrast + renk körlüğü ayrımı doğrulanmış set;
+  // sıralama CVD-güvenliğin parçasıdır, DEĞİŞTİRME). Kimlik renge tek başına
+  // bırakılmaz: legend + tooltip her grafikte var.
+  const CAT_DARK  = ["#3987e5", "#199e70", "#c98500", "#008300", "#9085e9", "#e66767", "#d55181", "#d95926"];
+  const CAT_LIGHT = ["#2a78d6", "#1baf7a", "#eda100", "#008300", "#4a3aa7", "#e34948", "#e87ba4", "#eb6834"];
+  const isLightTheme = () => document.documentElement.getAttribute("data-theme") === "light";
+  const catColor = (i) => { const p = isLightTheme() ? CAT_LIGHT : CAT_DARK; return p[i % p.length]; };
+  // Benchmark çizgileri (kesikli+ince; portföyler solid+kalın): BIST100 nötr mürekkep
+  // tonudur — eski sabit #e7ecf3 açık temada beyaz üstünde görünmüyordu.
+  const BENCH_DARK  = { bist100: "#c3c2b7", nasdaq: "#1db17a", sp500: "#22a3c0", gold: "#d9a23b", usdtry: "#9a7bff", deposit: "#e5849b" };
+  const BENCH_LIGHT = { bist100: "#52514e", nasdaq: "#0f9d6b", sp500: "#187f98", gold: "#b07600", usdtry: "#6d5cd0", deposit: "#c25e77" };
+  const benchColor = (key) => (isLightTheme() ? BENCH_LIGHT : BENCH_DARK)[key];
   function shortPfName(name) { return String(name || "").replace(/\s*Model Portföyü?\s*$/i, ""); }
 
   function pctText(v) { if (!isNum(v)) return "—"; const s = v > 0 ? "+" : ""; return s + fmtTR(v) + "%"; }
@@ -236,7 +244,7 @@
     let pfIdx = 0;
     const datasets = ordered.map((s) => {
       const isPf = s.key && s.key.indexOf("pf_") === 0;
-      const color = isPf ? PF_PALETTE[pfIdx % PF_PALETTE.length] : (SERIES_COLORS[s.key] || PALETTE[0]);
+      const color = isPf ? catColor(pfIdx) : (benchColor(s.key) || catColor(0));
       if (isPf) pfIdx++;
       const map = {}; arr(s.points).forEach((p) => { map[p.t] = p.v; });
       return { label: isPf ? shortPfName(s.name) : (s.name || s.key || "Seri"),
@@ -327,7 +335,7 @@
         type: "doughnut",
         data: { labels: holds.map((h) => h.ticker || "—"),
           datasets: [{ data: holds.map((h) => (isNum(h.weightPct) ? h.weightPct : 0)),
-            backgroundColor: holds.map((_, j) => PALETTE[j % PALETTE.length]), borderColor: border, borderWidth: 2 }] },
+            backgroundColor: holds.map((_, j) => catColor(j)), borderColor: border, borderWidth: 2 }] },
         options: { responsive: true, maintainAspectRatio: false, cutout: "58%",
           plugins: { legend: { position: "bottom", labels: { color: textc, boxWidth: 8, font: { size: 10 }, padding: 8 } },
             tooltip: { callbacks: { label: (c) => " " + c.label + ": %" + fmtTR(c.parsed) } } } }
@@ -629,7 +637,7 @@
       return;
     }
     if (empty) empty.hidden = true;
-    thead.innerHTML = "<tr><th class='no-sort' style='width:34px'>★</th>" + STOCK_COLS.map((c) =>
+    thead.innerHTML = "<tr><th class='no-sort th-star'>★</th>" + STOCK_COLS.map((c) =>
       '<th class="' + (c.noSort ? "no-sort" : "") + '" data-key="' + c.key + '" data-type="' + c.type + '">' +
       esc(c.label) + (c.noSort ? "" : '<span class="arrow">▲</span>') + "</th>").join("") + "</tr>";
     thead.querySelectorAll("th").forEach((th) => {
@@ -1020,12 +1028,19 @@
 
   /* ---------------- UI davranışları ---------------- */
   function initTheme() {
+    // PWA/tarayıcı çubuğu rengi temayla senkron kalsın (standalone modda görünür).
+    const syncThemeMeta = () => {
+      const m = document.querySelector('meta[name="theme-color"]');
+      if (m) m.setAttribute("content", isLightTheme() ? "#f6f8fb" : "#0b0e14");
+    };
     const saved = localStorage.getItem("bist-panel-theme");
     if (saved) document.documentElement.setAttribute("data-theme", saved);
+    syncThemeMeta();
     const toggle = () => {
       const cur = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
       document.documentElement.setAttribute("data-theme", cur);
       localStorage.setItem("bist-panel-theme", cur);
+      syncThemeMeta();
       // grafik renkleri temaya bağlı; yeniden çiz
       if (window.__lastReport__) { try { renderPerformanceChart(window.__lastReport__); renderPortfolioTable(window.__lastReport__); renderAllocationPies(window.__lastReport__); renderPortfolioCompareChart(window.__lastReport__); renderSectorSankeyChart(window.__lastReport__); renderSectorRotation(window.__lastReport__); renderHeatmap(window.__lastReport__); } catch (e) {} }
     };
@@ -1039,15 +1054,20 @@
     if (toggle) toggle.addEventListener("click", () => { sidebar.classList.toggle("is-open"); scrim.classList.toggle("is-open"); });
     if (scrim) scrim.addEventListener("click", close);
     document.querySelectorAll(".nav__item").forEach((it) => it.addEventListener("click", close));
-    // scroll-spy
+    // scroll-spy: sol nav + mobil alt sekme çubuğu birlikte güncellenir.
+    // Sekmeler bölüm GRUBU taşır (data-sections="a,b,c") — hangi bölüm görünürse
+    // onu kapsayan sekme aktifleşir.
     const sections = Array.prototype.slice.call(document.querySelectorAll("section.block, header#ozet"));
     const items = document.querySelectorAll(".nav__item");
+    const tabs = document.querySelectorAll(".tabbar__item");
     if ("IntersectionObserver" in window && sections.length) {
       const obs = new IntersectionObserver((entries) => {
         entries.forEach((en) => {
           if (en.isIntersecting) {
             const id = en.target.id;
             items.forEach((i) => i.classList.toggle("is-active", i.dataset.section === id));
+            tabs.forEach((t) => t.classList.toggle("is-active",
+              (t.dataset.sections || "").split(",").indexOf(id) >= 0));
           }
         });
       }, { rootMargin: "-45% 0px -50% 0px", threshold: 0 });

@@ -60,7 +60,7 @@
 }
 
 * { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
 body {
   margin: 0; font-family: var(--font); background: var(--bg); color: var(--text);
   font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased;
@@ -274,7 +274,14 @@ button { font-family: inherit; cursor: pointer; }
 .news__summary { font-size: 12.5px; color: var(--text-dim); line-height: 1.55; margin: 0; }
 
 /* ---- Tablo kontrolleri (favori + arama) ---- */
-.tablectl { display: flex; align-items: center; gap: var(--sp-2); }
+.tablectl { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.search {
+  appearance: none; background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
+  padding: 7px var(--sp-3); border-radius: var(--r-pill); font-size: 13px; font-family: inherit;
+  min-width: 170px; outline: none; transition: border-color var(--t), background var(--t);
+}
+.search::placeholder { color: var(--text-faint); }
+.search:focus { border-color: var(--accent); background: var(--surface); }
 .chipbtn {
   background: var(--surface); border: 1px solid var(--border); color: var(--text-dim);
   padding: 7px var(--sp-3); border-radius: var(--r-pill); font-size: 12.5px; font-weight: 600; transition: var(--t);
@@ -289,6 +296,14 @@ button { font-family: inherit; cursor: pointer; }
 /* ---- Tablo ---- */
 .tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 880px; }
+/* Yapışkan ilk iki kolon (★ + Ticker): geniş tablo yatay kayarken kimlik sabit
+   kalır — mobilde tablo okunabilirliğinin anahtarı. Kolon genişliği sabitlenir
+   ki ikinci kolonun left ofseti (44px) gerçek genişlikle eşleşsin. */
+.th-star, .td-star { width: 44px; min-width: 44px; max-width: 44px; padding-left: 5px !important; padding-right: 5px !important; text-align: center; }
+.table--sticky thead th:nth-child(-n+2) { position: sticky; z-index: 3; background: var(--bg-elev); }
+.table--sticky tbody td:nth-child(-n+2) { position: sticky; z-index: 2; background: var(--surface); }
+.table--sticky thead th:first-child, .table--sticky tbody td:first-child { left: 0; }
+.table--sticky thead th:nth-child(2), .table--sticky tbody td:nth-child(2) { left: 44px; box-shadow: 8px 0 12px -10px rgba(0,0,0,.55); }
 .table thead th {
   position: sticky; top: 0; background: var(--bg-elev); z-index: 1; text-align: left;
   font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--text-dim);
@@ -300,7 +315,9 @@ button { font-family: inherit; cursor: pointer; }
 .table thead th.sort-asc .arrow, .table thead th.sort-desc .arrow { opacity: 1; }
 .table thead th.sort-desc .arrow { transform: rotate(180deg); display: inline-block; }
 .table tbody td { padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--border-soft); white-space: nowrap; }
-.table tbody tr:hover { background: var(--surface-2); }
+/* hover hücreye uygulanır: yapışkan kolon hücrelerinin kendi arka planı var,
+   satır arka planını örterdi. */
+.table tbody tr:hover td { background: var(--surface-2); }
 .table tbody tr:last-child td { border-bottom: none; }
 .td-ticker { font-family: var(--mono); font-weight: 650; }
 .td-company { color: var(--text-dim); max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
@@ -369,10 +386,35 @@ button { font-family: inherit; cursor: pointer; }
 .skeleton--line { width: 220px; height: 12px; }
 @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
 
+/* ---- Sayısal hizalama: finans panellerinde rakamlar sütunda alt alta hizalanır ---- */
+.td-num, .kpi__value, .pf__mv, .ie__kv, .alloc__vals, .macro__val, .macro__chg { font-variant-numeric: tabular-nums; }
+
 /* ---- Mobil ---- */
 .mobilebar { display: none; }
 .scrim { display: none; }
 .iconbtn { background: transparent; border: 0; color: var(--text); font-size: 20px; padding: 6px; border-radius: var(--r-sm); }
+
+/* ---- Alt sekme çubuğu (mobil; masaüstünde gizli) ---- */
+.tabbar { display: none; }
+@media (max-width: 860px) {
+  .tabbar {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    background: color-mix(in srgb, var(--bg-elev) 86%, transparent);
+    -webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4);
+    border-top: 1px solid var(--border);
+    /* iPhone çentik/home-bar güvenli alanı */
+    padding: 6px max(4px, env(safe-area-inset-left)) calc(6px + env(safe-area-inset-bottom)) max(4px, env(safe-area-inset-right));
+  }
+  .tabbar__item {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    padding: 5px 2px 3px; border-radius: var(--r-sm); color: var(--text-faint);
+    font-size: 10.5px; font-weight: 600; letter-spacing: .1px;
+    transition: color var(--t), background var(--t); -webkit-tap-highlight-color: transparent;
+  }
+  .tabbar__item svg { width: 22px; height: 22px; }
+  .tabbar__item.is-active { color: var(--accent); background: var(--accent-soft); }
+}
 
 @media (max-width: 1080px) {
   .grid2, .twocol, .commentary__grid, .commentary__pfgrid, .actions { grid-template-columns: 1fr; }
@@ -384,7 +426,9 @@ button { font-family: inherit; cursor: pointer; }
   .mobilebar {
     display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3);
     position: sticky; top: 0; z-index: 40; padding: 10px var(--sp-4);
-    background: var(--bg-elev); border-bottom: 1px solid var(--border);
+    background: color-mix(in srgb, var(--bg-elev) 86%, transparent);
+    -webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4);
+    border-bottom: 1px solid var(--border);
   }
   .mobilebar__title { font-weight: 700; }
   .sidebar {
@@ -393,8 +437,11 @@ button { font-family: inherit; cursor: pointer; }
   }
   .sidebar.is-open { transform: translateX(0); }
   .scrim.is-open { display: block; position: fixed; inset: 0; z-index: 45; background: rgba(0,0,0,.5); }
-  .main { padding: var(--sp-4) var(--sp-4) 56px; }
+  /* alt boşluk: sabit sekme çubuğu + iOS home-bar içeriği örtmesin */
+  .main { padding: var(--sp-4) var(--sp-4) calc(84px + env(safe-area-inset-bottom)); }
   .topbar__title { font-size: 19px; }
+  /* çapa kaydırmasında bölüm başlığı yapışkan üst barın altında kalmasın */
+  .block { scroll-margin-top: 54px; }
 }
 @media (max-width: 560px) {
   .kpigrid, .ie__kpis { grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
@@ -406,4 +453,4 @@ button { font-family: inherit; cursor: pointer; }
   .chartwrap--sector { height: 520px; }
 }
 
-@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } html { scroll-behavior: auto; } }
