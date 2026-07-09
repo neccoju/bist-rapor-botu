@@ -713,8 +713,26 @@ $mrRegime = [pscustomobject]@{ Regime = 'risk-on'; Confidence = 0.8; SectorTilts
 $mrStock = [pscustomobject]@{ Symbol = 'BNK'; SectorTR = 'Bankacılık' }
 [void](Add-MacroRegimeData -Stocks @($mrStock) -Regime $mrRegime)
 if ([double](Get-ObjectPropertyValue -Object $mrStock -Name 'MacroRegimeAdjustment') -ne 0) { throw 'MacroRegimeMult=0 ile rejim ayarı 0 olmalı.' }
+& $sccMod { Set-SignalConfig -Config ([pscustomobject]@{ SmartMoneyMult = -2; MacroRegimeMult = 5 }) }
+$scClamped = Get-SignalConfig
+if ([double]$scClamped.SmartMoneyMult -ne 0.0) { throw "Negatif çarpan 0'a kıstırılmalı: $($scClamped.SmartMoneyMult)" }
+if ([double]$scClamped.MacroRegimeMult -ne 1.0) { throw "1 üstü çarpan 1'e kıstırılmalı: $($scClamped.MacroRegimeMult)" }
+& $sccMod { Set-SignalConfig -Config ([pscustomobject]@{ SmartMoneyMult = 'bozuk'; MacroRegimeMult = $null }) }
+$scBad = Get-SignalConfig
+if ([double]$scBad.SmartMoneyMult -ne 1.0 -or [double]$scBad.MacroRegimeMult -ne 1.0) { throw 'Sayı olmayan çarpan güvenli varsayılana (1.0) dönmeli.' }
 & $sccMod { Set-SignalConfig -Config $null }   # sıfırla (diğer testleri etkilemesin)
-Write-Host "Oto-ayar config çarpanı testi başarılı (varsayılan x1, KAPAT x0, ZAYIFLAT x0.5; makro x0)."
+Write-Host "Oto-ayar config çarpanı testi başarılı (varsayılan x1, KAPAT x0, ZAYIFLAT x0.5; makro x0; kıstırma [0,1])."
+
+# --- Get-MacroSnapshotMetric (tekrarlanan XU100 aramasının tek yardımcısı) ---
+$msSnap = [pscustomobject]@{ metrics = @(
+    [pscustomobject]@{ id = 'XU100'; close = 10500.0 },
+    [pscustomobject]@{ id = 'USDTRY'; close = 41.2 }
+) }
+$msHit = Get-MacroSnapshotMetric -Snapshot $msSnap -Id 'XU100'
+if ($null -eq $msHit -or [double]$msHit.close -ne 10500.0) { throw 'Get-MacroSnapshotMetric XU100 metriğini bulmalıydı.' }
+if ($null -ne (Get-MacroSnapshotMetric -Snapshot $msSnap -Id 'YOK')) { throw 'Bilinmeyen id null dönmeli.' }
+if ($null -ne (Get-MacroSnapshotMetric -Snapshot $null -Id 'XU100')) { throw 'Null snapshot null dönmeli.' }
+Write-Host "Get-MacroSnapshotMetric testi başarılı (bulma, bilinmeyen id, null snapshot)."
 
 # --- Devre kesici (Get-CircuitBreakerState): drawdown + SMA50 kurtarma ---
 if ((Get-CircuitBreakerState -DrawdownPct -5 -Bist100AboveSma50 $false).state -ne 'NORMAL') { throw 'Sığ drawdown -> NORMAL olmalı.' }

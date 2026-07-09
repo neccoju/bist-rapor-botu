@@ -13,6 +13,11 @@ name: KAP Enrich (icerik yorumlama)
 # Zamanlama: collector partileri bittikten SONRA (or. 17:45) gunde bir tetiklenir;
 # ya da elle Run workflow. Token tasarrufu: yalniz izlenen hisseler + son gun + cap.
 on:
+  # YEDEK cron (tam-otomasyon): birincil tetikleyici cron-job.org'dur.
+  # O aksarsa bile bildirimler gunde bir kez yorumlanir (rapordan ~1 saat once;
+  # girdisiz cron'da asagidaki input default'lari gecerlidir).
+  schedule:
+    - cron: "10 14 * * 1-5"
   workflow_dispatch:
     inputs:
       engine:

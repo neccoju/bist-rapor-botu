@@ -2214,7 +2214,7 @@ try {
         $regimeLabelNow = if ($null -ne $macroRegime) { [string]$macroRegime.Regime } else { $null }
         $belowSma200 = $null
         try {
-            $xu = @(Get-ObjectPropertyValue -Object $macroSnapshot -Name 'Metrics') | Where-Object { [string]$_.Id -eq 'XU100' } | Select-Object -First 1
+            $xu = Get-MacroSnapshotMetric -Snapshot $macroSnapshot -Id 'XU100'
             $xuPrice = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $xu -Name 'Value')
             $xuSma = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $xu -Name 'Sma200')
             if ($null -ne $xuPrice -and $null -ne $xuSma -and $xuSma -gt 0) { $belowSma200 = ($xuPrice -lt $xuSma) }
@@ -2231,13 +2231,21 @@ try {
             cashTargetPct = [Math]::Round($cashTarget * 100, 0)
             events = if ($null -ne $macroRegime) { @($macroRegime.Events | ForEach-Object { @{ type = $_.Type; dir = $_.Direction } }) } else { @() }
         }
-        [void](Add-JsonlLine -Path (Join-Path $PSScriptRoot 'data\regime_log.jsonl') -Object $regimeLine)
+        # Gunluk tekillestirme: ayni gun ikinci kosu (manuel dispatch) cift satir yazmasin.
+        $rlPath = Join-Path $PSScriptRoot 'data\regime_log.jsonl'
+        $todayKey = '"asOf":"' + $runAt.ToString('yyyy-MM-dd') + '"'
+        if (-not (Test-Path $rlPath) -or -not (Select-String -LiteralPath $rlPath -SimpleMatch $todayKey -Quiet)) {
+            [void](Add-JsonlLine -Path $rlPath -Object $regimeLine)
+        }
         Write-Host ("Rejim-nakit hedefi (golge): %{0} nakit (rejim={1}, SMA200-alti={2})" -f $regimeLine.cashTargetPct, $regimeLabelNow, $belowSma200)
 
         $impact = Get-AdjustmentImpactLog -Stocks $scored
         if ($null -ne $impact) {
             $impact | Add-Member -NotePropertyName 'asOf' -NotePropertyValue $runAt.ToString('yyyy-MM-dd') -Force
-            [void](Add-JsonlLine -Path (Join-Path $PSScriptRoot 'data\shadow_selection.jsonl') -Object $impact)
+            $ssPath = Join-Path $PSScriptRoot 'data\shadow_selection.jsonl'
+            if (-not (Test-Path $ssPath) -or -not (Select-String -LiteralPath $ssPath -SimpleMatch $todayKey -Quiet)) {
+                [void](Add-JsonlLine -Path $ssPath -Object $impact)
+            }
             Write-Host ("Ayar etki olcumu: ayarlar Dengeli secimini {0} degistirdi (ekledi: {1}; disladi: {2})" -f `
                     $(if ($impact.changed) { 'DEGISTIRDI' } else { 'degistirmedi' }), (@($impact.added) -join ','), (@($impact.dropped) -join ','))
         }
@@ -2319,7 +2327,7 @@ try {
     # loglanir + panelde gosterilir. Portfoy nesnesine CircuitBreakerState eklenir.
     try {
         $aboveSma50 = $null
-        $xu50 = @(Get-ObjectPropertyValue -Object $macroSnapshot -Name 'Metrics') | Where-Object { [string]$_.Id -eq 'XU100' } | Select-Object -First 1
+        $xu50 = Get-MacroSnapshotMetric -Snapshot $macroSnapshot -Id 'XU100'
         $xuP = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $xu50 -Name 'Value')
         $xuS50 = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $xu50 -Name 'Sma50')
         if ($null -ne $xuP -and $null -ne $xuS50 -and $xuS50 -gt 0) { $aboveSma50 = ($xuP -ge $xuS50) }

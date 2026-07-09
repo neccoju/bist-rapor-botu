@@ -21,6 +21,12 @@ name: KAP Collector (borsapy)
 # dk, ~17 slot) -> tum evren gun icinde ~2 kez taranir. Ana rapor 18:15'te birikmis
 # veriyi okur. GitHub'in kendi cron'u gecikebildigi icin harici tetikleyici kullanilir.
 on:
+  # YEDEK cron (tam-otomasyon): birincil tetikleyici cron-job.org'dur (gun ici
+  # partiler). O aksarsa bile gunde EN AZ BIR parti garanti — insider/haber
+  # sinyali sessizce curumesin. Collector merge-tabanli/idempotent oldugu
+  # icin cift tetiklenme zararsizdir.
+  schedule:
+    - cron: "0 13 * * 1-5"
   workflow_dispatch:
     inputs:
       rotate_size:

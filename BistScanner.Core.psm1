@@ -162,7 +162,9 @@ function Invoke-WithRetry {
 function ConvertTo-DoubleOrNull {
     param($Value)
 
-    if ($null -eq $Value -or $Value -eq '') {
+    # DIKKAT: '$Value -eq ""' kullanma — PowerShell'de (0.0 -eq '') True'dur,
+    # gercek sayisal 0 "eksik veri" sanilip $null olurdu (or. carpan 0, %0 degisim).
+    if ($null -eq $Value -or ($Value -is [string] -and $Value.Trim() -eq '')) {
         return $null
     }
 
@@ -6043,8 +6045,32 @@ function Get-SignalConfig {
 }
 
 function Set-SignalConfig {
+    <#
+        Config'i NORMALIZE ederek yukler: carpanlar [0,1] araligina kirpilir.
+        Guvenlik: bozuk/elle-duzenlenmis dosyadaki negatif carpan sinyali TERS
+        cevirir, >1 carpan tavan tasarimini asar — ikisi de engellenir.
+    #>
     param($Config)
-    $script:SignalConfig = $Config
+    if ($null -eq $Config) { $script:SignalConfig = $null; return }
+    $clamp01 = { param($v) $d = ConvertTo-DoubleOrNull $v; if ($null -eq $d) { 1.0 } else { [Math]::Max(0.0, [Math]::Min(1.0, $d)) } }
+    $script:SignalConfig = [pscustomobject][ordered]@{
+        UpdatedAt = [string](Get-ObjectPropertyValue -Object $Config -Name 'UpdatedAt')
+        SmartMoneyMult = & $clamp01 (Get-ObjectPropertyValue -Object $Config -Name 'SmartMoneyMult')
+        MacroRegimeMult = & $clamp01 (Get-ObjectPropertyValue -Object $Config -Name 'MacroRegimeMult')
+        Note = [string](Get-ObjectPropertyValue -Object $Config -Name 'Note')
+    }
+}
+
+function Get-MacroSnapshotMetric {
+    <#
+        Makro snapshot'tan Id ile TEK metrigi ceker (XU100 vb.). Ayni arama
+        kalibi 3 yerde tekrarlaniyordu (PIT kaydi, nakit-hedefi, devre kesici) —
+        tek yardimciya indirildi. Bulunamazsa $null.
+    #>
+    param($Snapshot, [string]$Id)
+    return @(Get-ObjectPropertyValue -Object $Snapshot -Name 'Metrics') |
+        Where-Object { [string](Get-ObjectPropertyValue -Object $_ -Name 'Id') -eq $Id } |
+        Select-Object -First 1
 }
 
 function Get-EarningsTimingAdjustment {
@@ -7320,7 +7346,7 @@ function Save-PitSnapshot {
         $regimeLabelPit = [string](Get-ObjectPropertyValue -Object $regimeObj -Name 'Regime')
         # Nakit hedefi (golge): XU100 Value/Sma200'den trend kapisi + rejim.
         $belowSmaPit = $null
-        $xuPit = @(Get-ObjectPropertyValue -Object $Macro -Name 'Metrics') | Where-Object { [string]$_.Id -eq 'XU100' } | Select-Object -First 1
+        $xuPit = Get-MacroSnapshotMetric -Snapshot $Macro -Id 'XU100'
         $xuPricePit = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $xuPit -Name 'Value')
         $xuSmaPit = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $xuPit -Name 'Sma200')
         if ($null -ne $xuPricePit -and $null -ne $xuSmaPit -and $xuSmaPit -gt 0) { $belowSmaPit = ($xuPricePit -lt $xuSmaPit) }
@@ -7889,6 +7915,7 @@ Export-ModuleMember -Function `
     Get-CircuitBreakerState, `
     Get-SignalConfig, `
     Set-SignalConfig, `
+    Get-MacroSnapshotMetric, `
     Get-ModelPortfolioDefinitions, `
     Get-ModelPortfolioSelection, `
     Get-LastModelPortfolioTradingDay, `
