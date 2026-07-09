@@ -693,6 +693,29 @@ if ([Math]::Abs(($rgScoredB.Score - $rgScoredA.Score) - 3.0) -gt 0.11) { throw "
 if ($rgScoredB.Explanation -notmatch 'Makro rejim ayarı') { throw 'S7 açıklamada rejim notu yok.' }
 Write-Host "Makro rejim motoru testi başarılı (risk-on/off, şahin faiz, petrol, veri-kapılı, skor +3, açıklama)."
 
+# --- Oto-ayar config çarpanı (kendi-kendine ayar döngüsü) ---
+$sccMod = Get-Module 'BistScanner.Core'
+# Varsayılan: çarpan 1.0 (davranış değişmez)
+& $sccMod { Set-SignalConfig -Config $null }
+$scDefault = Get-SmartMoneyAdjustment -Stock ([pscustomobject]@{ ForeignChg1wBps = 1.2 })   # +4
+if ([Math]::Abs($scDefault - 4.0) -gt 0.001) { throw "Varsayılan çarpanla +4 olmalı: $scDefault" }
+# KAPAT -> çarpan 0 -> ayar sıfırlanır
+& $sccMod { Set-SignalConfig -Config ([pscustomobject]@{ SmartMoneyMult = 0.0; MacroRegimeMult = 1.0 }) }
+$scOff = Get-SmartMoneyAdjustment -Stock ([pscustomobject]@{ ForeignChg1wBps = 1.2 })
+if ($scOff -ne 0) { throw "SmartMoneyMult=0 ile ayar 0 olmalı: $scOff" }
+# ZAYIFLAT -> 0.5 -> yarıya
+& $sccMod { Set-SignalConfig -Config ([pscustomobject]@{ SmartMoneyMult = 0.5; MacroRegimeMult = 1.0 }) }
+$scHalf = Get-SmartMoneyAdjustment -Stock ([pscustomobject]@{ ForeignChg1wBps = 1.2 })
+if ([Math]::Abs($scHalf - 2.0) -gt 0.001) { throw "SmartMoneyMult=0.5 ile +2 olmalı: $scHalf" }
+# Makro rejim çarpanı: 0 -> tilt etkisi sıfırlanır
+& $sccMod { Set-SignalConfig -Config ([pscustomobject]@{ SmartMoneyMult = 1.0; MacroRegimeMult = 0.0 }) }
+$mrRegime = [pscustomobject]@{ Regime = 'risk-on'; Confidence = 0.8; SectorTilts = @{ Banka = 1.0 } }
+$mrStock = [pscustomobject]@{ Symbol = 'BNK'; SectorTR = 'Bankacılık' }
+[void](Add-MacroRegimeData -Stocks @($mrStock) -Regime $mrRegime)
+if ([double](Get-ObjectPropertyValue -Object $mrStock -Name 'MacroRegimeAdjustment') -ne 0) { throw 'MacroRegimeMult=0 ile rejim ayarı 0 olmalı.' }
+& $sccMod { Set-SignalConfig -Config $null }   # sıfırla (diğer testleri etkilemesin)
+Write-Host "Oto-ayar config çarpanı testi başarılı (varsayılan x1, KAPAT x0, ZAYIFLAT x0.5; makro x0)."
+
 # --- Devre kesici (Get-CircuitBreakerState): drawdown + SMA50 kurtarma ---
 if ((Get-CircuitBreakerState -DrawdownPct -5 -Bist100AboveSma50 $false).state -ne 'NORMAL') { throw 'Sığ drawdown -> NORMAL olmalı.' }
 if ((Get-CircuitBreakerState -DrawdownPct -17 -Bist100AboveSma50 $false).state -ne 'UYARI') { throw '-17% + piyasa zayıf -> UYARI olmalı.' }

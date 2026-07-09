@@ -112,6 +112,7 @@ $script:MacroInvestingInstruments = @(
 )
 # Kendini ogrenen sinyal kalibrasyonu (Set-SignalCalibration ile yuklenir).
 $script:SignalCalibration = $null
+$script:SignalConfig = $null
 
 $script:InflationBenchmark = [pscustomobject][ordered]@{
     AsOf = 'Nisan 2026'
@@ -1431,7 +1432,9 @@ function Add-MacroRegimeData {
                 if ($sec -match $mapEntry.Pattern -and $tilts.ContainsKey($mapEntry.Key)) { $tilt = [double]$tilts[$mapEntry.Key]; break }
             }
         }
-        $adj = [Math]::Max(-3.0, [Math]::Min(3.0, (2.0 * $tilt * $conf) + $base))
+        # Oto-ayar carpani (signal_config; varsayilan 1.0) -> cikis kurali karari.
+        $adj = [Math]::Max(-3.0, [Math]::Min(3.0, (2.0 * $tilt * $conf) + $base)) * [double](Get-SignalConfig).MacroRegimeMult
+        $adj = [Math]::Max(-3.0, [Math]::Min(3.0, $adj))
         $stock | Add-Member -NotePropertyName 'MacroRegimeAdjustment' -NotePropertyValue ([Math]::Round($adj, 2)) -Force
         $stock | Add-Member -NotePropertyName 'MacroRegimeLabel' -NotePropertyValue $regimeName -Force
     }
@@ -6021,6 +6024,29 @@ function Set-SignalCalibration {
     $script:SignalCalibration = $Calibration
 }
 
+function Get-SignalConfig {
+    <#
+        KENDI KENDINE AYAR config'i (sinyal basina buyukluk carpani). Invoke-
+        SignalEvaluation, onceden-taahhut cikis kuralindan (Get-SignalVerdict)
+        bu dosyayi OTOMATIK yazar; GunlukRapor yukler; akilli-para ve makro-rejim
+        ayarlari carpaniyla olceklenir. Yuklenmemisse VARSAYILAN 1.0 (davranis
+        degismez). Bu, 'yeterli veri birikince otomatik uygula, yoksa bekle'
+        dongusunun (auto-calibrate deseni) yeni sinyallere genislemesidir.
+    #>
+    if ($null -ne $script:SignalConfig) { return $script:SignalConfig }
+    return [pscustomobject][ordered]@{
+        UpdatedAt = $null
+        SmartMoneyMult = 1.0
+        MacroRegimeMult = 1.0
+        Note = 'Varsayilan (henuz oto-ayar yok; tam olcek).'
+    }
+}
+
+function Set-SignalConfig {
+    param($Config)
+    $script:SignalConfig = $Config
+}
+
 function Get-EarningsTimingAdjustment {
     <#
         Bilanço zamanlamasina dayali imzali skor ayari. Buyukluk/yon kalibrasyon
@@ -6281,6 +6307,10 @@ function Get-SmartMoneyAdjustment {
     $insider = [string](Get-ObjectPropertyValue -Object $Stock -Name 'InsiderSignal')
     if ($insider -eq '+') { $adj += 2.0 }
     elseif ($insider -eq '-') { $adj -= 2.0 }
+
+    # Oto-ayar carpani (signal_config; varsayilan 1.0). Cikis kurali KAPAT
+    # verdiyse 0, ZAYIFLAT verdiyse 0.5 olur -> sinyal veriye gore olceklenir.
+    $adj *= [double](Get-SignalConfig).SmartMoneyMult
 
     if ($adj -gt 6.0) { $adj = 6.0 }
     elseif ($adj -lt -6.0) { $adj = -6.0 }
@@ -7857,6 +7887,8 @@ Export-ModuleMember -Function `
     Get-SignalVerdict, `
     Get-RegimeCashTarget, `
     Get-CircuitBreakerState, `
+    Get-SignalConfig, `
+    Set-SignalConfig, `
     Get-ModelPortfolioDefinitions, `
     Get-ModelPortfolioSelection, `
     Get-LastModelPortfolioTradingDay, `

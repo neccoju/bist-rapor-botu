@@ -183,3 +183,37 @@ $dir = Split-Path -Parent $OutPath
 if ($dir -and -not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
 $payload | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $OutPath -Encoding UTF8
 Write-Host "DEGERLENDIRME -> $OutPath ($periodsUsed donem). Oneriler karar destek amaclidir."
+
+# KENDI-KENDINE AYAR: cikis kurali verdict'lerinden signal_config.json'i OTOMATIK
+# yaz (kullanici istegi: '4 Agustos'ta otomatik yap, beni ugrastirma'). Carpan
+# haritasi: KAPAT->0, ZAYIFLAT->0.5, KORU/IZLE->1.0. YETERSIZ ise carpan
+# DEGISMEZ (mevcut/varsayilan korunur — az veride oynamaz). Auto-calibrate
+# deseni: yeterli veri birikince otomatik uygular, yoksa bekler. Sessiz.
+$multFor = { param($verdict, $current)
+    switch ($verdict) {
+        'KAPAT' { 0.0 }
+        'ZAYIFLAT' { 0.5 }
+        'KORU' { 1.0 }
+        'IZLE' { 1.0 }
+        default { $current }   # YETERSIZ -> mevcut korunur
+    }
+}
+$cfgPath = Join-Path (Split-Path -Parent $OutPath) 'signal_config.json'
+$curCfg = $null
+if (Test-Path -LiteralPath $cfgPath) { try { $curCfg = Get-Content -LiteralPath $cfgPath -Raw -Encoding UTF8 | ConvertFrom-Json } catch { } }
+$curSm = if ($curCfg) { [double](Get-ObjectPropertyValue -Object $curCfg -Name 'SmartMoneyMult') } else { 1.0 }
+$curMr = if ($curCfg) { [double](Get-ObjectPropertyValue -Object $curCfg -Name 'MacroRegimeMult') } else { 1.0 }
+if ($curSm -le 0 -and $null -eq $curCfg) { $curSm = 1.0 }
+$smV = @($findings | Where-Object { $_.signal -eq 'SmartMoneyAdjustment' } | Select-Object -First 1)
+$mrV = @($findings | Where-Object { $_.signal -eq 'MacroRegimeAdjustment' } | Select-Object -First 1)
+$newSm = if ($smV) { & $multFor $smV.verdict $curSm } else { $curSm }
+$newMr = if ($mrV) { & $multFor $mrV.verdict $curMr } else { $curMr }
+$cfg = [pscustomobject][ordered]@{
+    UpdatedAt = (Get-Date).ToUniversalTime().ToString('o')
+    SmartMoneyMult = $newSm
+    MacroRegimeMult = $newMr
+    Note = 'Invoke-SignalEvaluation otomatik yazdi (cikis kurali). KAPAT->0, ZAYIFLAT->0.5, KORU->1.0, YETERSIZ->degismez.'
+    Source = 'signal-eval auto'
+}
+$cfg | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $cfgPath -Encoding UTF8
+Write-Host ("OTO-AYAR -> signal_config.json (SmartMoney x{0}, MacroRegime x{1})" -f $newSm, $newMr)

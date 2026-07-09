@@ -2159,6 +2159,15 @@ try {
     }
     $activeCalibration = Get-SignalCalibration
 
+    # Oto-ayar config'i (signal_config.json — Invoke-SignalEvaluation'in cikis
+    # kuralindan OTOMATIK yazdigi sinyal carpanlari). Skorlamadan ONCE yuklenir;
+    # dosya yoksa varsayilan 1.0 (davranis degismez). Kendi-kendine ayar dongusu.
+    $signalConfigPath = Join-Path $PSScriptRoot 'data\signal_config.json'
+    if (Test-Path $signalConfigPath) {
+        try { Set-SignalConfig -Config (Get-Content -Path $signalConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json) }
+        catch { Write-Warning "Sinyal config okunamadi: $($_.Exception.Message)" }
+    }
+
     # Akilli para verilerini skorlamadan ONCE isle (veri-kapili; dosya yoksa no-op):
     # yabanci saklama degisimi (mkk_foreign.json) + icsel islem sinyali (kap_enrichment).
     try { $stocks = @(Add-HoldingFlag -Stocks $stocks) } catch { Write-Warning "Holding bayragi islenemedi: $($_.Exception.Message)" }
