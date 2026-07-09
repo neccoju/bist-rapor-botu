@@ -734,6 +734,8 @@ function ConvertTo-DashboardReport {
             usdReturnPct       = if ($pfId -and $usdReturnById.ContainsKey($pfId)) { $usdReturnById[$pfId] } else { $null }
             benchmarkReturnPct = (Get-DashNum -Object $_ -Name 'BenchmarkReturnPct')
             alphaPct           = (Get-DashNum -Object $_ -Name 'AlphaPct')
+            drawdownPct        = (Get-DashNum -Object $_ -Name 'CurrentDrawdownPct')
+            circuitBreaker     = (Get-DashStr -Object $_ -Name 'CircuitBreakerState')
             holdings = @($ph | ForEach-Object {
                 [pscustomobject]@{ ticker = (Get-DashStr -Object $_ -Name 'Symbol'); weightPct = (Get-DashNum -Object $_ -Name 'WeightPct')
                     selectionReason = (Get-DashStr -Object $_ -Name 'SelectionReason') }

@@ -2304,6 +2304,36 @@ try {
         $updatedPortfolioSet = New-ModelPortfolioSet -Stocks $stocks -AsOf $runAt -BenchmarkLevel $bist100Level -CostBps $modelCostBps
         $updatedPortfolioSet.Portfolios = Optimize-ModelPortfolioSetRisk -Portfolios @($updatedPortfolioSet.Portfolios) -MaxBookPct $modelMaxBookPct
     }
+
+    # DEVRE KESICI (GOLGE): her portfoyun drawdown'i + BIST SMA50 kurtarma kapisi.
+    # Canli de-risk YURUTMEZ (config bayragi arkasinda, varsayilan kapali); durum
+    # loglanir + panelde gosterilir. Portfoy nesnesine CircuitBreakerState eklenir.
+    try {
+        $aboveSma50 = $null
+        $xu50 = @(Get-ObjectPropertyValue -Object $macroSnapshot -Name 'Metrics') | Where-Object { [string]$_.Id -eq 'XU100' } | Select-Object -First 1
+        $xuP = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $xu50 -Name 'Value')
+        $xuS50 = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $xu50 -Name 'Sma50')
+        if ($null -ne $xuP -and $null -ne $xuS50 -and $xuS50 -gt 0) { $aboveSma50 = ($xuP -ge $xuS50) }
+        $cbLiveEnabled = ([string](Get-EnvironmentValue -Names @('BIST_CIRCUIT_BREAKER_LIVE') -Default 'false')).ToLowerInvariant() -eq 'true'
+        foreach ($pf in @($updatedPortfolioSet.Portfolios)) {
+            $dd = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $pf -Name 'CurrentDrawdownPct')
+            if ($null -eq $dd) { $dd = 0.0 }
+            $cb = Get-CircuitBreakerState -DrawdownPct $dd -Bist100AboveSma50 $aboveSma50
+            $pf | Add-Member -NotePropertyName 'CircuitBreakerState' -NotePropertyValue $cb.state -Force
+            $pf | Add-Member -NotePropertyName 'CircuitBreakerNote' -NotePropertyValue $cb.note -Force
+            if ($cb.state -ne 'NORMAL') {
+                [void](Add-JsonlLine -Path (Join-Path $PSScriptRoot 'data\circuit_breaker.jsonl') -Object ([ordered]@{
+                            asOf = $runAt.ToString('yyyy-MM-dd'); portfolio = [string]$pf.Id; drawdownPct = [Math]::Round($dd, 2)
+                            state = $cb.state; targetCashPct = $cb.targetCashPct; aboveSma50 = $aboveSma50; live = $cbLiveEnabled
+                        }))
+                Write-Host ("Devre kesici (golge): {0} -> {1} (drawdown %{2}, hedef nakit %{3})" -f $pf.Id, $cb.state, [Math]::Round($dd, 1), $cb.targetCashPct)
+            }
+        }
+        # NOT: $cbLiveEnabled true olsa bile canli de-risk YURUTME kodu henuz yok
+        # (kasitli): nakit-kova altyapisi + tarihsel kanit gerekiyor. Bayrak ileri
+        # pilot icin hazir; bugun yalniz gozlem.
+    }
+    catch { Write-Warning "Devre kesici olcumu yazilamadi (rapor etkilenmez): $($_.Exception.Message)" }
     # Ay sonu Claude yorumu (best-effort): yalniz portfoy bu donem yeniden
     # dengelendiyse uretilir; aksi halde onceki donemin yorumu korunup gosterilir.
     try {

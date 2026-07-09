@@ -389,12 +389,19 @@
     host.innerHTML = list.map((p) => {
       const holds = arr(p.holdings).map((h) =>
         '<span class="pf__chip">' + esc(h.ticker || "—") + (isNum(h.weightPct) ? ' <em>%' + fmtTR(h.weightPct, 0) + "</em>" : "") + "</span>").join("");
+      // Devre kesici rozeti (gölge): NORMAL dışı durumlar uyarı renginde.
+      let cbBadge = "";
+      if (has(p.circuitBreaker) && p.circuitBreaker !== "NORMAL") {
+        const cbCls = p.circuitBreaker === "DERISK" ? "badge--neg" : p.circuitBreaker === "RECOVER" ? "badge--accent" : "badge--warn";
+        cbBadge = '<span class="badge ' + cbCls + '" title="Devre kesici (gölge; canlı işlem yapılmıyor)">⛔ ' + esc(p.circuitBreaker) + "</span>";
+      }
       return '<div class="pf">' +
         '<div class="pf__head"><span class="pf__name">' + esc(p.name || p.id || "—") + "</span>" +
-          (p.strategy ? '<span class="badge badge--neutral">' + esc(p.strategy) + "</span>" : "") + "</div>" +
+          (p.strategy ? '<span class="badge badge--neutral">' + esc(p.strategy) + "</span>" : "") + cbBadge + "</div>" +
         '<div class="pf__metrics">' +
           pfMetric("Değer", isNum(p.valueTL) ? fmtTR(p.valueTL, 0) + " TL" : "—", "flat") +
           pfMetric("Getiri", pctText(p.returnPct), pctClass(p.returnPct)) +
+          pfMetric("USD", pctText(p.usdReturnPct), pctClass(p.usdReturnPct)) +
           pfMetric("Alfa", pctText(p.alphaPct), pctClass(p.alphaPct)) +
         "</div>" +
         '<div class="pf__holdings">' + (holds || inlineEmpty("—")) + "</div>" +

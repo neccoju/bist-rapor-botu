@@ -693,6 +693,17 @@ if ([Math]::Abs(($rgScoredB.Score - $rgScoredA.Score) - 3.0) -gt 0.11) { throw "
 if ($rgScoredB.Explanation -notmatch 'Makro rejim ayarı') { throw 'S7 açıklamada rejim notu yok.' }
 Write-Host "Makro rejim motoru testi başarılı (risk-on/off, şahin faiz, petrol, veri-kapılı, skor +3, açıklama)."
 
+# --- Devre kesici (Get-CircuitBreakerState): drawdown + SMA50 kurtarma ---
+if ((Get-CircuitBreakerState -DrawdownPct -5 -Bist100AboveSma50 $false).state -ne 'NORMAL') { throw 'Sığ drawdown -> NORMAL olmalı.' }
+if ((Get-CircuitBreakerState -DrawdownPct -17 -Bist100AboveSma50 $false).state -ne 'UYARI') { throw '-17% + piyasa zayıf -> UYARI olmalı.' }
+if ((Get-CircuitBreakerState -DrawdownPct -17 -Bist100AboveSma50 $true).state -ne 'NORMAL') { throw '-17% ama SMA50 üstü -> fren yok (NORMAL) olmalı.' }
+if ((Get-CircuitBreakerState -DrawdownPct -22 -Bist100AboveSma50 $false).state -ne 'DERISK') { throw '-22% + zayıf -> DERISK olmalı.' }
+$cbRec = Get-CircuitBreakerState -DrawdownPct -22 -Bist100AboveSma50 $true
+if ($cbRec.state -ne 'RECOVER') { throw '-22% ama SMA50 üstü -> RECOVER olmalı.' }
+if ($cbRec.targetCashPct -ne 25) { throw "RECOVER hedef nakit %25 olmalı: $($cbRec.targetCashPct)" }
+if ((Get-CircuitBreakerState -DrawdownPct -22 -Bist100AboveSma50 $false).targetCashPct -ne 50) { throw 'DERISK hedef nakit %50 olmalı.' }
+Write-Host "Devre kesici testi başarılı (NORMAL/UYARI/DERISK/RECOVER; SMA50 kurtarma kapısı)."
+
 # --- Rejim-güdümlü nakit hedefi (Get-RegimeCashTarget) ---
 if ((Get-RegimeCashTarget -RegimeLabel 'risk-off' -Bist100BelowSma200 $true) -ne 0.40) { throw 'risk-off + trend-altı -> %40 nakit olmalı.' }
 if ((Get-RegimeCashTarget -RegimeLabel 'risk-off' -Bist100BelowSma200 $false) -ne 0.20) { throw 'risk-off tek başına -> %20 olmalı.' }

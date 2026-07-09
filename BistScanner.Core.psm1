@@ -1114,6 +1114,7 @@ function Get-MacroSnapshot {
                 Name = $indexInfo.Name
                 Value = Get-ObjectPropertyValue -Object $index -Name 'Price'
                 Sma200 = Get-ObjectPropertyValue -Object $index -Name 'SMA200'   # rejim-nakit hedefi trend kapisi icin
+                Sma50 = Get-ObjectPropertyValue -Object $index -Name 'SMA50'     # devre kesici kurtarma kapisi icin
                 Change = $null
                 ChangePct = Get-ObjectPropertyValue -Object $index -Name 'ChangePct'
                 Unit = 'puan'
@@ -6040,6 +6041,37 @@ function Get-EarningsTimingAdjustment {
     return $adj
 }
 
+function Get-CircuitBreakerState {
+    <#
+        DEVRE KESICI (SAF): portfoyun KENDI drawdown'i savunmayi tetikler; BIST100'un
+        SMA50'ye gore konumu KURTARMA kapisidir (piyasa donunce freni gevset).
+        Simetrik whipsaw korumasi: dusuktesin ama piyasa toparliyorsa fren hafifler.
+
+        Esikler: >-15% NORMAL | -15..-20% UYARI (yeni alim dur, en zayifi kirp) |
+                 <-20% DERISK (yari nakit). Piyasa SMA50 ustundeyse bir kademe hafifler.
+
+        Bugun GOLGE: durum loglanir + panelde gosterilir; canli de-risk YURUTMESI
+        config bayragi (BIST_CIRCUIT_BREAKER_LIVE) arkasinda, VARSAYILAN KAPALI.
+        Kurtarma kapisi whipsaw'i azaltir ama tarihsel kanit birikene kadar canli DEGIL.
+
+        Doner: { state; action; targetCashPct; note }.
+    #>
+    param(
+        [double]$DrawdownPct,               # negatif (or. -18.5)
+        $Bist100AboveSma50 = $null          # $true/$false/$null
+    )
+    $marketUp = ($Bist100AboveSma50 -eq $true)
+    if ($DrawdownPct -le -20) {
+        if ($marketUp) { return [pscustomobject]@{ state = 'RECOVER'; action = 'kademeli geri giris'; targetCashPct = 25; note = "Drawdown %$([Math]::Round($DrawdownPct,1)) ama BIST SMA50 üstü — fren gevşiyor." } }
+        return [pscustomobject]@{ state = 'DERISK'; action = 'yarı nakde geç'; targetCashPct = 50; note = "Drawdown %$([Math]::Round($DrawdownPct,1)); piyasa zayıf — savunma." }
+    }
+    if ($DrawdownPct -le -15) {
+        if ($marketUp) { return [pscustomobject]@{ state = 'NORMAL'; action = 'değişiklik yok'; targetCashPct = 0; note = "Drawdown %$([Math]::Round($DrawdownPct,1)) ama BIST SMA50 üstü — fren yok." } }
+        return [pscustomobject]@{ state = 'UYARI'; action = 'yeni alım dur, en zayıfı kırp'; targetCashPct = 15; note = "Drawdown %$([Math]::Round($DrawdownPct,1)); yeni risk alma." }
+    }
+    return [pscustomobject]@{ state = 'NORMAL'; action = 'değişiklik yok'; targetCashPct = 0; note = 'Drawdown sınırlar içinde.' }
+}
+
 function Get-RegimeCashTarget {
     <#
         REJIM-GUDUMLU NAKIT HEDEFI (SAF). Rejim etiketi + BIST100'un SMA200'e gore
@@ -7824,6 +7856,7 @@ Export-ModuleMember -Function `
     Add-HoldingFlag, `
     Get-SignalVerdict, `
     Get-RegimeCashTarget, `
+    Get-CircuitBreakerState, `
     Get-ModelPortfolioDefinitions, `
     Get-ModelPortfolioSelection, `
     Get-LastModelPortfolioTradingDay, `
