@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-07-08T14:46:20.439641+00:00",
+  "generatedAt": "2026-07-09T14:46:31.577012+00:00",
   "source": "borsapy 0.10.2 get_news_content",
-  "count": 166,
+  "count": 172,
   "lastRun": {
-    "targets": 4,
-    "enriched": 4,
+    "targets": 6,
+    "enriched": 6,
     "errors": 0,
-    "elapsedSec": 22
+    "elapsedSec": 31
   },
   "items": {
     "1618795": {
@@ -3714,6 +3714,144 @@
       "impact": 1,
       "amounts": [],
       "rationale": "Yalnızca rutin, yasal zorunlu genel açıklama; fiyat etkisi yok."
+    },
+    "1630629": {
+      "symbol": "THYAO",
+      "title": "Kredi Derecelendirmesi",
+      "category": "Kredi Notu",
+      "date": "09.07.2026 14:19:46",
+      "directionHint": "~",
+      "contentChars": 58943,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-09T14:46:02.014910+00:00",
+      "directionRefined": "?",
+      "summary": "THYAO'nun kredi derecelendirmesiyle ilgili KAP bildirimi yayımlandı, ancak not veya derecelendirme kuruluşu bilgisi açıklamada yer almıyor.",
+      "impact": 1,
+      "amounts": [],
+      "rationale": "Kredi notu veya detaylar belirtilmediği için fiyat etkisi belirsiz."
+    },
+    "1630125": {
+      "symbol": "BIMAS",
+      "title": "Payların Geri Alınmasına İlişkin Bildirim",
+      "category": "Geri Alim",
+      "date": "08.07.2026 20:20:06",
+      "directionHint": "+",
+      "contentChars": 48352,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-09T14:46:05.514057+00:00",
+      "directionRefined": "+",
+      "summary": "BİM, pay geri alım programı başlatmıştır. Geri alım miktarı ve fiyatı bildirimde belirtilmemiştir.",
+      "impact": 3,
+      "amounts": [],
+      "rationale": "Geri alım programı genelde hisseye destek sağlar, detaylar açıklanmamış."
+    },
+    "1629952": {
+      "symbol": "THYAO",
+      "title": "Özel Durum Açıklaması (Genel)",
+      "category": "Ozel Durum (Genel)",
+      "date": "08.07.2026 19:07:25",
+      "directionHint": "?",
+      "contentChars": 58985,
+      "pdfChars": 7166,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a58019f4180d0180782",
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f0a0a58019f4180d0370783"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 7166,
+      "inputSnippet": " Uçulan Nokta 353 358 %1,4 Uçak Sayısı 485 552 %13,8 Arzedilen Koltuk Kilometre (milyar) 23,6 23,4 -%1,2 Yolcu Doluluk Oranı (%) %82,2 %84,5 2,3 pt Yolcu Sayısı (milyon) 8,2 8,1 -%1,6 Konma Sayısı (Yolcu Seferleri) 50.882 48.661 -%4,4 Kargo + Posta (bin ton) 180,5 201,5 %11,6 Arzedilen Koltuk Kilometre (milyar) 21,3 21,2 -%0,3 Yolcu Doluluk Oranı (%) %81,6 %84,2 2,6 pt Yolcu Sayısı (milyon) 5,2 5,2 %1,5 Konma Sayısı (Yolcu Seferleri) 31.008 30.379 -%2,0 Kargo + Posta (bin ton) 175,5 196,0 %11,7 ",
+      "engine": "github",
+      "enrichedAt": "2026-07-09T14:46:13.301999+00:00",
+      "directionRefined": "+",
+      "summary": "THY'nin filo, koltuk km, yolcu ve kargo hacmi 2026 ilk yarıda %5-13 artarken doluluk oranı da yükseldi.",
+      "impact": 4,
+      "amounts": [
+        "Filo: 552 uçak",
+        "Yolcu: 44,5 milyon",
+        "Koltuk km: 135,5 milyar",
+        "Kargo: 1.157,4 bin ton",
+        "Doluluk: %83,7"
+      ],
+      "rationale": "Operasyonel büyüme ve doluluk artışı gelir ve kârlılığa olumlu yansır."
+    },
+    "1629799": {
+      "symbol": "AHGAZ",
+      "title": "Payların Geri Alınmasına İlişkin Bildirim",
+      "category": "Geri Alim",
+      "date": "08.07.2026 18:30:26",
+      "directionHint": "+",
+      "contentChars": 97640,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-09T14:46:19.139957+00:00",
+      "directionRefined": "+",
+      "summary": "AHGAZ, pay geri alım programı başlatmıştır. Geri alım miktarı ve fiyatı bildirilmemiştir. Şirket, pay fiyatını desteklemeyi amaçlamaktadır.",
+      "impact": 3,
+      "amounts": [
+        "34,70 TL"
+      ],
+      "rationale": "Geri alım programı genellikle hisse fiyatı için destekleyici ve olumlu algılanır."
+    },
+    "1629788": {
+      "symbol": "ENERY",
+      "title": "Payların Geri Alınmasına İlişkin Bildirim",
+      "category": "Geri Alim",
+      "date": "08.07.2026 18:30:11",
+      "directionHint": "+",
+      "contentChars": 117881,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-09T14:46:23.752609+00:00",
+      "directionRefined": "+",
+      "summary": "ENERY, pay geri alımı kararı bildirdi. Alım miktarı, fiyat aralığı veya toplam tutar açıklanmadı.",
+      "impact": 3,
+      "amounts": [
+        "9,20 TL",
+        "9,23 TL",
+        "9,215 TL"
+      ],
+      "rationale": "Geri alım genellikle hisseye destek ve yatırımcıya güven verir; detaylar belirtilmemiş."
+    },
+    "1627788": {
+      "symbol": "ASTOR",
+      "title": "Yeni İş İlişkisi",
+      "category": "Ihale/Sozlesme",
+      "date": "08.07.2026 10:42:49",
+      "directionHint": "+",
+      "contentChars": 81248,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-09T14:46:27.641259+00:00",
+      "directionRefined": "?",
+      "summary": "ASTOR yeni bir iş ilişkisi kurduğunu açıkladı; tutar, taraf ve detay belirtilmemiştir.",
+      "impact": 2,
+      "amounts": [
+        "42.510.595,00 USD",
+        "1.987.476.592,74 TL"
+      ],
+      "rationale": "İş ilişkisi olumlu olabilir ancak finansal detay ve taraf açıklanmadığı için etkisi belirsiz."
     }
   }
 }
