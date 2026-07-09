@@ -7455,6 +7455,15 @@ function Get-BenchmarkPerformanceSeries {
 
     $defs = @(
         @{ Name = 'BIST100'; Series = $bist; Fx = $null }
+        # USD/TRY: TR'de temel kiyas — 'dolari yendik mi?'. USD/TRY zaten TRY
+        # seviyesidir (Fx=null). Portfoy USD-reel getirisi de bu seriden turetilir.
+        # NOT (kasitli tasarim): USD-reel getiri KESITSEL hisse SECIMINE faktor
+        # olarak eklenmedi — USD/TRY degisimi bir tarihte tum hisseler icin AYNI
+        # skalerdir; tum getirileri ayni carpanla bolmek relatif siralamayi
+        # DEGISTIRMEZ (Perf3Month ile ozdes). USD-reel deger zaman-serisi
+        # kiyasindadir (portfoy vs dolar), kesit secimde degil. Gercek kesitsel
+        # FX sinyali sirket bazli DOVIZ GELIR maruziyeti gerektirir (ayri veri).
+        @{ Name = 'USD/TRY'; Series = $usdtry; Fx = $null }
         @{ Name = 'Altın (TRY)'; Series = $gold; Fx = $usdtry }
         @{ Name = 'Nasdaq (TRY)'; Series = $nasdaq; Fx = $usdtry }
         @{ Name = 'S&P 500 (TRY)'; Series = $sp500; Fx = $usdtry }

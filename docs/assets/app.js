@@ -15,7 +15,7 @@
       source: "Gömülü örnek veri (file://)", isSample: true, disclaimer: "Bu panel karar destek amaçlıdır, yatırım tavsiyesi değildir." },
     history: [ { date: "2026-06-30", label: "Son rapor" }, { date: "2026-06-29", label: "29.06.2026" } ],
     summary: { portfolioValueTL: 101856.13, initialCapitalTL: 100000, dailyChangePct: 0.42, weeklyChangePct: 1.21,
-      monthlyChangePct: 1.86, bestStock: { ticker: "DSTKF", changePct: 4.83 }, worstStock: { ticker: "YGGYO", changePct: -2.14 },
+      monthlyChangePct: 1.86, usdMonthlyChangePct: -3.2, bestStock: { ticker: "DSTKF", changePct: 4.83 }, worstStock: { ticker: "YGGYO", changePct: -2.14 },
       riskScore: { value: 38, label: "Orta" }, llmStance: "Nötr" },
     performance: { series: [
       { name: "Dengeli Model Portföy", key: "pf_Dengeli", points: [["2026-06-11",0],["2026-06-17",1.3],["2026-06-24",1.6],["2026-06-30",1.86]].map(p=>({t:p[0],v:p[1]})) },
@@ -29,10 +29,10 @@
       holdings: [ { ticker: "CCOLA", weightPct: 21.3, targetPct: 20 }, { ticker: "GLYHO", weightPct: 20.1, targetPct: 20 },
         { ticker: "TUPRS", weightPct: 19.8, targetPct: 20 }, { ticker: "AKSA", weightPct: 19.4, targetPct: 20 }, { ticker: "ARASE", weightPct: 19.4, targetPct: 20 } ] },
     modelPortfolios: [
-      { id: "Dengeli", name: "Dengeli Model Portföy", strategy: "Dengeli", valueTL: 101856.13, returnPct: 1.86, alphaPct: 1.53, holdings: [{ticker:"CCOLA",weightPct:21.3},{ticker:"GLYHO",weightPct:20.1},{ticker:"TUPRS",weightPct:19.8}] },
-      { id: "Momentum", name: "Momentum Model Portföyü", strategy: "Momentum", valueTL: 106592.24, returnPct: 6.59, alphaPct: 6.26, holdings: [{ticker:"GLYHO",weightPct:20},{ticker:"THYAO",weightPct:20},{ticker:"DSTKF",weightPct:20}] },
-      { id: "Deger", name: "Değer Model Portföyü", strategy: "Değer", valueTL: 107704.23, returnPct: 7.70, alphaPct: 7.37, holdings: [{ticker:"NTGAZ",weightPct:20},{ticker:"TUPRS",weightPct:20},{ticker:"TTKOM",weightPct:20}] },
-      { id: "RiskDengeli", name: "Risk Dengeli Model Portföyü", strategy: "Dengeli", valueTL: 96699.26, returnPct: -3.30, alphaPct: -3.95, holdings: [{ticker:"CCOLA",weightPct:24},{ticker:"TUPRS",weightPct:22}] }
+      { id: "Dengeli", name: "Dengeli Model Portföy", strategy: "Dengeli", valueTL: 101856.13, returnPct: 1.86, usdReturnPct: -3.2, alphaPct: 1.53, holdings: [{ticker:"CCOLA",weightPct:21.3},{ticker:"GLYHO",weightPct:20.1},{ticker:"TUPRS",weightPct:19.8}] },
+      { id: "Momentum", name: "Momentum Model Portföyü", strategy: "Momentum", valueTL: 106592.24, returnPct: 6.59, usdReturnPct: 1.4, alphaPct: 6.26, holdings: [{ticker:"GLYHO",weightPct:20},{ticker:"THYAO",weightPct:20},{ticker:"DSTKF",weightPct:20}] },
+      { id: "Deger", name: "Değer Model Portföyü", strategy: "Değer", valueTL: 107704.23, returnPct: 7.70, usdReturnPct: 2.5, alphaPct: 7.37, holdings: [{ticker:"NTGAZ",weightPct:20},{ticker:"TUPRS",weightPct:20},{ticker:"TTKOM",weightPct:20}] },
+      { id: "RiskDengeli", name: "Risk Dengeli Model Portföyü", strategy: "Dengeli", valueTL: 96699.26, returnPct: -3.30, usdReturnPct: -8.1, alphaPct: -3.95, holdings: [{ticker:"CCOLA",weightPct:24},{ticker:"TUPRS",weightPct:22}] }
     ],
     instantEntry: { initialCapitalTL: 100000, dailyBudgetTL: 5000, cashTL: 73428.22, holdingsValueTL: 28427.91, totalValueTL: 101856.13, totalReturnPct: 1.86, totalBoughtTL: 30000, realizedGainTL: 928.22, statusNote: "Bugünkü alım: THYAO 5.000 TL.",
       holdings: [ {ticker:"THYAO",company:"Türk Hava Yolları",valueTL:5120.5,weightPct:18,gainPct:2.4},{ticker:"ARASE",company:"Aras Elektrik",valueTL:6207,weightPct:21.8,gainPct:5.1},{ticker:"DSTKF",company:"Destek Faktoring",valueTL:5200.2,weightPct:18.3,gainPct:-1.2} ] },
@@ -175,6 +175,7 @@
       kpiChange("Günlük Değişim", s.dailyChangePct),
       kpiChange("Haftalık Değişim", s.weeklyChangePct),
       kpiChange("Aylık Değişim", s.monthlyChangePct),
+      kpiChange("USD Bazında", s.usdMonthlyChangePct),
       kpiStock("En İyi Hisse", s.bestStock),
       kpiStock("En Zayıf Hisse", s.worstStock),
       kpiRisk("Risk Skoru", s.riskScore),
@@ -361,6 +362,11 @@
     }];
     if (hasAlpha) {
       datasets.push({ label: "Alfa % (BIST100'e karşı)", data: sorted.map((p) => (isNum(p.alphaPct) ? p.alphaPct : null)), backgroundColor: accC, borderRadius: 4, maxBarThickness: 14 });
+    }
+    // USD-reel getiri (TR bağlamı: dolar bazında ne kazandık) — varsa ayrı bar.
+    if (sorted.some((p) => isNum(p.usdReturnPct))) {
+      const warnC = css.getPropertyValue("--warn").trim() || "#e0a800";
+      datasets.push({ label: "USD bazında %", data: sorted.map((p) => (isNum(p.usdReturnPct) ? p.usdReturnPct : null)), backgroundColor: warnC, borderRadius: 4, maxBarThickness: 14 });
     }
     if (pfCompareChart) pfCompareChart.destroy();
     pfCompareChart = new window.Chart(wrap.getContext("2d"), {

@@ -371,7 +371,35 @@ function ConvertTo-DashboardReport {
         [void]$series.Add((ConvertTo-DashSeries -Series $b -Key (Get-DashSeriesKey -Name $nm) -Name $nm))
     }
     $series = @($series | Where-Object { $_ -and @($_.points).Count -gt 0 })
+
+    # USD-REEL getiri (TR baglami): TL kumulatif getiriyi USD/TRY degisimiyle
+    # deflate et -> "dolar bazinda ne kazandik". USD/TRY serisi benchmark'ta
+    # 'usdtry' anahtarli. Ortak son tarihte: usdRet = ((1+tl/100)/(1+usd/100)-1)*100.
+    $usdSeries = @($series | Where-Object { [string]$_.key -eq 'usdtry' } | Select-Object -First 1)
+    $usdMap = @{}
+    if ($usdSeries) { foreach ($p in @($usdSeries.points)) { $usdMap[[string]$p.t] = [double]$p.v } }
+    $usdReturnOf = {
+        param($pfSeries)
+        if (-not $usdSeries -or -not $pfSeries) { return $null }
+        $common = @(@($pfSeries.points) | Where-Object { $usdMap.ContainsKey([string]$_.t) } | Sort-Object { [string]$_.t })
+        if ($common.Count -eq 0) { return $null }
+        $last = $common[$common.Count - 1]
+        $tlRet = [double]$last.v; $usdRet = [double]$usdMap[[string]$last.t]
+        if ((1 + $usdRet / 100.0) -le 0) { return $null }
+        return [Math]::Round(((1 + $tlRet / 100.0) / (1 + $usdRet / 100.0) - 1) * 100.0, 2)
+    }
+    # Her portfoy serisine usdReturnPct ekle (gorunum; karar etkisi yok).
+    foreach ($s in $series) {
+        if ([string]$s.key -like 'pf_*') {
+            $s | Add-Member -NotePropertyName 'usdReturnPct' -NotePropertyValue (& $usdReturnOf $s) -Force
+        }
+    }
     $performance = [ordered]@{ note = if ($series.Count -eq 0) { 'Performans serisi henüz üretilmedi.' } else { $null }; series = $series }
+
+    # Birincil portfoyun USD-reel getirisini summary basligina ekle.
+    $primaryId = Get-DashStr -Object $primary -Name 'Id'
+    $primaryUsdSeries = @($series | Where-Object { [string]$_.key -eq ('pf_' + $primaryId) } | Select-Object -First 1)
+    $summary.usdMonthlyChangePct = if ($primaryUsdSeries) { $primaryUsdSeries.usdReturnPct } else { $null }
 
     # ---- riskMetrics (TUM portfoyler icin Sharpe/Sortino/Calmar/MaxDD/Beta/Alfa/TE/IR/korelasyon) ----
     # Mevcut gunluk serilerden saf matematik; BIST100 serisi benchmark. Ek veri kaynagi yok.
@@ -684,16 +712,26 @@ function ConvertTo-DashboardReport {
         note = 'Karar destek amaçlıdır, yatırım tavsiyesi değildir.'
     }
 
+    # pf_<Id> serisinden USD-reel getiri haritasi (modelPortfolios'a bagla).
+    $usdReturnById = @{}
+    foreach ($s in $series) {
+        if ([string]$s.key -like 'pf_*' -and $null -ne $s.usdReturnPct) {
+            $usdReturnById[([string]$s.key).Substring(3)] = $s.usdReturnPct
+        }
+    }
+
     # ---- modelPortfolios (TÜM model portföyler: Dengeli/Değer/Momentum/Kalite/RFS100/... ) ----
     $modelPortfolios = @($portfolios | ForEach-Object {
         $ph = @(Get-DashProp -Object $_ -Name 'Holdings')
+        $pfId = (Get-DashStr -Object $_ -Name 'Id')
         [pscustomobject]@{
-            id                 = (Get-DashStr -Object $_ -Name 'Id')
+            id                 = $pfId
             name               = (Get-DashStr -Object $_ -Name 'Name')
             strategy           = (Get-DashStr -Object $_ -Name 'Strategy')
             rankBy             = (Get-DashStr -Object $_ -Name 'RankBy')
             valueTL            = (Get-DashNum -Object $_ -Name 'CurrentValueTL')
             returnPct          = (Get-DashNum -Object $_ -Name 'TotalReturnPct')
+            usdReturnPct       = if ($pfId -and $usdReturnById.ContainsKey($pfId)) { $usdReturnById[$pfId] } else { $null }
             benchmarkReturnPct = (Get-DashNum -Object $_ -Name 'BenchmarkReturnPct')
             alphaPct           = (Get-DashNum -Object $_ -Name 'AlphaPct')
             holdings = @($ph | ForEach-Object {

@@ -873,6 +873,26 @@ if ($null -ne $sigT) { throw "Trend serisinde yanlis pozitif: $($sigT.Type)" }
 if ($null -ne (Get-PriceStructureSignal -Series @($darvas | Select-Object -First 30))) { throw 'Kisa seride null beklenirdi.' }
 Write-Host "Fiyat yapısı dedektörü testi başarılı (Darvas kırılımı + Wyckoff birikim; trend/kısa seri temiz)."
 
+# --- USD-reel getiri: TL getiriyi USD/TRY değişimiyle deflate etmeli ---
+$usdSeriesTest = @(
+    [pscustomobject]@{ Name = 'Dengeli Model Portföy'; Points = @(
+            [pscustomobject]@{ Date = '2026-06-01'; ReturnPct = 0.0 },
+            [pscustomobject]@{ Date = '2026-07-01'; ReturnPct = 20.0 })    # TL +%20
+    })
+$usdBenchTest = @(
+    [pscustomobject]@{ Name = 'USD/TRY'; Points = @(
+            [pscustomobject]@{ Date = '2026-06-01'; ReturnPct = 0.0 },
+            [pscustomobject]@{ Date = '2026-07-01'; ReturnPct = 10.0 })    # USD/TRY +%10
+    })
+$usdPfSet = [pscustomobject]@{ Portfolios = @([pscustomobject]@{ Id = 'Dengeli'; Name = 'Dengeli Model Portföy'; Strategy = 'Dengeli'; CurrentValueTL = 120000; InitialCapitalTL = 100000; TotalReturnPct = 20; Holdings = @() }) }
+$usdReport = ConvertTo-DashboardReport -Stocks @() -PortfolioSet $usdPfSet -StrategySeries $usdSeriesTest -BenchmarkSeries $usdBenchTest -AsOf ([datetime]'2026-07-01T12:00:00') -PrimaryPortfolioId 'Dengeli'
+# USD-reel = (1.20/1.10 - 1) = %9.09
+$usdMp = @($usdReport.modelPortfolios | Where-Object { $_.id -eq 'Dengeli' } | Select-Object -First 1)
+if ($null -eq $usdMp.usdReturnPct) { throw 'USD-reel getiri hesaplanmadı.' }
+if ([Math]::Abs([double]$usdMp.usdReturnPct - 9.09) -gt 0.1) { throw "USD-reel getiri (1.20/1.10-1)=%9.09 olmalı: $($usdMp.usdReturnPct)" }
+if ([Math]::Abs([double]$usdReport.summary.usdMonthlyChangePct - 9.09) -gt 0.1) { throw "Summary USD getiri %9.09 olmalı: $($usdReport.summary.usdMonthlyChangePct)" }
+Write-Host "USD-reel getiri testi başarılı (TL %20 / USD/TRY %10 -> USD %9.09; modelPortfolios + summary)."
+
 # --- Panel JSON şema sözleşmesi (boş girdiyle bile anahtarlar mevcut olmalı) ---
 $schemaR = ConvertTo-DashboardReport -Stocks @() -AsOf ([datetime]'2026-07-01T12:00:00')
 $mustKeys = @('meta','summary','performance','allocation','modelPortfolios','instantEntry','stocks','sectorRotation','sectorFlow','riskMetrics','macro','kapNews','foreignFlow','tefasFlow','dataHealth','heatmap','smartMoney','technicalSignals','llmCommentary','actionItems')
