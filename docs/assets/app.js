@@ -354,27 +354,47 @@
       wrap.style.display = "none"; return;
     }
     if (empty) empty.hidden = true; wrap.style.display = "";
-    const sorted = list.slice().sort((a, b) => b.returnPct - a.returnPct);
-    // Kısa etiket: "Model Portföy(ü)" son ekini at — dar ekranda Y ekseni etiketi kesilmesin.
-    const labels = sorted.map((p) => (p.name || p.id || "—").replace(/\s*Model Portföyü?\s*$/i, ""));
+    // Satırlar = model portföyler + ÖLÇÜT (benchmark) çubukları. BIST100 her
+    // portföyle ortak canlı benchmarkReturnPct'ten gelir (Yahoo'ya bağlı DEĞİL,
+    // her koşuda vardır); Altın benchmark serisinin son kümülatif getirisinden
+    // (yalnız veri varsa). Ölçütler ayrı renkte çizilir — portföylerle karışmasın;
+    // kimlik ayrıca Y ekseni etiketinde "· ölçüt" ile de belirtilir.
+    const rows = list.map((p) => ({ label: shortPfName(p.name || p.id || "—"), val: p.returnPct, kind: "pf", ref: p }));
+    let bistRet = null;
+    for (let i = 0; i < list.length; i++) { if (isNum(list[i].benchmarkReturnPct)) { bistRet = list[i].benchmarkReturnPct; break; } }
+    if (isNum(bistRet)) rows.push({ label: "BIST100 · ölçüt", val: bistRet, kind: "bench", ckey: "bist100" });
+    const goldSeries = arr(report.performance && report.performance.series).find((s) => s && s.key === "gold");
+    if (goldSeries) {
+      const gp = arr(goldSeries.points); const glast = gp.length ? gp[gp.length - 1].v : null;
+      if (isNum(glast)) rows.push({ label: "Altın · ölçüt", val: glast, kind: "bench", ckey: "gold" });
+    }
+    rows.sort((a, b) => b.val - a.val);
+    const labels = rows.map((r) => r.label);
     const css = getComputedStyle(document.body);
     const posC = css.getPropertyValue("--pos").trim() || "#1db17a";
     const negC = css.getPropertyValue("--neg").trim() || "#e5484d";
     const accC = css.getPropertyValue("--accent").trim() || "#6e8bff";
     const gridc = css.getPropertyValue("--grid-line").trim();
     const textc = css.getPropertyValue("--text-dim").trim();
-    const hasAlpha = sorted.some((p) => isNum(p.alphaPct));
+    // Portföyler DOLGU kâr/zarar rengiyle (yeşil/kırmızı). Ölçütler REFERANS çubuğu
+    // gibi çizilir: içi yarı saydam, kenarı solid — çizgi grafiğindeki BIST100/Altın
+    // rengiyle. Böylece hem kâr/zarar hem USD (amber) çubuklarından net ayrışır ve
+    // "bu bir portföy değil, ölçüt" mesajı görsel olarak da verilir.
+    const hasAlpha = rows.some((r) => r.kind === "pf" && isNum(r.ref.alphaPct));
     const datasets = [{
-      label: "Getiri %", data: sorted.map((p) => p.returnPct),
-      backgroundColor: sorted.map((p) => (p.returnPct >= 0 ? posC : negC)), borderRadius: 4, maxBarThickness: 28
+      label: "Getiri %", data: rows.map((r) => r.val),
+      backgroundColor: rows.map((r) => (r.kind === "bench" ? (benchColor(r.ckey) || textc) + "44" : (r.val >= 0 ? posC : negC))),
+      borderColor: rows.map((r) => (r.kind === "bench" ? (benchColor(r.ckey) || textc) : "transparent")),
+      borderWidth: rows.map((r) => (r.kind === "bench" ? 1.5 : 0)),
+      borderRadius: 4, maxBarThickness: 26
     }];
     if (hasAlpha) {
-      datasets.push({ label: "Alfa % (BIST100'e karşı)", data: sorted.map((p) => (isNum(p.alphaPct) ? p.alphaPct : null)), backgroundColor: accC, borderRadius: 4, maxBarThickness: 14 });
+      datasets.push({ label: "Alfa % (BIST100'e karşı)", data: rows.map((r) => (r.kind === "pf" && isNum(r.ref.alphaPct) ? r.ref.alphaPct : null)), backgroundColor: accC, borderRadius: 4, maxBarThickness: 12 });
     }
     // USD-reel getiri (TR bağlamı: dolar bazında ne kazandık) — varsa ayrı bar.
-    if (sorted.some((p) => isNum(p.usdReturnPct))) {
+    if (rows.some((r) => r.kind === "pf" && isNum(r.ref.usdReturnPct))) {
       const warnC = css.getPropertyValue("--warn").trim() || "#e0a800";
-      datasets.push({ label: "USD bazında %", data: sorted.map((p) => (isNum(p.usdReturnPct) ? p.usdReturnPct : null)), backgroundColor: warnC, borderRadius: 4, maxBarThickness: 14 });
+      datasets.push({ label: "USD bazında %", data: rows.map((r) => (r.kind === "pf" && isNum(r.ref.usdReturnPct) ? r.ref.usdReturnPct : null)), backgroundColor: warnC, borderRadius: 4, maxBarThickness: 12 });
     }
     if (pfCompareChart) pfCompareChart.destroy();
     pfCompareChart = new window.Chart(wrap.getContext("2d"), {
