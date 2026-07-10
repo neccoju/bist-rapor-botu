@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-07-09T14:46:31.577012+00:00",
+  "generatedAt": "2026-07-10T14:46:19.077382+00:00",
   "source": "borsapy 0.10.2 get_news_content",
-  "count": 172,
+  "count": 177,
   "lastRun": {
-    "targets": 6,
-    "enriched": 6,
+    "targets": 5,
+    "enriched": 5,
     "errors": 0,
-    "elapsedSec": 31
+    "elapsedSec": 23
   },
   "items": {
     "1618795": {
@@ -3852,6 +3852,117 @@
         "1.987.476.592,74 TL"
       ],
       "rationale": "İş ilişkisi olumlu olabilir ancak finansal detay ve taraf açıklanmadığı için etkisi belirsiz."
+    },
+    "1631374": {
+      "symbol": "YEOTK",
+      "title": "Yeni İş İlişkisi",
+      "category": "Ihale/Sozlesme",
+      "date": "10.07.2026 09:00:51",
+      "directionHint": "+",
+      "contentChars": 80350,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-10T14:45:57.034989+00:00",
+      "directionRefined": "?",
+      "summary": "YEOTK yeni bir iş ilişkisi kurduğunu açıkladı; tutar, taraf ve proje detayları belirtilmemiştir.",
+      "impact": 2,
+      "amounts": [
+        "8.444.688 USD",
+        "444,688 USD"
+      ],
+      "rationale": "İş ilişkisi olumlu olabilir ancak detaylar olmadığı için fiyat etkisi belirsiz."
+    },
+    "1631306": {
+      "symbol": "BIMAS",
+      "title": "Payların Geri Alınmasına İlişkin Bildirim",
+      "category": "Geri Alim",
+      "date": "09.07.2026 20:00:52",
+      "directionHint": "+",
+      "contentChars": 49159,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-10T14:46:00.683289+00:00",
+      "directionRefined": "+",
+      "summary": "BİM, pay geri alım programı başlattığını bildirdi. Geri alım miktarı ve fiyatı açıklanmadı. Şirket hissedar değerini artırmayı hedefliyor.",
+      "impact": 3,
+      "amounts": [],
+      "rationale": "Geri alım programı genelde hisseye destek ve olumlu algı yaratır; detaylar açıklanmadı."
+    },
+    "1631272": {
+      "symbol": "TTKOM",
+      "title": "Kredi Derecelendirmesi",
+      "category": "Kredi Notu",
+      "date": "09.07.2026 19:30:01",
+      "directionHint": "~",
+      "contentChars": 58848,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-10T14:46:04.573340+00:00",
+      "directionRefined": "?",
+      "summary": "TTKOM, kredi derecelendirmesiyle ilgili KAP bildirimi yaptı; not, kuruluş ve detay belirtilmemiş. Somut veri yok.",
+      "impact": 1,
+      "amounts": [],
+      "rationale": "Kredi notu, kuruluş ve detaylar paylaşılmadığı için fiyat etkisi belirsiz."
+    },
+    "1631265": {
+      "symbol": "TRALT",
+      "title": "Payların Geri Alınmasına İlişkin Bildirim",
+      "category": "Geri Alim",
+      "date": "09.07.2026 18:51:34",
+      "directionHint": "+",
+      "contentChars": 51832,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-10T14:46:12.538908+00:00",
+      "directionRefined": "+",
+      "summary": "Türk Altın İşletmeleri A.Ş. pay geri alım programı başlatmıştır. Geri alımın detayları ve tutarı açıklanmamıştır.",
+      "impact": 2,
+      "amounts": [
+        "53,10 TL",
+        "53,02 TL",
+        "400.000 TL"
+      ],
+      "rationale": "Geri alım programı genelde hisseye destek sağlar, detaylar açıklanmadığı için etkisi sınırlı."
+    },
+    "1631141": {
+      "symbol": "TRALT",
+      "title": "Payların Geri Alınmasına İlişkin Bildirim",
+      "category": "Geri Alim",
+      "date": "09.07.2026 18:11:22",
+      "directionHint": "+",
+      "contentChars": 51491,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-10T14:46:16.009101+00:00",
+      "directionRefined": "+",
+      "summary": "TRALT, pay geri alım programı başlatmıştır. Geri alım miktarı ve fiyatı açıklanmamıştır. Yönetim yatırımcıya güven vermeyi amaçlamaktadır.",
+      "impact": 3,
+      "amounts": [
+        "51,35 TL",
+        "50,94 TL",
+        "1.805.660 TL"
+      ],
+      "rationale": "Geri alım programı genellikle hisseye destek ve yatırımcı güveni sağlar."
     }
   }
 }
