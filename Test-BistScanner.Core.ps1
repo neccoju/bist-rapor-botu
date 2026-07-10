@@ -734,6 +734,32 @@ if ($null -ne (Get-MacroSnapshotMetric -Snapshot $msSnap -Id 'YOK')) { throw 'Bi
 if ($null -ne (Get-MacroSnapshotMetric -Snapshot $null -Id 'XU100')) { throw 'Null snapshot null dönmeli.' }
 Write-Host "Get-MacroSnapshotMetric testi başarılı (bulma, bilinmeyen id, null snapshot)."
 
+# --- Benchmark önbellek yedeği (Yahoo aksarsa referans çizgileri kaybolmasın) ---
+$bcPath = Join-Path ([System.IO.Path]::GetTempPath()) ("benchcache_" + [guid]::NewGuid().ToString('N') + ".json")
+$bcNow = [datetime]'2026-07-10'
+$bcSeries = @(
+    [pscustomobject]@{ Name = 'BIST100'; Points = @(
+        [pscustomobject]@{ Date = [datetime]'2026-07-08'; ReturnPct = 0.0 },
+        [pscustomobject]@{ Date = [datetime]'2026-07-09'; ReturnPct = 1.25 }) },
+    [pscustomobject]@{ Name = 'Altın (TRY)'; Points = @(
+        [pscustomobject]@{ Date = [datetime]'2026-07-08'; ReturnPct = 0.0 },
+        [pscustomobject]@{ Date = [datetime]'2026-07-09'; ReturnPct = 2.46 }) },
+    [pscustomobject]@{ Name = 'BOŞ'; Points = @() }
+)
+if (-not (Save-BenchmarkPerfCache -Series $bcSeries -Path $bcPath -AsOf $bcNow)) { throw 'Dolu seri önbelleğe yazılmalıydı.' }
+$bcBack = @(Read-BenchmarkPerfCache -Path $bcPath -Now $bcNow.AddDays(1))
+if ($bcBack.Count -ne 2) { throw "Önbellekten 2 dolu seri gelmeliydi (boş atlanır): $($bcBack.Count)" }
+$bcBist = @($bcBack | Where-Object { $_.Name -eq 'BIST100' })[0]
+if ([double]$bcBist.Points[-1].ReturnPct -ne 1.25) { throw 'BIST100 son getiri round-trip korunmalı.' }
+if ([string]$bcBist.Points[-1].Date -notmatch '2026-07-09') { throw 'Tarih yyyy-MM-dd olarak korunmalı.' }
+# Çok bayat önbellek KULLANILMAZ (MaxAgeDays aşımı) — yanıltıcı eski referans çizgisi engellenir.
+if (@(Read-BenchmarkPerfCache -Path $bcPath -MaxAgeDays 14 -Now $bcNow.AddDays(30)).Count -ne 0) { throw 'Çok bayat önbellek kullanılmamalı.' }
+# Boş seri iyi önbelleği BOZMAZ (yazma reddedilir).
+if (Save-BenchmarkPerfCache -Series @() -Path $bcPath -AsOf $bcNow) { throw 'Boş seri önbelleğe yazılmamalıydı.' }
+if (@(Read-BenchmarkPerfCache -Path 'Z:\yok\benchcache.json' -Now $bcNow).Count -ne 0) { throw 'Olmayan dosya @() dönmeli.' }
+Remove-Item -LiteralPath $bcPath -Force -ErrorAction SilentlyContinue
+Write-Host "Benchmark önbellek testi başarılı (round-trip, boş atlama, bayatlık kapısı, dosya yok)."
+
 # --- Devre kesici (Get-CircuitBreakerState): drawdown + SMA50 kurtarma ---
 if ((Get-CircuitBreakerState -DrawdownPct -5 -Bist100AboveSma50 $false).state -ne 'NORMAL') { throw 'Sığ drawdown -> NORMAL olmalı.' }
 if ((Get-CircuitBreakerState -DrawdownPct -17 -Bist100AboveSma50 $false).state -ne 'UYARI') { throw '-17% + piyasa zayıf -> UYARI olmalı.' }

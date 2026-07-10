@@ -7524,8 +7524,16 @@ function Get-BenchmarkPerformanceSeries {
     $nasdaq = @(Get-YahooDailyCloseSeries -Symbol '^IXIC' -Range '1y' -TimeoutSec $TimeoutSec -AsRawTicker)
     $sp500 = @(Get-YahooDailyCloseSeries -Symbol '^GSPC' -Range '1y' -TimeoutSec $TimeoutSec -AsRawTicker)
 
-    # Ortak tarih ekseni: BIST islem gunleri (StartDate sonrasi)
-    $axis = @($bist | Where-Object { ([datetime]$_.Date).Date -ge $start } | ForEach-Object { ([datetime]$_.Date).Date } | Sort-Object -Unique)
+    # Ortak tarih ekseni: BIST islem gunleri (StartDate sonrasi). XU100 fetch'i
+    # duserse eksen USD/TRY -> altin -> Nasdaq'a DUSER (tek kaynak hicbir zaman tum
+    # benchmark blogunu birden dusurmesin; eskiden yalniz BIST'e bagliydi -> XU100
+    # aksarsa Altin/USD/S&P cizgileri de yok oluyordu).
+    $axisSource = if (@($bist).Count -ge 2) { $bist }
+        elseif (@($usdtry).Count -ge 2) { $usdtry }
+        elseif (@($gold).Count -ge 2) { $gold }
+        elseif (@($nasdaq).Count -ge 2) { $nasdaq }
+        else { @() }
+    $axis = @($axisSource | Where-Object { ([datetime]$_.Date).Date -ge $start } | ForEach-Object { ([datetime]$_.Date).Date } | Sort-Object -Unique)
     if ($axis.Count -lt 2) { return @() }
 
     # TRY seviyesi ureten yardimci (yabanci varlik × USD/TRY)
@@ -7596,6 +7604,55 @@ function Get-BenchmarkPerformanceSeries {
     }
 
     return @($result.ToArray())
+}
+
+function Save-BenchmarkPerfCache {
+    <#
+        Basarili benchmark serisini (BIST100/Altin/USD/Nasdaq/S&P) diske yazar ki
+        bir sonraki kosuda Yahoo aksarsa cizgiler kaybolmasin (panel referans
+        cizgileri surekliligi). Date 'yyyy-MM-dd' string'e cevrilir (JSON round-trip
+        guvenli; ConvertTo-DashSeries string t'yi kabul eder). BOS seri KAYDEDILMEZ
+        (iyi onbellegi bozmasin). Donus: kaydedildi mi ($true/$false).
+    #>
+    param([Parameter(Mandatory)]$Series, [Parameter(Mandatory)][string]$Path, [datetime]$AsOf = (Get-Date))
+    $arr = @(@($Series) | Where-Object { $_ -and @($_.Points).Count -gt 0 })
+    if ($arr.Count -eq 0) { return $false }
+    $payload = [pscustomobject]@{
+        asOf = $AsOf.ToString('yyyy-MM-dd')
+        series = @($arr | ForEach-Object {
+            [pscustomobject]@{
+                Name = [string]$_.Name
+                Points = @(@($_.Points) | ForEach-Object {
+                    $d = $_.Date
+                    $ds = if ($d -is [datetime]) { $d.ToString('yyyy-MM-dd') } else { [string]$d }
+                    [pscustomobject]@{ Date = $ds; ReturnPct = [double]$_.ReturnPct }
+                })
+            }
+        })
+    }
+    $dir = Split-Path -Parent $Path
+    if ($dir -and -not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
+    $payload | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $Path -Encoding UTF8
+    return $true
+}
+
+function Read-BenchmarkPerfCache {
+    <#
+        Onbellek benchmark serisini geri okur (Yahoo bu kosuda bos donduyse yedek).
+        Cok bayatsa (> MaxAgeDays) KULLANILMAZ — cok eski referans cizgisi yanilticidir.
+        Donus: [{ Name, Points:[{Date, ReturnPct}] }] (Get-BenchmarkPerformanceSeries
+        ile ayni sekil; ConvertTo-DashSeries dogrudan tuketir) veya @().
+    #>
+    param([Parameter(Mandatory)][string]$Path, [int]$MaxAgeDays = 14, [datetime]$Now = (Get-Date))
+    if (-not (Test-Path -LiteralPath $Path)) { return @() }
+    try { $obj = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json } catch { return @() }
+    if ($null -eq $obj) { return @() }
+    $asOf = $null
+    try { $asOf = [datetime]::ParseExact([string]$obj.asOf, 'yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture) } catch { $asOf = $null }
+    if ($null -ne $asOf -and ($Now.Date - $asOf.Date).TotalDays -gt $MaxAgeDays) { return @() }
+    return @(@($obj.series) | Where-Object { $_ -and @($_.Points).Count -gt 0 } | ForEach-Object {
+        [pscustomobject]@{ Name = [string]$_.Name; Points = @($_.Points) }
+    })
 }
 
 function New-PerformanceComparisonChart {
@@ -7932,6 +7989,8 @@ Export-ModuleMember -Function `
     Get-PitSnapshot, `
     Get-StrategyPerformanceSeries, `
     Get-BenchmarkPerformanceSeries, `
+    Save-BenchmarkPerfCache, `
+    Read-BenchmarkPerfCache, `
     New-PerformanceComparisonChart, `
     Get-MarketBreadth, `
     Add-RelativeStrengthRank, `

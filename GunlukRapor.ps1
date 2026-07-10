@@ -2378,7 +2378,21 @@ try {
             if ($sd) { $d = [datetime]$sd; if ($null -eq $earliestStart -or $d -lt $earliestStart) { $earliestStart = $d } }
         }
         if ($null -eq $earliestStart) { $earliestStart = $runAt.AddMonths(-1) }
-        $benchmarkSeries = @(Get-BenchmarkPerformanceSeries -StartDate $earliestStart -TimeoutSec 8)
+        $benchmarkSeries = @(Get-BenchmarkPerformanceSeries -StartDate $earliestStart -TimeoutSec 12)
+        # Onbellek yedegi: canli Yahoo fetch'i bos donduyse (XU100 vb. aksadi) panel
+        # referans cizgileri (BIST100/Altin/USD/Nasdaq/S&P) KAYBOLMASIN — son iyi seri
+        # geri gelir. Dolu fetch'te onbellek tazelenir. Karar etkisi yok (yalniz gorunum).
+        $benchCachePath = Join-Path $PSScriptRoot 'data/benchmark_cache.json'
+        if (@($benchmarkSeries).Count -gt 0) {
+            try { [void](Save-BenchmarkPerfCache -Series $benchmarkSeries -Path $benchCachePath -AsOf $runAt) } catch { }
+        }
+        else {
+            try {
+                $benchmarkSeries = @(Read-BenchmarkPerfCache -Path $benchCachePath -Now $runAt)
+                if ($benchmarkSeries.Count -gt 0) { Write-Host ("Benchmark canli fetch bos; onbellekten {0} seri kullanildi." -f $benchmarkSeries.Count) }
+            }
+            catch { $benchmarkSeries = @() }
+        }
 
         $perfChartUrl = New-PerformanceComparisonChart -StrategySeries $strategySeries -BenchmarkSeries $benchmarkSeries -TimeoutSec 25
         if ($perfChartUrl) { Write-Host "Performans grafigi URL'si uretildi: $perfChartUrl" } else { Write-Host 'Performans grafigi uretilemedi (QuickChart erisilemedi); ozet tablo gosterilecek.' }
