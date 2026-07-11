@@ -612,6 +612,18 @@
     if (s === "pozitif") cls = "badge--pos"; else if (s === "negatif") cls = "badge--neg"; else if (s === "belirsiz") cls = "badge--warn";
     return '<span class="badge ' + cls + '">' + esc(imp || "—") + "</span>";
   }
+  // İkincil kaynak çelişki işareti (P2): TradingView ile İş Yatırım F/K/PD/DD/ROE
+  // belirgin farklıysa "≠" uyarısı + tooltip (iki kaynağın değerleri). Şeffaflık:
+  // skoru değiştirmez, "bu hissede temel veri kaynakları uyuşmuyor" der.
+  function divergenceMark(r) {
+    if (!r || r.fundamentalDivergence !== true) return "";
+    const parts = [];
+    if (isNum(r.secondaryPE)) parts.push("İş Yat. F/K " + fmtTR(r.secondaryPE, 1));
+    if (isNum(r.secondaryPB)) parts.push("PD/DD " + fmtTR(r.secondaryPB, 2));
+    if (isNum(r.secondaryROE)) parts.push("ROE %" + fmtTR(r.secondaryROE, 1));
+    const tip = (r.fundamentalDivergenceNote || "Temel veri kaynakları çelişkili") + (parts.length ? " · " + parts.join(", ") : "");
+    return ' <span class="divmark" title="' + esc(tip) + '">≠</span>';
+  }
   // Bilanço kalitesi hücresi: 0-100 skoru renk-kodlu + tahakkuk bayrağı noktası.
   // Finans/holding'de veri null -> "—" (bu oranlar o gruplarda uygulanmaz).
   function balanceSheetCell(score, accruals) {
@@ -707,6 +719,10 @@
       if (c.key === "signal") return "<td>" + signalBadge(v) + "</td>";
       if (c.key === "action") return "<td>" + actionBadge(v) + "</td>";
       if (c.key === "balanceSheetScore") return "<td class='td-num'>" + balanceSheetCell(v, r.accrualsFlag) + "</td>";
+      if (c.key === "fundamentalScore") {
+        const cell = isNum(v) ? '<span class="td-num">' + fmtTR(v) + "</span>" : '<span class="td-num flat">—</span>';
+        return "<td class='td-num'>" + cell + divergenceMark(r) + "</td>";
+      }
       if (c.type === "num") {
         if (!isNum(v)) return '<td class="td-num flat">—</td>';
         if (c.pct) return '<td class="td-num ' + pctClass(v) + '">' + pctText(v) + "</td>";

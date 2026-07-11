@@ -35,13 +35,18 @@ jobs:
       - name: Collect MKK foreign ratios
         run: python collect_mkk.py
 
+      # P2: ayni Is Yatirim screener'dan IKINCI temel-veri kaynagi (F/K/PD/DD/ROE)
+      # — TradingView ile capraz dogrulama icin. Ayri dosya; best-effort (exit 0).
+      - name: Collect secondary fundamentals (Is Yatirim)
+        run: python collect_fundamentals_secondary.py
+
       - name: Commit data
         run: |
           git config user.name 'bist-mkk-bot'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -f data/mkk_foreign.json 2>/dev/null || true
+          git add -f data/mkk_foreign.json data/fundamentals_secondary.json 2>/dev/null || true
           git diff --cached --quiet && { echo 'degisiklik yok'; exit 0; }
-          git commit -m 'chore(mkk): yabanci saklama oranlari guncellendi [skip ci]'
+          git commit -m 'chore(mkk): yabanci saklama + ikincil temel veri guncellendi [skip ci]'
           for i in 1 2 3 4; do
             git push origin "HEAD:${GITHUB_REF_NAME}" && exit 0
             git pull --rebase origin "${GITHUB_REF_NAME}"; sleep $((2**i))

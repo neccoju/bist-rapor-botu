@@ -6208,6 +6208,108 @@ function Add-BalanceSheetQuality {
     return @($Stocks)
 }
 
+function Get-FundamentalDivergence {
+    <#
+        P2: birincil (TradingView) ile ikincil (Is Yatirim) temel oranlarini
+        karsilastirir. F/K ve PD/DD icin GORELI fark (|a-b| / ortalama), ROE icin
+        MUTLAK yuzde-puan farki kullanilir (ROE 0/negatife yakin olabilir). Yalniz
+        HER IKI kaynakta da anlamli deger olan metrik karsilastirilir. Belirgin
+        sapma (esik ustu) 'kaynaklar celiskili' demektir -> seffaflik bayragi
+        (SKORU DEGISTIRMEZ; iki 'cari' oran saglayici/donem farkiyla dogal olarak
+        biraz oynar, esik bunu tolere eder, yalniz buyuk farki isaretler).
+    #>
+    param($PrimaryPE, $PrimaryPB, $PrimaryROE, $SecondaryPE, $SecondaryPB, $SecondaryROE,
+        [double]$RelThreshold = 0.40, [double]$RoePpThreshold = 15.0)
+    $p = { param($v) ConvertTo-DoubleOrNull $v }
+    $pe0 = & $p $PrimaryPE; $pb0 = & $p $PrimaryPB; $roe0 = & $p $PrimaryROE
+    $pe1 = & $p $SecondaryPE; $pb1 = & $p $SecondaryPB; $roe1 = & $p $SecondaryROE
+    $diverged = [System.Collections.Generic.List[string]]::new()
+    $compared = 0
+    $relDiff = { param($a, $b) $m = ([Math]::Abs($a) + [Math]::Abs($b)) / 2.0; if ($m -le 1e-9) { 0.0 } else { [Math]::Abs($a - $b) / $m } }
+    # F/K: iki kaynakta da pozitif (zarar/negatif F/K anlamsiz kiyas) -> goreli fark
+    if ($null -ne $pe0 -and $null -ne $pe1 -and $pe0 -gt 0 -and $pe1 -gt 0) {
+        $compared++
+        if ((& $relDiff $pe0 $pe1) -gt $RelThreshold) { [void]$diverged.Add(('F/K {0}↔{1}' -f [Math]::Round($pe0, 1), [Math]::Round($pe1, 1))) }
+    }
+    # PD/DD: iki kaynakta da pozitif -> goreli fark
+    if ($null -ne $pb0 -and $null -ne $pb1 -and $pb0 -gt 0 -and $pb1 -gt 0) {
+        $compared++
+        if ((& $relDiff $pb0 $pb1) -gt $RelThreshold) { [void]$diverged.Add(('PD/DD {0}↔{1}' -f [Math]::Round($pb0, 2), [Math]::Round($pb1, 2))) }
+    }
+    # ROE: mutlak yuzde-puan farki VEYA isaret uyusmazligi
+    if ($null -ne $roe0 -and $null -ne $roe1) {
+        $compared++
+        $signMismatch = ($roe0 -gt 0 -and $roe1 -lt 0) -or ($roe0 -lt 0 -and $roe1 -gt 0)
+        if ([Math]::Abs($roe0 - $roe1) -gt $RoePpThreshold -or $signMismatch) { [void]$diverged.Add(('ROE %{0}↔%{1}' -f [Math]::Round($roe0, 1), [Math]::Round($roe1, 1))) }
+    }
+    return [pscustomobject][ordered]@{
+        Compared = $compared
+        DivergedCount = $diverged.Count
+        DivergedMetrics = $diverged.ToArray()
+        IsDivergent = ($diverged.Count -ge 1)
+    }
+}
+
+function Add-FundamentalCrossCheck {
+    <#
+        P2: ikincil kaynak dosyasini (data/fundamentals_secondary.json — Is Yatirim
+        F/K/PD/DD/ROE) okur ve her hissenin BIRINCIL (TradingView) oranlariyla capraz
+        dogrular. Belirgin sapmada SecondaryFundamentalDivergence=$true isaretler ve
+        DataQualityFlags'e seffaflik notu ekler (SKORU DEGISTIRMEZ). Best-effort:
+        dosya yoksa/bozuksa alanlar null kalir, hicbir hisse bayraklanmaz.
+        Not: capraz-kontrol Add-DataQualityAssessment'ten SONRA calisir; bu yuzden
+        bayragi VAR OLAN DataQualityFlags dizisine ekler (yeniden yazar).
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Stocks, [string]$DataDir)
+    if ([string]::IsNullOrWhiteSpace($DataDir)) { $DataDir = Join-Path $PSScriptRoot 'data' }
+    $path = Join-Path $DataDir 'fundamentals_secondary.json'
+    $sec = @{}
+    $asOfNote = $null
+    if (Test-Path -LiteralPath $path) {
+        try {
+            $doc = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
+            $asOfNote = [string](Get-ObjectPropertyValue -Object $doc -Name 'asOfNote')
+            $items = Get-ObjectPropertyValue -Object $doc -Name 'items'
+            if ($null -ne $items) {
+                foreach ($prop in $items.PSObject.Properties) { $sec[[string]$prop.Name] = $prop.Value }
+            }
+        }
+        catch { $sec = @{} }
+    }
+    foreach ($s in @($Stocks)) {
+        $sym = [string](Get-ObjectPropertyValue -Object $s -Name 'Symbol')
+        $secRow = if ($sym -and $sec.ContainsKey($sym)) { $sec[$sym] } else { $null }
+        $secPe = if ($secRow) { ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $secRow -Name 'pe') } else { $null }
+        $secPb = if ($secRow) { ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $secRow -Name 'pb') } else { $null }
+        $secRoe = if ($secRow) { ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $secRow -Name 'roe') } else { $null }
+        $s | Add-Member -NotePropertyName 'SecondaryPE' -NotePropertyValue $secPe -Force
+        $s | Add-Member -NotePropertyName 'SecondaryPB' -NotePropertyValue $secPb -Force
+        $s | Add-Member -NotePropertyName 'SecondaryROE' -NotePropertyValue $secRoe -Force
+
+        if ($null -eq $secRow) {
+            $s | Add-Member -NotePropertyName 'SecondaryFundamentalDivergence' -NotePropertyValue $null -Force
+            $s | Add-Member -NotePropertyName 'SecondaryFundamentalNote' -NotePropertyValue $null -Force
+            continue
+        }
+        $div = Get-FundamentalDivergence `
+            -PrimaryPE (Get-ObjectPropertyValue -Object $s -Name 'PE') `
+            -PrimaryPB (Get-ObjectPropertyValue -Object $s -Name 'PB') `
+            -PrimaryROE (Get-ObjectPropertyValue -Object $s -Name 'ROE') `
+            -SecondaryPE $secPe -SecondaryPB $secPb -SecondaryROE $secRoe
+        $s | Add-Member -NotePropertyName 'SecondaryFundamentalDivergence' -NotePropertyValue $div.IsDivergent -Force
+        $note = if ($div.IsDivergent) { 'Kaynaklar çelişkili: ' + ($div.DivergedMetrics -join ', ') + ' (TradingView↔İş Yatırım).' } else { $null }
+        $s | Add-Member -NotePropertyName 'SecondaryFundamentalNote' -NotePropertyValue $note -Force
+        if ($div.IsDivergent) {
+            $flags = @(Get-ObjectPropertyValue -Object $s -Name 'DataQualityFlags')
+            $flags = @($flags | Where-Object { $_ })
+            $flags += ('Temel veri kaynakları çelişkili (' + ($div.DivergedMetrics -join ', ') + ')')
+            $s | Add-Member -NotePropertyName 'DataQualityFlags' -NotePropertyValue ($flags) -Force
+        }
+    }
+    return @($Stocks)
+}
+
 function Get-MacroSnapshotMetric {
     <#
         Makro snapshot'tan Id ile TEK metrigi ceker (XU100 vb.). Ayni arama
@@ -8122,6 +8224,8 @@ Export-ModuleMember -Function `
     Get-BalanceSheetQuality, `
     Get-BalanceSheetAdjustment, `
     Add-BalanceSheetQuality, `
+    Get-FundamentalDivergence, `
+    Add-FundamentalCrossCheck, `
     Get-MacroSnapshotMetric, `
     Get-ModelPortfolioDefinitions, `
     Get-ModelPortfolioSelection, `

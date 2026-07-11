@@ -477,6 +477,16 @@ function ConvertTo-DashboardReport {
                 # birleşiği (0-100) + tahakkuk bayrağı. Finans/holding'de null.
                 balanceSheetScore = (Get-DashNum -Object $_ -Name 'BalanceSheetScore')
                 accrualsFlag = (Get-DashStr -Object $_ -Name 'AccrualsFlag')
+                # P2: ikincil kaynak (İş Yatırım) F/K/PD/DD/ROE + çelişki bayrağı.
+                # Panelde "Temel" hücresinde ≠ işareti + tooltip olarak gösterilir.
+                fundamentalDivergence = $(
+                    $d = Get-DashProp -Object $_ -Name 'SecondaryFundamentalDivergence'
+                    if ($null -eq $d) { $null } else { [bool]$d }
+                )
+                fundamentalDivergenceNote = (Get-DashStr -Object $_ -Name 'SecondaryFundamentalNote')
+                secondaryPE = (Get-DashNum -Object $_ -Name 'SecondaryPE')
+                secondaryPB = (Get-DashNum -Object $_ -Name 'SecondaryPB')
+                secondaryROE = (Get-DashNum -Object $_ -Name 'SecondaryROE')
                 llmNote   = $null    # bot per-stock LLM yorumu üretmiyor (ileride eklenebilir)
                 action    = (Get-DashStockAction -Stock $_)
             }

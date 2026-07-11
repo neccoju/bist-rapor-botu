@@ -792,6 +792,39 @@ if ((Get-BalanceSheetAdjustment -Stock ([pscustomobject]@{})) -ne 0) { throw 'Sk
 & $bqccMod { Set-SignalConfig -Config $null }
 Write-Host "Bilanço kalitesi testi başarılı (F6/tahakkuk/kaldıraç; banka hariç; veri-kapılı; gölge x0, açık ±3)."
 
+# --- P2: ikincil temel-veri çapraz doğrulama ---
+# Uyumlu: F/K 8.0↔8.4, PD/DD 1.2↔1.25, ROE 15↔16 -> sapma yok
+$divOk = Get-FundamentalDivergence -PrimaryPE 8.0 -PrimaryPB 1.2 -PrimaryROE 15 -SecondaryPE 8.4 -SecondaryPB 1.25 -SecondaryROE 16
+if ($divOk.IsDivergent) { throw "Yakın değerler çelişkili sayılmamalı: $($divOk.DivergedMetrics -join ',')" }
+if ($divOk.Compared -ne 3) { throw "3 metrik karşılaştırılmalıydı: $($divOk.Compared)" }
+# Çelişkili: F/K 8↔20 (>%40), ROE +15↔-5 (işaret) -> 2 sapma
+$divBad = Get-FundamentalDivergence -PrimaryPE 8.0 -PrimaryPB 1.2 -PrimaryROE 15 -SecondaryPE 20.0 -SecondaryPB 1.22 -SecondaryROE -5
+if (-not $divBad.IsDivergent) { throw 'Büyük F/K farkı + ROE işaret uyuşmazlığı çelişki olmalı.' }
+if ($divBad.DivergedCount -ne 2) { throw "F/K + ROE = 2 sapma beklenirdi: $($divBad.DivergedCount)" }
+# Negatif F/K (zarar) kıyaslanmaz; yalnız ROE karşılaştırılır
+$divNeg = Get-FundamentalDivergence -PrimaryPE -5 -PrimaryPB 1.0 -PrimaryROE 10 -SecondaryPE 30 -SecondaryPB 1.05 -SecondaryROE 11
+if ($divNeg.Compared -ne 2) { throw "Negatif F/K atlanmalı; PD/DD+ROE=2 karşılaştırma: $($divNeg.Compared)" }
+if ($divNeg.IsDivergent) { throw 'Negatif F/K atlanınca kalan metrikler uyumlu -> çelişki yok.' }
+# Add-FundamentalCrossCheck: dosyadan oku, bayrakla, DataQualityFlags'e ekle
+$fxDir = Join-Path ([System.IO.Path]::GetTempPath()) ("fx_" + [guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Force -Path $fxDir | Out-Null
+@{ asOfNote = 'test'; items = @{ AAA = @{ pe = 20.0; pb = 1.22; roe = -5 }; CCC = @{ pe = 9.0; pb = 1.1; roe = 14 } } } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $fxDir 'fundamentals_secondary.json') -Encoding UTF8
+$fxStocks = @(
+    [pscustomobject]@{ Symbol = 'AAA'; PE = 8.0; PB = 1.2; ROE = 15; DataQualityFlags = @('Düşük likidite') },
+    [pscustomobject]@{ Symbol = 'CCC'; PE = 9.0; PB = 1.1; ROE = 14; DataQualityFlags = @() },
+    [pscustomobject]@{ Symbol = 'ZZZ'; PE = 10; PB = 1.0; ROE = 12 }
+)
+$fxStocks = @(Add-FundamentalCrossCheck -Stocks $fxStocks -DataDir $fxDir)
+$aaa = $fxStocks[0]; $ccc = $fxStocks[1]; $zzz = $fxStocks[2]
+if ($aaa.SecondaryFundamentalDivergence -ne $true) { throw 'AAA kaynakları çelişkili olmalı.' }
+if (@($aaa.DataQualityFlags) -notcontains ($aaa.DataQualityFlags | Where-Object { $_ -match 'çelişkili' })) { throw 'AAA veri-kalite bayrağına çelişki eklenmeli.' }
+if (@($aaa.DataQualityFlags).Count -lt 2) { throw 'AAA mevcut bayrak + çelişki (>=2) olmalı.' }
+if ([double]$aaa.SecondaryPE -ne 20.0) { throw 'AAA ikincil F/K taşınmalı.' }
+if ($ccc.SecondaryFundamentalDivergence -ne $false) { throw 'CCC uyumlu (çelişki yok) olmalı.' }
+if ($null -ne $zzz.SecondaryFundamentalDivergence) { throw 'ZZZ ikincil kaynakta yok -> divergence null olmalı.' }
+Remove-Item -LiteralPath $fxDir -Recurse -Force -ErrorAction SilentlyContinue
+Write-Host "P2 temel çapraz-doğrulama testi başarılı (uyum/çelişki/negatif-atlama; bayrak + veri-kalite + veri-kapılı)."
+
 # --- Devre kesici (Get-CircuitBreakerState): drawdown + SMA50 kurtarma ---
 if ((Get-CircuitBreakerState -DrawdownPct -5 -Bist100AboveSma50 $false).state -ne 'NORMAL') { throw 'Sığ drawdown -> NORMAL olmalı.' }
 if ((Get-CircuitBreakerState -DrawdownPct -17 -Bist100AboveSma50 $false).state -ne 'UYARI') { throw '-17% + piyasa zayıf -> UYARI olmalı.' }

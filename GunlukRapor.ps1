@@ -1911,6 +1911,8 @@ function New-PointInTimeSnapshot {
                     BalanceSheetFScore = Get-NumberValue -Object $_ -Name 'BalanceSheetFScore'
                     AccrualsFlag = ConvertTo-PlainText $_.AccrualsFlag
                     BalanceSheetAdjustment = Get-NumberValue -Object $_ -Name 'BalanceSheetAdjustment'
+                    # P2: ikincil kaynak capraz-dogrulama (seffaflik; ileri analiz icin)
+                    SecondaryFundamentalDivergence = Get-ObjectPropertyValue -Object $_ -Name 'SecondaryFundamentalDivergence'
                 }
             }
     )
@@ -2183,6 +2185,10 @@ try {
     # kaldirac. Skora GOLGE etki (BalanceSheetMult varsayilan 0); panel + PIT icin
     # alanlar yazilir. Best-effort: hata olursa rapor etkilenmez.
     try { $stocks = @(Add-BalanceSheetQuality -Stocks $stocks) } catch { Write-Warning "Bilanco kalitesi islenemedi: $($_.Exception.Message)" }
+    # P2: ikincil temel-veri kaynagi (Is Yatirim F/K/PD/DD/ROE) ile capraz dogrulama.
+    # Belirgin sapmayi 'kaynaklar celiskili' olarak bayraklar (seffaflik; skoru
+    # DEGISTIRMEZ). Best-effort: dosya yoksa alanlar null, kimse bayraklanmaz.
+    try { $stocks = @(Add-FundamentalCrossCheck -Stocks $stocks) } catch { Write-Warning "Temel capraz-dogrulama islenemedi: $($_.Exception.Message)" }
 
     # Makro rejim: makro anlik goruntuyu ERKEN cek (asagidaki gec cekim, null ise
     # yedek olarak kalir), deterministik rejim motorunu calistir ve sinirli sektor
