@@ -1905,6 +1905,12 @@ function New-PointInTimeSnapshot {
                     RSI = Get-NumberValue -Object $_ -Name 'RSI'
                     RelativeVolume = Get-NumberValue -Object $_ -Name 'RelativeVolume'
                     DataQualityOk = Get-ObjectPropertyValue -Object $_ -Name 'DataQualityOk'
+                    # Bilanco kalitesi (P1; golge) — IC olcumu icin arsivlenir:
+                    # ileri-getiri ile korelasyonu birikince carpan acilir.
+                    BalanceSheetScore = Get-NumberValue -Object $_ -Name 'BalanceSheetScore'
+                    BalanceSheetFScore = Get-NumberValue -Object $_ -Name 'BalanceSheetFScore'
+                    AccrualsFlag = ConvertTo-PlainText $_.AccrualsFlag
+                    BalanceSheetAdjustment = Get-NumberValue -Object $_ -Name 'BalanceSheetAdjustment'
                 }
             }
     )
@@ -2173,6 +2179,10 @@ try {
     try { $stocks = @(Add-HoldingFlag -Stocks $stocks) } catch { Write-Warning "Holding bayragi islenemedi: $($_.Exception.Message)" }
     try { $stocks = @(Add-ForeignOwnershipData -Stocks $stocks) } catch { Write-Warning "Yabanci oran verisi islenemedi: $($_.Exception.Message)" }
     try { $stocks = @(Add-InsiderSignalData -Stocks $stocks -AsOf $runAt) } catch { Write-Warning "Insider sinyali islenemedi: $($_.Exception.Message)" }
+    # Bilanco kalitesi (P1): mevcut ceyrek finansallardan Piotroski-F6 + tahakkuk +
+    # kaldirac. Skora GOLGE etki (BalanceSheetMult varsayilan 0); panel + PIT icin
+    # alanlar yazilir. Best-effort: hata olursa rapor etkilenmez.
+    try { $stocks = @(Add-BalanceSheetQuality -Stocks $stocks) } catch { Write-Warning "Bilanco kalitesi islenemedi: $($_.Exception.Message)" }
 
     # Makro rejim: makro anlik goruntuyu ERKEN cek (asagidaki gec cekim, null ise
     # yedek olarak kalir), deterministik rejim motorunu calistir ve sinirli sektor

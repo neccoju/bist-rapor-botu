@@ -760,6 +760,38 @@ if (@(Read-BenchmarkPerfCache -Path 'Z:\yok\benchcache.json' -Now $bcNow).Count 
 Remove-Item -LiteralPath $bcPath -Force -ErrorAction SilentlyContinue
 Write-Host "Benchmark önbellek testi başarılı (round-trip, boş atlama, bayatlık kapısı, dosya yok)."
 
+# --- Bilanço kalitesi (Piotroski-F6 + tahakkuk + kaldıraç; gölge) ---
+$bqStrongQ = @(
+    [pscustomobject]@{ NetIncomeTRY = 120; RevenueTRY = 1000; TotalAssetsTRY = 2000; TotalDebtTRY = 400; FreeCashFlowTRY = 140 },
+    [pscustomobject]@{}, [pscustomobject]@{}, [pscustomobject]@{},
+    [pscustomobject]@{ NetIncomeTRY = 80; RevenueTRY = 850; TotalAssetsTRY = 2100; TotalDebtTRY = 520; FreeCashFlowTRY = 60 }
+)
+$bqStrong = Get-BalanceSheetQuality -Stock ([pscustomobject]@{ SectorTR = 'Teknoloji'; Sector = 'Technology'; QuarterlyFinancials = $bqStrongQ })
+if ($bqStrong.FScore -ne 6 -or $bqStrong.FScoreMax -ne 6) { throw "Güçlü bilanço F6/6 olmalı: $($bqStrong.FScore)/$($bqStrong.FScoreMax)" }
+if ($bqStrong.AccrualsFlag -ne 'Temiz') { throw "Nakit kârı aşıyor -> tahakkuk Temiz olmalı: $($bqStrong.AccrualsFlag)" }
+if ($bqStrong.Score -ne 100) { throw "Güçlü bilanço skoru 100 olmalı: $($bqStrong.Score)" }
+$bqWeak = Get-BalanceSheetQuality -Stock ([pscustomobject]@{ SectorTR = 'Sanayi'; Sector = 'Industrial'; QuarterlyFinancials = @([pscustomobject]@{ NetIncomeTRY = -50; RevenueTRY = 300; TotalAssetsTRY = 1000; TotalDebtTRY = 1200; FreeCashFlowTRY = -80 }) })
+if ($bqWeak.FScore -ne 0) { throw "Zararlı/negatif nakit -> F0 olmalı: $($bqWeak.FScore)" }
+if ($bqWeak.Score -ge 30) { throw "Zayıf bilanço düşük skorlanmalı: $($bqWeak.Score)" }
+# Banka/holding hariç (oranlar çarpık)
+if ((Get-BalanceSheetQuality -Stock ([pscustomobject]@{ SectorTR = 'Bankacılık'; Sector = 'Finance'; QuarterlyFinancials = $bqStrongQ })).DataOk) { throw 'Banka bilanço kalitesinden hariç olmalı.' }
+# Yetersiz veri -> null
+if ($null -ne (Get-BalanceSheetQuality -Stock ([pscustomobject]@{ SectorTR = 'Sanayi'; QuarterlyFinancials = @() })).Score) { throw 'Çeyrek verisi yokken skor null olmalı.' }
+# GÖLGE: çarpan varsayılan 0 -> skora etki yok
+$bqAdjStock = [pscustomobject]@{ BalanceSheetScore = 100 }
+$bqccMod = Get-Module 'BistScanner.Core'
+& $bqccMod { Set-SignalConfig -Config $null }
+if ((Get-BalanceSheetAdjustment -Stock $bqAdjStock) -ne 0) { throw 'Varsayılan (gölge) çarpanla bilanço ayarı 0 olmalı.' }
+if ([double](Get-SignalConfig).BalanceSheetMult -ne 0.0) { throw 'BalanceSheetMult varsayılanı 0.0 (gölge) olmalı.' }
+# Çarpan açılınca: skor 100 -> +3, skor 0 -> -3
+& $bqccMod { Set-SignalConfig -Config ([pscustomobject]@{ BalanceSheetMult = 1.0 }) }
+if ((Get-BalanceSheetAdjustment -Stock $bqAdjStock) -ne 3) { throw "Çarpan 1, skor 100 -> +3 olmalı: $(Get-BalanceSheetAdjustment -Stock $bqAdjStock)" }
+if ((Get-BalanceSheetAdjustment -Stock ([pscustomobject]@{ BalanceSheetScore = 0 })) -ne -3) { throw 'Çarpan 1, skor 0 -> -3 olmalı.' }
+if ((Get-BalanceSheetAdjustment -Stock ([pscustomobject]@{ BalanceSheetScore = 50 })) -ne 0) { throw 'Skor 50 (nötr) -> 0 olmalı.' }
+if ((Get-BalanceSheetAdjustment -Stock ([pscustomobject]@{})) -ne 0) { throw 'Skor yokken ayar 0 olmalı (veri-kapılı).' }
+& $bqccMod { Set-SignalConfig -Config $null }
+Write-Host "Bilanço kalitesi testi başarılı (F6/tahakkuk/kaldıraç; banka hariç; veri-kapılı; gölge x0, açık ±3)."
+
 # --- Devre kesici (Get-CircuitBreakerState): drawdown + SMA50 kurtarma ---
 if ((Get-CircuitBreakerState -DrawdownPct -5 -Bist100AboveSma50 $false).state -ne 'NORMAL') { throw 'Sığ drawdown -> NORMAL olmalı.' }
 if ((Get-CircuitBreakerState -DrawdownPct -17 -Bist100AboveSma50 $false).state -ne 'UYARI') { throw '-17% + piyasa zayıf -> UYARI olmalı.' }

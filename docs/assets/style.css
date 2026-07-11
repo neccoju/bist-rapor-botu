@@ -323,6 +323,8 @@ button { font-family: inherit; cursor: pointer; }
 .td-company { color: var(--text-dim); max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
 .td-num { font-family: var(--mono); text-align: right; }
 .td-note { color: var(--text-dim); white-space: normal; min-width: 180px; max-width: 280px; }
+.bsq-dot { font-size: 9px; vertical-align: middle; }
+.bsq-dot.pos { color: var(--pos); } .bsq-dot.neg { color: var(--neg); } .bsq-dot.flat { color: var(--text-faint); }
 
 /* ---- Para akışı ---- */
 .flowlist { display: flex; flex-direction: column; gap: var(--sp-2); }

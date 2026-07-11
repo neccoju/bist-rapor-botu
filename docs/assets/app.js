@@ -612,6 +612,16 @@
     if (s === "pozitif") cls = "badge--pos"; else if (s === "negatif") cls = "badge--neg"; else if (s === "belirsiz") cls = "badge--warn";
     return '<span class="badge ' + cls + '">' + esc(imp || "—") + "</span>";
   }
+  // Bilanço kalitesi hücresi: 0-100 skoru renk-kodlu + tahakkuk bayrağı noktası.
+  // Finans/holding'de veri null -> "—" (bu oranlar o gruplarda uygulanmaz).
+  function balanceSheetCell(score, accruals) {
+    if (!isNum(score)) return '<span class="flat" title="Finans/holding veya yetersiz bilanço verisi">—</span>';
+    const cls = score >= 70 ? "pos" : score < 40 ? "neg" : "flat";
+    const a = String(accruals || "");
+    const dotCls = a === "Temiz" ? "pos" : a === "Riskli" ? "neg" : a === "Nötr" ? "flat" : "";
+    const dot = dotCls ? ' <span class="bsq-dot ' + dotCls + '" title="Tahakkuk (kâr kalitesi): ' + esc(a) + '">●</span>' : "";
+    return '<span class="' + cls + '" title="Bilanço kalitesi (gölge; Piotroski-F6 + tahakkuk + kaldıraç). Skora henüz etki etmiyor.">' + fmtTR(score, 0) + "</span>" + dot;
+  }
   function renderKapNews(report) {
     const host = $("#kapNewsList"); if (!host) return;
     const items = arr(report.kapNews);
@@ -638,6 +648,7 @@
     { key: "foreignPct", label: "Yab.%", type: "num" },
     { key: "fundamentalScore", label: "Temel", type: "num" },
     { key: "technicalScore", label: "Teknik", type: "num" },
+    { key: "balanceSheetScore", label: "Bilanço K.", type: "num" },
     { key: "finalScore", label: "Skor", type: "num" },
     { key: "signal", label: "Sinyal", type: "str", noSort: true },
     { key: "llmNote", label: "YZ Yorum", type: "str", noSort: true, cls: "td-note" },
@@ -695,6 +706,7 @@
       const v = r[c.key];
       if (c.key === "signal") return "<td>" + signalBadge(v) + "</td>";
       if (c.key === "action") return "<td>" + actionBadge(v) + "</td>";
+      if (c.key === "balanceSheetScore") return "<td class='td-num'>" + balanceSheetCell(v, r.accrualsFlag) + "</td>";
       if (c.type === "num") {
         if (!isNum(v)) return '<td class="td-num flat">—</td>';
         if (c.pct) return '<td class="td-num ' + pctClass(v) + '">' + pctText(v) + "</td>";

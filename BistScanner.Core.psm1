@@ -2928,7 +2928,10 @@ function Get-BistScore {
     # Alan yoksa 0 (veri-kapili; rejim motoru calismadiysa davranis degismez).
     $macroRegimeAdjustment = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Stock -Name 'MacroRegimeAdjustment')
     if ($null -eq $macroRegimeAdjustment) { $macroRegimeAdjustment = 0.0 }
-    $score = [Math]::Round((Limit-Value -Value ($rawScore - $riskPenalty + $earningsTimingAdjustment + $smartMoneyAdjustment + $macroRegimeAdjustment)), 1)
+    # Bilanco kalite ayari: sinirli [-3,+3], carpani VARSAYILAN 0 (golge -> skora
+    # etki yok). Alan yoksa/finans-holdingse 0. IC birikince carpan acilir.
+    $balanceSheetAdjustment = Get-BalanceSheetAdjustment -Stock $Stock
+    $score = [Math]::Round((Limit-Value -Value ($rawScore - $riskPenalty + $earningsTimingAdjustment + $smartMoneyAdjustment + $macroRegimeAdjustment + $balanceSheetAdjustment)), 1)
     $signal = Get-SignalLabel -Score $score
     $riskFlags = @(Get-BistRiskFlags -Stock $Stock)
     $riskLevel = Get-RiskLevel -RiskFlags $riskFlags
@@ -2959,6 +2962,10 @@ function Get-BistScore {
         $mrLabel = [string](Get-ObjectPropertyValue -Object $Stock -Name 'MacroRegimeLabel')
         $explanation += [Environment]::NewLine + ('Makro rejim ayarı: {0}{1} puan (rejim: {2}).' -f $(if ($macroRegimeAdjustment -gt 0) { '+' } else { '' }), [Math]::Round($macroRegimeAdjustment, 1), $mrLabel)
     }
+    if ($balanceSheetAdjustment -ne 0) {
+        $bsNote = [string](Get-ObjectPropertyValue -Object $Stock -Name 'BalanceSheetNote')
+        $explanation += [Environment]::NewLine + ('Bilanço kalite ayarı: {0}{1} puan ({2}).' -f $(if ($balanceSheetAdjustment -gt 0) { '+' } else { '' }), [Math]::Round($balanceSheetAdjustment, 1), $bsNote)
+    }
 
     $properties = [ordered]@{}
     foreach ($property in $Stock.PSObject.Properties) {
@@ -2967,7 +2974,7 @@ function Get-BistScore {
                 'TrendScore', 'ValueScore', 'QualityScore', 'EarningsScore', 'MomentumScore',
                 'LiquidityScore', 'MacroSectorScore', 'ConfirmationLabel', 'ConfirmationScore',
                 'TechnicalPassCount', 'TechnicalCheckCount', 'AllTechnicalConfirmed', 'EntryNote',
-                'FailedConfirmations', 'RiskPenalty', 'SmartMoneyAdjustment', 'MacroRegimeAdjustment', 'Strategy'
+                'FailedConfirmations', 'RiskPenalty', 'SmartMoneyAdjustment', 'MacroRegimeAdjustment', 'BalanceSheetAdjustment', 'Strategy'
             )) {
             $properties[$property.Name] = $property.Value
         }
@@ -2995,6 +3002,7 @@ function Get-BistScore {
     $properties.RiskPenalty = [Math]::Round($riskPenalty, 1)
     $properties.SmartMoneyAdjustment = [Math]::Round($smartMoneyAdjustment, 1)
     $properties.MacroRegimeAdjustment = [Math]::Round($macroRegimeAdjustment, 1)
+    $properties.BalanceSheetAdjustment = [Math]::Round($balanceSheetAdjustment, 1)
     $properties.Strategy = $Strategy
 
     return [pscustomobject]$properties
@@ -6040,7 +6048,11 @@ function Get-SignalConfig {
         UpdatedAt = $null
         SmartMoneyMult = 1.0
         MacroRegimeMult = 1.0
-        Note = 'Varsayilan (henuz oto-ayar yok; tam olcek).'
+        # Bilanco kalitesi (Piotroski-F6 + tahakkuk + kaldirac): YENI faktor,
+        # VARSAYILAN 0.0 (GOLGE) — once IC olcumu birikir, Invoke-SignalEvaluation
+        # kaniti gorunce carpani acar. Diger iki carpan 1.0 (yerlesik) iken bu 0.0.
+        BalanceSheetMult = 0.0
+        Note = 'Varsayilan (henuz oto-ayar yok; akilli-para/makro tam olcek, bilanco golge).'
     }
 }
 
@@ -6052,13 +6064,148 @@ function Set-SignalConfig {
     #>
     param($Config)
     if ($null -eq $Config) { $script:SignalConfig = $null; return }
-    $clamp01 = { param($v) $d = ConvertTo-DoubleOrNull $v; if ($null -eq $d) { 1.0 } else { [Math]::Max(0.0, [Math]::Min(1.0, $d)) } }
+    $clamp01 = { param($v, $default) $d = ConvertTo-DoubleOrNull $v; if ($null -eq $d) { $default } else { [Math]::Max(0.0, [Math]::Min(1.0, $d)) } }
+    $bsRaw = Get-ObjectPropertyValue -Object $Config -Name 'BalanceSheetMult'
     $script:SignalConfig = [pscustomobject][ordered]@{
         UpdatedAt = [string](Get-ObjectPropertyValue -Object $Config -Name 'UpdatedAt')
-        SmartMoneyMult = & $clamp01 (Get-ObjectPropertyValue -Object $Config -Name 'SmartMoneyMult')
-        MacroRegimeMult = & $clamp01 (Get-ObjectPropertyValue -Object $Config -Name 'MacroRegimeMult')
+        SmartMoneyMult = & $clamp01 (Get-ObjectPropertyValue -Object $Config -Name 'SmartMoneyMult') 1.0
+        MacroRegimeMult = & $clamp01 (Get-ObjectPropertyValue -Object $Config -Name 'MacroRegimeMult') 1.0
+        # Bilanco carpani dosyada YOKSA golge (0.0) kalir; varsa [0,1] kirpilir.
+        BalanceSheetMult = & $clamp01 $bsRaw 0.0
         Note = [string](Get-ObjectPropertyValue -Object $Config -Name 'Note')
     }
+}
+
+function Get-BalanceSheetQuality {
+    <#
+        BILANCO KALITESI (P1): zaten cekilen ceyrek finansallardan (net kar, ciro,
+        toplam varlik/borc, serbest nakit akisi; index0=son, index4=yil once) EK
+        VERI KAYNAGI OLMADAN uc akademik gosterge:
+          1) Piotroski-benzeri F-skoru (mevcut kalemlerle 6 kritere kadar):
+             kâr>0, nakit>0, nakit>=kâr(tahakkuk), ROA arttti, kaldirac dustu,
+             aktif devir artti. (Cari oran degisimi/seyrelme/brut marj degisimi
+             gecmis veri gerektirir -> DAHIL EDILMEZ; skor durustce 'max' ile olcekli.)
+          2) Tahakkuk (Sloan): (NetKar - SerbestNakit)/Varlik. Dusuk/negatif = kâr
+             nakde donuyor (temiz kâr); yuksek = kâr kalitesi supheli.
+          3) Kaldirac: Borc/Varlik (dayaniklilik).
+        Bunlar BANKA/SIGORTA/HOLDING/GYO muhasebesinde CARPIK -> bu gruplar HARIC
+        (yaniltmasin). Donus: Score(0-100) + alt sinyaller + aciklama; veri yoksa null.
+        NOT: Gercek mali tablo/dipnot ayristirmasi DEGILDIR; saglayici turev
+        kalemlerinden hesaplanan sinirli ama denetlenebilir bir kalite gostergesidir.
+    #>
+    param($Stock)
+    $none = [pscustomobject][ordered]@{
+        Score = $null; FScore = $null; FScoreMax = $null; AccrualsRatio = $null
+        AccrualsFlag = $null; LeverageRatio = $null; DataOk = $false; Note = ''
+    }
+    $mk = { param($n) $r = $none.PSObject.Copy(); $r.Note = $n; return $r }
+
+    # Finans/holding/GYO haric (oran muhasebesi carpik).
+    $isHolding = [bool](Get-ObjectPropertyValue -Object $Stock -Name 'IsHolding')
+    $sectorTr = [string](Get-ObjectPropertyValue -Object $Stock -Name 'SectorTR')
+    $sector = [string](Get-ObjectPropertyValue -Object $Stock -Name 'Sector')
+    if ($isHolding -or ($sectorTr -match 'banka|sigorta|finans|holding|gayrimenkul|yatırım ort|faktoring|leasing') -or
+        ($sector -match 'financ|bank|insurance|real estate|holding')) {
+        return (& $mk 'Finans/holding/GYO: bilanço kalite oranları uygulanmaz.')
+    }
+
+    $q = @(Get-ObjectPropertyValue -Object $Stock -Name 'QuarterlyFinancials')
+    if ($q.Count -lt 1) { return (& $mk 'Çeyrek finansal veri yok.') }
+    $L = $q[0]
+    $ni0 = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $L -Name 'NetIncomeTRY')
+    $ta0 = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $L -Name 'TotalAssetsTRY')
+    $debt0 = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $L -Name 'TotalDebtTRY')
+    $fcf0 = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $L -Name 'FreeCashFlowTRY')
+    $rev0 = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $L -Name 'RevenueTRY')
+    if ($null -eq $ta0 -or $ta0 -le 0) { return (& $mk 'Toplam varlık yok/geçersiz.') }
+
+    $Y = if ($q.Count -ge 5) { $q[4] } else { $null }
+    $ni4 = if ($Y) { ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Y -Name 'NetIncomeTRY') } else { $null }
+    $ta4 = if ($Y) { ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Y -Name 'TotalAssetsTRY') } else { $null }
+    $debt4 = if ($Y) { ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Y -Name 'TotalDebtTRY') } else { $null }
+    $rev4 = if ($Y) { ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Y -Name 'RevenueTRY') } else { $null }
+
+    $f = 0; $max = 0
+    $sig = [System.Collections.Generic.List[string]]::new()
+    # Seviye sinyalleri (yil oncesi gerekmez)
+    if ($null -ne $ni0) { $max++; if ($ni0 -gt 0) { $f++; [void]$sig.Add('kâr+') } }
+    if ($null -ne $fcf0) { $max++; if ($fcf0 -gt 0) { $f++; [void]$sig.Add('nakit+') } }
+    if ($null -ne $ni0 -and $null -ne $fcf0) { $max++; if ($fcf0 -ge $ni0) { $f++; [void]$sig.Add('nakit≥kâr') } }
+    # Trend sinyalleri (yil oncesi gerekli)
+    $roa0 = if ($null -ne $ni0) { $ni0 / $ta0 } else { $null }
+    $roa4 = if ($null -ne $ni4 -and $null -ne $ta4 -and $ta4 -gt 0) { $ni4 / $ta4 } else { $null }
+    if ($null -ne $roa0 -and $null -ne $roa4) { $max++; if ($roa0 -gt $roa4) { $f++; [void]$sig.Add('ROA↑') } }
+    $lev0 = if ($null -ne $debt0) { $debt0 / $ta0 } else { $null }
+    $lev4 = if ($null -ne $debt4 -and $null -ne $ta4 -and $ta4 -gt 0) { $debt4 / $ta4 } else { $null }
+    if ($null -ne $lev0 -and $null -ne $lev4) { $max++; if ($lev0 -lt $lev4) { $f++; [void]$sig.Add('kaldıraç↓') } }
+    $at0 = if ($null -ne $rev0) { $rev0 / $ta0 } else { $null }
+    $at4 = if ($null -ne $rev4 -and $null -ne $ta4 -and $ta4 -gt 0) { $rev4 / $ta4 } else { $null }
+    if ($null -ne $at0 -and $null -ne $at4) { $max++; if ($at0 -gt $at4) { $f++; [void]$sig.Add('aktif devir↑') } }
+
+    if ($max -lt 3) { return (& $mk 'Yetersiz bilanço kalemi (< 3 kriter).') }
+
+    # Tahakkuk (Sloan): (NetKar - SerbestNakit)/Varlik
+    $accr = if ($null -ne $ni0 -and $null -ne $fcf0) { [Math]::Round((($ni0 - $fcf0) / $ta0), 4) } else { $null }
+    $accrFlag = if ($null -eq $accr) { $null } elseif ($accr -le 0.02) { 'Temiz' } elseif ($accr -le 0.10) { 'Nötr' } else { 'Riskli' }
+
+    # Score100 = F-orani (0-50) + tahakkuk (0-25) + kaldirac (0-25)
+    $base = ($f / [double]$max) * 50.0
+    $accrPts = if ($null -eq $accrFlag) { 12.0 } elseif ($accrFlag -eq 'Temiz') { 25.0 } elseif ($accrFlag -eq 'Nötr') { 12.0 } else { 0.0 }
+    $levPts = if ($null -eq $lev0) { 12.0 } elseif ($lev0 -lt 0.30) { 25.0 } elseif ($lev0 -lt 0.60) { 15.0 } elseif ($lev0 -lt 1.0) { 8.0 } else { 0.0 }
+    $score = [Math]::Round([Math]::Max(0.0, [Math]::Min(100.0, $base + $accrPts + $levPts)))
+
+    $levText = if ($null -ne $lev0) { ('kaldıraç %{0}' -f [Math]::Round($lev0 * 100)) } else { 'kaldıraç yok' }
+    $note = ('F{0}/{1} ({2}); tahakkuk {3}; {4}.' -f $f, $max, ($(if ($sig.Count) { $sig -join ',' } else { '—' })), $(if ($accrFlag) { $accrFlag } else { 'yok' }), $levText)
+
+    return [pscustomobject][ordered]@{
+        Score = [int]$score
+        FScore = $f
+        FScoreMax = $max
+        AccrualsRatio = $accr
+        AccrualsFlag = $accrFlag
+        LeverageRatio = if ($null -ne $lev0) { [Math]::Round($lev0, 3) } else { $null }
+        DataOk = $true
+        Note = $note
+    }
+}
+
+function Get-BalanceSheetAdjustment {
+    <#
+        Bilanco kalite skorunu (0-100) sinirli skor ayarina cevirir: 50=notr->0,
+        100->+3, 0->-3; carpan Get-SignalConfig.BalanceSheetMult (VARSAYILAN 0 ->
+        GOLGE, skora etki yok). IC olcumu birikip carpan acilinca devreye girer.
+        Veri yoksa 0 (veri-kapili). Diger ayarlarla ayni [-3,+3] disiplini.
+    #>
+    param($Stock)
+    $sc = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Stock -Name 'BalanceSheetScore')
+    if ($null -eq $sc) { return 0.0 }
+    $adj = (($sc - 50.0) / 50.0) * 3.0
+    if ($adj -gt 3.0) { $adj = 3.0 } elseif ($adj -lt -3.0) { $adj = -3.0 }
+    $adj *= [double](Get-SignalConfig).BalanceSheetMult
+    return [Math]::Round($adj, 2)
+}
+
+function Add-BalanceSheetQuality {
+    <#
+        Her hisseye bilanco kalite alanlarini ekler (Get-BalanceSheetQuality).
+        Skoru DOGRUDAN degistirmez; skor ayari Get-BalanceSheetAdjustment ile
+        Get-BistScore icinde carpan uzerinden (golge) uygulanir. Panel + PIT icin
+        alanlar burada yazilir. Ceyrek finansallar (QuarterlyFinancials) ONCE
+        islenmis olmalidir (Invoke-BistStockScan bunu yapar).
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Stocks)
+    foreach ($s in @($Stocks)) {
+        $bq = Get-BalanceSheetQuality -Stock $s
+        $s | Add-Member -NotePropertyName 'BalanceSheetScore' -NotePropertyValue $bq.Score -Force
+        $s | Add-Member -NotePropertyName 'BalanceSheetFScore' -NotePropertyValue $bq.FScore -Force
+        $s | Add-Member -NotePropertyName 'BalanceSheetFScoreMax' -NotePropertyValue $bq.FScoreMax -Force
+        $s | Add-Member -NotePropertyName 'AccrualsFlag' -NotePropertyValue $bq.AccrualsFlag -Force
+        $s | Add-Member -NotePropertyName 'AccrualsRatio' -NotePropertyValue $bq.AccrualsRatio -Force
+        $s | Add-Member -NotePropertyName 'BalanceSheetLeverage' -NotePropertyValue $bq.LeverageRatio -Force
+        $s | Add-Member -NotePropertyName 'BalanceSheetNote' -NotePropertyValue $bq.Note -Force
+    }
+    return @($Stocks)
 }
 
 function Get-MacroSnapshotMetric {
@@ -7972,6 +8119,9 @@ Export-ModuleMember -Function `
     Get-CircuitBreakerState, `
     Get-SignalConfig, `
     Set-SignalConfig, `
+    Get-BalanceSheetQuality, `
+    Get-BalanceSheetAdjustment, `
+    Add-BalanceSheetQuality, `
     Get-MacroSnapshotMetric, `
     Get-ModelPortfolioDefinitions, `
     Get-ModelPortfolioSelection, `

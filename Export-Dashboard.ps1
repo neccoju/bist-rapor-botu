@@ -473,6 +473,10 @@ function ConvertTo-DashboardReport {
                 )
                 macroScore = (Get-DashNum -Object $_ -Name 'MacroSectorScore')
                 finalScore = (Get-DashNum -Object $_ -Name 'Score')
+                # Bilanço kalitesi (P1; gölge): Piotroski-F6 + tahakkuk + kaldıraç
+                # birleşiği (0-100) + tahakkuk bayrağı. Finans/holding'de null.
+                balanceSheetScore = (Get-DashNum -Object $_ -Name 'BalanceSheetScore')
+                accrualsFlag = (Get-DashStr -Object $_ -Name 'AccrualsFlag')
                 llmNote   = $null    # bot per-stock LLM yorumu üretmiyor (ileride eklenebilir)
                 action    = (Get-DashStockAction -Stock $_)
             }
