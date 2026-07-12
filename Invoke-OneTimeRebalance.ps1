@@ -1,6 +1,6 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 <#
-    Invoke-OneTimeRebalance.ps1 — BIR DEFALIK zorunlu model portfoy rebalance'i.
+    Invoke-OneTimeRebalance.ps1 - BIR DEFALIK zorunlu model portfoy rebalance'i.
 
     Gerekce: akilli para verileri (yabanci saklama degisimi + insider KAP sinyali)
     2026-07-03'te skora katildi; kullanici onayiyla mevcut model portfoyler yeni
@@ -9,7 +9,7 @@
 
     Yontem: state'teki her portfoyun LastRebalancePeriodEnd'i geriye cekilir ve
     TEST EDILMIS mevcut motor (Update-ModelPortfolioSet -AllowRebalance) calistirilir
-    — satis/alis maliyet muhasebesi, agirlik/sektor tavani ve islem gecmisi
+    - satis/alis maliyet muhasebesi, agirlik/sektor tavani ve islem gecmisi
     birebir ayni yoldan gecer. -Apply verilmezse KURU KOSU: state'e yazilmaz.
 #>
 param(
@@ -30,7 +30,7 @@ $stocks = @(Invoke-BistStockScan)
 Write-Host "Taranan hisse: $($stocks.Count)"
 if ($stocks.Count -lt 100) { throw "Tarama supheli derecede kucuk ($($stocks.Count)); rebalance iptal." }
 
-# Akilli para verileri — GunlukRapor ile ayni sira/ayni kaynaklar.
+# Akilli para verileri - GunlukRapor ile ayni sira/ayni kaynaklar.
 $stocks = @(Add-ForeignOwnershipData -Stocks $stocks)
 $stocks = @(Add-InsiderSignalData -Stocks $stocks -AsOf $AsOf)
 $withForeign = @($stocks | Where-Object { $null -ne (Get-ObjectPropertyValue -Object $_ -Name 'ForeignChg1wBps') }).Count

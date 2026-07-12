@@ -1,6 +1,6 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 <#
-    Invoke-SignalEvaluation.ps1 — akilli-para/rejim AYARLARININ gercek ongoruculugu.
+    Invoke-SignalEvaluation.ps1 - akilli-para/rejim AYARLARININ gercek ongoruculugu.
 
     PIT arsivinden (pit-archive -> data/pit) as-observed ayar alanlarini (Score,
     SmartMoneyAdjustment, MacroRegimeAdjustment, ForeignChg1wBps) + ~1 ay ileri
@@ -11,7 +11,7 @@
          ortalama ileri getirisi (rejim motorunun kendi dogrulamasi).
     Sonuc + ONCEDEN TAAHHUT EDILMIS cikis kurali (Get-SignalVerdict) ile karar
     onerileri data/signal_evaluation.json'a yazilir. CANLI AGIRLIKLARI OTOMATIK
-    DEGISTIRMEZ — kullanici karar verir (kasitli: az veride otomatik oynamak riskli).
+    DEGISTIRMEZ - kullanici karar verir (kasitli: az veride otomatik oynamak riskli).
 
     VERI KAPISI: yeterli bagimsiz donem (MinPeriods) yoksa exit 0 + "N donem daha".
     Cakismayan donemler (auto-calibrate ile ayni desen) otokorelasyon sismesini onler.
@@ -30,10 +30,10 @@ $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'BistScanner.Core.psm1') -Force
 
 Write-Host ('=' * 64)
-Write-Host 'SINYAL DEGERLENDIRME — ayar IC + rejim ayrismasi (karar destek)'
+Write-Host 'SINYAL DEGERLENDIRME - ayar IC + rejim ayrismasi (karar destek)'
 Write-Host ('=' * 64)
 
-if (-not (Test-Path -LiteralPath $PitDir)) { Write-Warning "PIT dizini yok: $PitDir — degerlendirme atlandi."; exit 0 }
+if (-not (Test-Path -LiteralPath $PitDir)) { Write-Warning "PIT dizini yok: $PitDir - degerlendirme atlandi."; exit 0 }
 $files = @(Get-ChildItem -LiteralPath $PitDir -Filter '*.json' -File -ErrorAction SilentlyContinue | Sort-Object Name)
 Write-Host "PIT snapshot: $($files.Count)"
 if ($files.Count -lt ($MinPeriods + 1)) { Write-Warning "Yetersiz snapshot ($($files.Count)); >= $($MinPeriods + 1) gerekli."; exit 0 }
@@ -59,7 +59,7 @@ $snaps = @($snaps | Sort-Object Date)
 Write-Host "Gecerli snapshot: $($snaps.Count)"
 
 # Cakismayan walk-forward donemler.
-# BalanceSheetScore + EarningsDriftSignal: GOLGE faktorler — ayarlari 0 oldugu
+# BalanceSheetScore + EarningsDriftSignal: GOLGE faktorler - ayarlari 0 oldugu
 # icin AYARIN degil HAM SINYALIN ileri-getiri IC'sini olceriz; kanit (KORU)
 # cikinca carpan acilir. EarningsDriftSignal yalniz aciklama penceresi icinde
 # dolu (disi null) -> IC otomatik olarak olay-kosullu olculur.
@@ -191,7 +191,7 @@ Write-Host "DEGERLENDIRME -> $OutPath ($periodsUsed donem). Oneriler karar deste
 # KENDI-KENDINE AYAR: cikis kurali verdict'lerinden signal_config.json'i OTOMATIK
 # yaz (kullanici istegi: '4 Agustos'ta otomatik yap, beni ugrastirma'). Carpan
 # haritasi: KAPAT->0, ZAYIFLAT->0.5, KORU/IZLE->1.0. YETERSIZ ise carpan
-# DEGISMEZ (mevcut/varsayilan korunur — az veride oynamaz). Auto-calibrate
+# DEGISMEZ (mevcut/varsayilan korunur - az veride oynamaz). Auto-calibrate
 # deseni: yeterli veri birikince otomatik uygular, yoksa bekler. Sessiz.
 $multFor = { param($verdict, $current)
     switch ($verdict) {
@@ -205,7 +205,7 @@ $multFor = { param($verdict, $current)
 $cfgPath = Join-Path (Split-Path -Parent $OutPath) 'signal_config.json'
 $curCfg = $null
 if (Test-Path -LiteralPath $cfgPath) { try { $curCfg = Get-Content -LiteralPath $cfgPath -Raw -Encoding UTF8 | ConvertFrom-Json } catch { } }
-# GOLGE faktor aktivasyonu (bilanco): yerlesik faktorlerden FARKLI — carpan 0'dan
+# GOLGE faktor aktivasyonu (bilanco): yerlesik faktorlerden FARKLI - carpan 0'dan
 # baslar, YALNIZ kanitli pozitif IC (KORU) cikinca 0.5 PILOT'a acilir; diger tum
 # durumlarda golgede (0) kalir. Boylece yeni faktor otomatik ama ihtiyatli devreye
 # girer (once yarim olcek; ±3 tavani zaten sinirli).

@@ -1,8 +1,8 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 <#
-    Invoke-CreateMissingPortfolios.ps1 — tanimda olup state'te OLMAYAN model
+    Invoke-CreateMissingPortfolios.ps1 - tanimda olup state'te OLMAYAN model
     portfoyleri olusturur; MEVCUT portfoylere HIC dokunmaz (rebalance yok,
-    valuation yok — yalniz eksikleri ekler).
+    valuation yok - yalniz eksikleri ekler).
 
     Kullanim amaci: yeni portfoy tanimi (or. Kesif) eklendiginde ay-sonunu
     beklemeden manuel baslatma (kullanici istegi: 'su an manuel baslatabilirsin').
@@ -26,7 +26,7 @@ $missing = @(Get-ModelPortfolioDefinitions | Where-Object { [string]$_.Id -notin
 if ($missing.Count -eq 0) { Write-Host 'Eksik portfoy yok; yapilacak is yok.'; exit 0 }
 Write-Host ("Eksik portfoyler: " + (@($missing | ForEach-Object { $_.Id }) -join ', '))
 
-# Evren + zenginlestirme — GunlukRapor ile AYNI sira/kaynaklar (Kesif skoru
+# Evren + zenginlestirme - GunlukRapor ile AYNI sira/kaynaklar (Kesif skoru
 # bilanco kalitesi, yabanci oran, insider ve AdvTL alanlarini kullanir).
 $stocks = @(Invoke-BistStockScan)
 Write-Host "Taranan hisse: $($stocks.Count)"
@@ -50,7 +50,7 @@ foreach ($definition in $missing) {
         $p = New-SingleModelPortfolio -Definition $definition -Stocks $stocks -AsOf $AsOf -BenchmarkLevel $bist100Level -CostBps $CostBps
         [void]$created.Add($p)
         $syms = @($p.Holdings | ForEach-Object { ('{0} (%{1})' -f $_.Symbol, [Math]::Round([double]$_.TargetWeightPct, 0)) }) -join ', '
-        Write-Host ("OLUSTU: {0} — sermaye {1:N0} TL -> {2}" -f $p.Name, [double]$p.InitialCapitalTL, $syms)
+        Write-Host ("OLUSTU: {0} - sermaye {1:N0} TL -> {2}" -f $p.Name, [double]$p.InitialCapitalTL, $syms)
     }
     catch {
         Write-Warning ("{0} kurulamadi: {1}" -f $definition.Id, $_.Exception.Message)
@@ -60,7 +60,7 @@ if ($created.Count -eq 0) { Write-Host 'Hicbir eksik portfoy kurulamadi (aday ha
 
 if (-not $Apply) { Write-Host 'KURU KOSU: -Apply verilmedi; state yazilmadi.'; exit 0 }
 
-# Yalniz EKLE — mevcut portfoy objeleri birebir korunur.
+# Yalniz EKLE - mevcut portfoy objeleri birebir korunur.
 $set.Portfolios = @(@($set.Portfolios) + @($created.ToArray()))
 $set.UpdatedAt = $AsOf.ToString('o')
 $json = ConvertTo-Json -InputObject $set -Depth 12
