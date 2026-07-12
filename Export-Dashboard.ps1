@@ -755,6 +755,8 @@ function ConvertTo-DashboardReport {
             alphaPct           = (Get-DashNum -Object $_ -Name 'AlphaPct')
             drawdownPct        = (Get-DashNum -Object $_ -Name 'CurrentDrawdownPct')
             circuitBreaker     = (Get-DashStr -Object $_ -Name 'CircuitBreakerState')
+            # Seçim kriterinin panelde görünmesi için (Keşif kartı ℹ tooltip'i)
+            description        = (Get-DashStr -Object $_ -Name 'Description')
             holdings = @($ph | ForEach-Object {
                 [pscustomobject]@{ ticker = (Get-DashStr -Object $_ -Name 'Symbol'); weightPct = (Get-DashNum -Object $_ -Name 'WeightPct')
                     selectionReason = (Get-DashStr -Object $_ -Name 'SelectionReason') }

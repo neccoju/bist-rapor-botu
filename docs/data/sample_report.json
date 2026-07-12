@@ -627,6 +627,47 @@
       ],
       "usdReturnPct": -8.3,
       "circuitBreaker": "UYARI"
+    },
+    {
+      "id": "Kesif",
+      "name": "Keşif Model Portföyü",
+      "strategy": "Dengeli",
+      "rankBy": "DiscoveryScore100",
+      "valueTL": 19900.0,
+      "returnPct": -0.5,
+      "usdReturnPct": null,
+      "benchmarkReturnPct": 0.0,
+      "alphaPct": -0.5,
+      "drawdownPct": -0.5,
+      "circuitBreaker": "NORMAL",
+      "description": "Yüksek riskli keşif portföyü: evrenin KÜÇÜK ve DÜŞÜK HACİMLİ yarısından momentum filizi + büyüme/dönüş + temiz bilanço + erken akıllı-para izi arayan Keşif Skoru ile 5 hisse seçer. Hedef asimetrik getiri (1 yılda 3-5x potansiyel adaylar); GARANTİ DEĞİLDİR. Aylık yeniden seçim.",
+      "holdings": [
+        {
+          "ticker": "BAKAB",
+          "weightPct": 17.5,
+          "selectionReason": "Keşif skoru 71,2: küçük ölçek, momentum filizi, temiz bilanço. Günlük ciro ~3,1M TL/gün; PD/DD 1,6; 3A %28; bilanço kalitesi 84; risk Yüksek."
+        },
+        {
+          "ticker": "AVGYO",
+          "weightPct": 30.0,
+          "selectionReason": "Keşif skoru 68,4: küçük ölçek, sağlıklı taban, momentum filizi, hacim birikmesi. Günlük ciro ~2,4M TL/gün; PD/DD 1,1; 3A %35; bilanço kalitesi 60; risk Yüksek."
+        },
+        {
+          "ticker": "FADE",
+          "weightPct": 17.5,
+          "selectionReason": "Keşif skoru 66,9: küçük ölçek, güçlü büyüme, temiz bilanço. Günlük ciro ~1,8M TL/gün; PD/DD 2,0; 3A %22; bilanço kalitesi 91; risk Yüksek."
+        },
+        {
+          "ticker": "SOKE",
+          "weightPct": 17.5,
+          "selectionReason": "Keşif skoru 63,0: küçük ölçek, momentum filizi, yabancı girişi. Günlük ciro ~2,9M TL/gün; PD/DD 1,3; 3A %19; bilanço kalitesi 40; risk Yüksek."
+        },
+        {
+          "ticker": "ORCAY",
+          "weightPct": 17.5,
+          "selectionReason": "Keşif skoru 61,5: küçük ölçek, sağlıklı taban, hacim birikmesi. Günlük ciro ~1,2M TL/gün; PD/DD 1,9; 3A %15; bilanço kalitesi 64; risk Yüksek."
+        }
+      ]
     }
   ],
   "instantEntry": {

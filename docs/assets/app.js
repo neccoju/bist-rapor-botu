@@ -415,17 +415,28 @@
     const list = arr(report.modelPortfolios);
     if (!list.length) { host.innerHTML = inlineEmpty("Model portföy verisi yok."); return; }
     host.innerHTML = list.map((p) => {
+      // Çip tooltip'i = SEÇİM GEREKÇESİ ("bu hisse neden portföyde?" sorusunun
+      // hisse-bazlı cevabı — Keşif'te keşif skoru + sinyaller, diğerlerinde strateji kırılımı).
       const holds = arr(p.holdings).map((h) =>
-        '<span class="pf__chip">' + esc(h.ticker || "—") + (isNum(h.weightPct) ? ' <em>%' + fmtTR(h.weightPct, 0) + "</em>" : "") + "</span>").join("");
+        '<span class="pf__chip"' + (has(h.selectionReason) ? ' title="' + esc(h.selectionReason) + '"' : "") + '>' +
+        esc(h.ticker || "—") + (isNum(h.weightPct) ? ' <em>%' + fmtTR(h.weightPct, 0) + "</em>" : "") + "</span>").join("");
       // Devre kesici rozeti (gölge): NORMAL dışı durumlar uyarı renginde.
       let cbBadge = "";
       if (has(p.circuitBreaker) && p.circuitBreaker !== "NORMAL") {
         const cbCls = p.circuitBreaker === "DERISK" ? "badge--neg" : p.circuitBreaker === "RECOVER" ? "badge--accent" : "badge--warn";
         cbBadge = '<span class="badge ' + cbCls + '" title="Devre kesici (gölge; canlı işlem yapılmıyor)">⛔ ' + esc(p.circuitBreaker) + "</span>";
       }
+      // Keşif portföyü: yüksek-risk rozetli, seçim kriteri ℹ tooltip'inde.
+      const isDiscovery = p.rankBy === "DiscoveryScore100" || p.id === "Kesif";
+      const dsBadge = isDiscovery
+        ? '<span class="badge badge--warn" title="' + esc(p.description || "Düşük hacimli, küçük ölçekli hisselerden asimetrik getiri arayışı. Yüksek risk.") + '">🔍 Keşif · yüksek risk</span>'
+        : "";
+      const dsNote = isDiscovery
+        ? '<p class="pf__note">Evrenin küçük + düşük hacimli yarısından; momentum filizi, büyüme/dönüş, temiz bilanço ve erken akıllı-para izine göre seçilir. Aylık yeniden seçim. <b>Yüksek risk</b> — hisse gerekçesi için çiplerin üzerine gelin.</p>'
+        : "";
       return '<div class="pf">' +
         '<div class="pf__head"><span class="pf__name">' + esc(p.name || p.id || "—") + "</span>" +
-          (p.strategy ? '<span class="badge badge--neutral">' + esc(p.strategy) + "</span>" : "") + cbBadge + "</div>" +
+          (isDiscovery ? dsBadge : (p.strategy ? '<span class="badge badge--neutral">' + esc(p.strategy) + "</span>" : "")) + cbBadge + "</div>" +
         '<div class="pf__metrics">' +
           pfMetric("Değer", isNum(p.valueTL) ? fmtTR(p.valueTL, 0) + " TL" : "—", "flat") +
           pfMetric("Getiri", pctText(p.returnPct), pctClass(p.returnPct)) +
@@ -433,6 +444,7 @@
           pfMetric("Alfa", pctText(p.alphaPct), pctClass(p.alphaPct)) +
         "</div>" +
         '<div class="pf__holdings">' + (holds || inlineEmpty("—")) + "</div>" +
+        dsNote +
       "</div>";
     }).join("");
   }

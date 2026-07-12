@@ -387,6 +387,22 @@ if ($ksDef.Count -ne 1) { throw 'Kesif tanımı Get-ModelPortfolioDefinitions i�
 if ([double]$ksDef[0].InitialCapitalTL -ne 20000) { throw "Kesif sermayesi 20.000 TL olmalı: $($ksDef[0].InitialCapitalTL)" }
 if ($ksDef[0].RankBy -ne 'DiscoveryScore100') { throw 'Kesif RankBy DiscoveryScore100 olmalı.' }
 Write-Host "Keşif portföyü testi başarılı (uygunluk kapıları: dev/mikro/negatif-özkaynak/ölü dışarı; skor sıralaması; 20k tanım)."
+# Keşif seçim gerekçesi: RankBy=DiscoveryScore100 ile holding gerekçesi KEŞİF eksenlerinden yazılmalı
+$dsHoldStock = $dsBySym['UMUT'] | Select-Object *
+$dsHoldStock | Add-Member -NotePropertyName 'Score' -NotePropertyValue 55.0 -Force
+$dsHoldStock | Add-Member -NotePropertyName 'RiskLevel' -NotePropertyValue 'Yüksek' -Force
+$dsHoldStock | Add-Member -NotePropertyName 'Company' -NotePropertyValue 'Umut A.Ş.' -Force
+$dsHoldStock | Add-Member -NotePropertyName 'AdvTL' -NotePropertyValue 1200000 -Force
+foreach ($fld in @('MacroSectorScore', 'TrendScore', 'ValueScore', 'QualityScore', 'EarningsScore')) {
+    $dsHoldStock | Add-Member -NotePropertyName $fld -NotePropertyValue 50.0 -Force
+}
+$dsHold = & (Get-Module 'BistScanner.Core') { param($s) New-ModelPortfolioHolding -Stock $s -TargetValue 4000 -Strategy 'Dengeli' -TargetWeightPct 20 -RankBy 'DiscoveryScore100' } $dsHoldStock
+if ($dsHold.SelectionReason -notmatch 'Keşif skoru') { throw "Keşif holding gerekçesi keşif eksenli olmalı: $($dsHold.SelectionReason)" }
+if ($dsHold.SelectionReason -notmatch 'momentum filizi') { throw 'Keşif gerekçesinde sinyal listesi (DiscoveryNote) olmalı.' }
+# RankBy verilmezse eski davranış (genel strateji metni) değişmez
+$dsHoldOld = & (Get-Module 'BistScanner.Core') { param($s) New-ModelPortfolioHolding -Stock $s -TargetValue 4000 -Strategy 'Dengeli' -TargetWeightPct 20 } $dsHoldStock
+if ($dsHoldOld.SelectionReason -notmatch 'Strateji skoru') { throw 'RankBy yokken genel gerekçe korunmalı.' }
+Write-Host "Keşif seçim gerekçesi testi başarılı (keşif eksenli metin; eski davranış korunur)."
 
 # --- PEAD (Update-EarningsReactions) iki kosu ---
 function New-PeadStock { param($Sym, $Price, $Since, $ReportDate, $Yoy)

@@ -4929,8 +4929,28 @@ function New-ModelPortfolioHolding {
         [double]$TargetValue,
         [ValidateSet('Dengeli', 'Değer', 'Momentum', 'Kalite')]
         [string]$Strategy,
-        [double]$TargetWeightPct = 20.0
+        [double]$TargetWeightPct = 20.0,
+        [string]$RankBy = ''
     )
+
+    # KESIF portfoyu icin gerekce KESIF eksenlerinden yazilir (kullanici sorusu
+    # 'neye gore secildi'nin cevabi budur) — genel strateji metni degil.
+    $selectionReason = if ($RankBy -eq 'DiscoveryScore100') {
+        $dNote = [string](Get-ObjectPropertyValue -Object $Stock -Name 'DiscoveryNote')
+        $advTL = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Stock -Name 'AdvTL')
+        $advText = if ($null -ne $advTL) { ('{0:N1}M TL/gün' -f ($advTL / 1e6)) } else { 'veri yok' }
+        'Keşif skoru {0}: {1}. Günlük ciro ~{2}; PD/DD {3}; 3A {4}; bilanço kalitesi {5}; risk {6}.' -f `
+            (Get-ModelPortfolioNumberText -Value (Get-ObjectPropertyValue -Object $Stock -Name 'DiscoveryScore100')), `
+            $(if ([string]::IsNullOrWhiteSpace($dNote)) { 'sinyal bileşimi' } else { $dNote }), `
+            $advText, `
+            (Get-ModelPortfolioNumberText -Value $Stock.PB), `
+            (Get-ModelPortfolioNumberText -Value (Get-ObjectPropertyValue -Object $Stock -Name 'Perf3Month') -Suffix '%'), `
+            (Get-ModelPortfolioNumberText -Value (Get-ObjectPropertyValue -Object $Stock -Name 'BalanceSheetScore')), `
+            $Stock.RiskLevel
+    }
+    else {
+        Get-ModelPortfolioSelectionReason -Stock $Stock -Strategy $Strategy
+    }
 
     $quantity = $TargetValue / [double]$Stock.Price
     return [pscustomobject][ordered]@{
@@ -4943,7 +4963,7 @@ function New-ModelPortfolioHolding {
         MacroSectorScore = Get-ObjectPropertyValue -Object $Stock -Name 'MacroSectorScore'
         EvEbitda = Get-ObjectPropertyValue -Object $Stock -Name 'EvEbitda'
         VolatilityD = Get-ObjectPropertyValue -Object $Stock -Name 'VolatilityD'
-        SelectionReason = Get-ModelPortfolioSelectionReason -Stock $Stock -Strategy $Strategy
+        SelectionReason = $selectionReason
         Quantity = [Math]::Round($quantity, 6)
         RebalancePrice = [Math]::Round([double]$Stock.Price, 4)
         CostBasisTL = [Math]::Round($TargetValue, 2)
@@ -5001,7 +5021,7 @@ function New-SingleModelPortfolio {
         $target = $targetValues[$symbol]
         $targetValue = [double]$target.TargetValue
         $targetWeightPct = [double]$target.WeightPct
-        $holding = New-ModelPortfolioHolding -Stock $stock -TargetValue $targetValue -Strategy $Definition.Strategy -TargetWeightPct $targetWeightPct
+        $holding = New-ModelPortfolioHolding -Stock $stock -TargetValue $targetValue -Strategy $Definition.Strategy -TargetWeightPct $targetWeightPct -RankBy $rankBy
         [void]$holdings.Add($holding)
         [void]$transactions.Add((New-ModelPortfolioTransaction `
                     -Sequence $sequence -ExecutionDate $AsOf -Action 'AL' -Symbol $holding.Symbol `
@@ -5338,7 +5358,7 @@ function Invoke-ModelPortfolioRebalance {
         $target = $targetValues[$symbol]
         $targetValue = [double]$target.TargetValue
         $targetWeightPct = [double]$target.WeightPct
-        $newHolding = New-ModelPortfolioHolding -Stock $stock -TargetValue $targetValue -Strategy $valuedPortfolio.Strategy -TargetWeightPct $targetWeightPct
+        $newHolding = New-ModelPortfolioHolding -Stock $stock -TargetValue $targetValue -Strategy $valuedPortfolio.Strategy -TargetWeightPct $targetWeightPct -RankBy ([string]$rebalanceRankBy)
         [void]$newHoldings.Add($newHolding)
 
         if ($oldHoldings.ContainsKey($symbol)) {
