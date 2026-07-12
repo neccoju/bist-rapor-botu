@@ -334,6 +334,60 @@ if ([double]$thin.TradabilityMaxPositionTL -ne 40000) { throw "THIN makul pozisy
 if (-not $neg.DataQualityOk) { throw 'Aykırı değer kritik olmamalı (sadece şeffaflık bayrağı).' }
 Write-Host "P4 veri sağlığı testi başarılı (negatif özkaynak/aşırı oran bayrakları; TL-ADV kademe + slippage tavanı)."
 
+# --- P5-A1: PEAD (kazanç-tepki sürüklenmesi) gölge faktörü ---
+$pdMod = Get-Module 'BistScanner.Core'
+& $pdMod { Set-SignalConfig -Config $null }
+# Pencere içi güçlü pozitif sürpriz: signal = (80-50)/50 = +0.6
+$pdStock = [pscustomobject]@{ DaysSinceLastReport = 5; EarningsSurpriseScore = 80 }
+if ([Math]::Abs((Get-EarningsDriftSignal -Stock $pdStock) - 0.6) -gt 0.001) { throw "PEAD sinyal +0.6 olmalı: $(Get-EarningsDriftSignal -Stock $pdStock)" }
+# Pencere dışı -> null
+if ($null -ne (Get-EarningsDriftSignal -Stock ([pscustomobject]@{ DaysSinceLastReport = 45; EarningsSurpriseScore = 80 }))) { throw 'Pencere dışı PEAD sinyali null olmalı.' }
+if ($null -ne (Get-EarningsDriftSignal -Stock ([pscustomobject]@{ DaysSinceLastReport = 5 }))) { throw 'Sürpriz yokken PEAD sinyali null olmalı.' }
+# GÖLGE: çarpan 0 -> ayar 0
+if ((Get-EarningsDriftAdjustment -Stock $pdStock) -ne 0) { throw 'Gölge modda PEAD ayarı 0 olmalı.' }
+if ([double](Get-SignalConfig).EarningsDriftMult -ne 0.0) { throw 'EarningsDriftMult varsayılanı 0.0 (gölge) olmalı.' }
+# Çarpan açılınca: +0.6 x 2 x 1 = +1.2; negatif sürpriz (20): -0.6 x 2 = -1.2
+& $pdMod { Set-SignalConfig -Config ([pscustomobject]@{ EarningsDriftMult = 1.0 }) }
+if ([Math]::Abs((Get-EarningsDriftAdjustment -Stock $pdStock) - 1.2) -gt 0.001) { throw "Çarpan 1 ile PEAD +1.2 olmalı: $(Get-EarningsDriftAdjustment -Stock $pdStock)" }
+$pdNeg = [pscustomobject]@{ DaysSinceLastReport = 3; EarningsSurpriseScore = 20 }
+if ([Math]::Abs((Get-EarningsDriftAdjustment -Stock $pdNeg) - (-1.2)) -gt 0.001) { throw 'Negatif sürpriz -1.2 olmalı.' }
+& $pdMod { Set-SignalConfig -Config $null }
+Write-Host "PEAD gölge faktörü testi başarılı (pencere/veri-kapılı; gölge x0; açık ±1.2)."
+
+# --- B: Keşif portföyü (DiscoveryScore + uygunluk kapısı) ---
+# Sentetik evren: 1 dev likit (dışarı), 1 küçük umut vaat eden (içeri), 1 mikro kabuk (dışarı),
+# 1 negatif özkaynak (dışarı), 1 ölü kabuk (yaşam belirtisi yok, dışarı)
+$dsUniverse = @(
+    [pscustomobject]@{ Symbol = 'DEV'; SectorTR = 'Bankacılık'; Price = 100; MarketCap = 500e9; AverageVolume10D = 5e6; PB = 1.5; VolatilityD = 2;
+        LatestNetIncomeTRYBn = 10; Range52PositionPct = 60; SMA50 = 90; SMA200 = 80; Perf3Month = 20; RSI = 55; RevenueUsdYoYPct = 10 },
+    [pscustomobject]@{ Symbol = 'UMUT'; SectorTR = 'Teknoloji'; Price = 20; MarketCap = 2e9; AverageVolume10D = 60000; PB = 1.8; VolatilityD = 5;
+        LatestNetIncomeTRYBn = 0.05; Range52PositionPct = 45; Dist52WHighPct = -20; SMA50 = 18; SMA200 = 16; Perf3Month = 25; RSI = 58;
+        RevenueUsdYoYPct = 40; NetIncomeUsdYoYPct = 60; EbitdaUsdYoYPct = 35; BalanceSheetScore = 70; AccrualsFlag = 'Temiz';
+        DataQualityFlags = @(); ForeignChg1wBps = 0.3; InsiderSignal = '+'; RelativeVolume = 1.5 },
+    [pscustomobject]@{ Symbol = 'MIKRO'; SectorTR = 'Gıda'; Price = 2; MarketCap = 300e6; AverageVolume10D = 400000; PB = 1.0; VolatilityD = 6;
+        LatestNetIncomeTRYBn = 0.01; Perf3Month = 10 },
+    [pscustomobject]@{ Symbol = 'NEGOZ'; SectorTR = 'İnşaat'; Price = 8; MarketCap = 3e9; AverageVolume10D = 200000; PB = -0.5; VolatilityD = 4;
+        LatestNetIncomeTRYBn = 0.2 },
+    [pscustomobject]@{ Symbol = 'OLU'; SectorTR = 'Tekstil'; Price = 5; MarketCap = 1e9; AverageVolume10D = 150000; PB = 0.8; VolatilityD = 3;
+        LatestNetIncomeTRYBn = -0.1; RevenueUsdYoYPct = 2 }
+)
+$dsUniverse = @(Add-DiscoveryScore -Stocks $dsUniverse)
+$dsBySym = @{}; foreach ($x in $dsUniverse) { $dsBySym[$x.Symbol] = $x }
+if ($dsBySym['DEV'].DiscoveryEligible) { throw 'DEV (medyan üstü büyüklük/hacim) keşfe uygun olmamalı.' }
+if (-not $dsBySym['UMUT'].DiscoveryEligible) { throw 'UMUT keşfe uygun olmalıydı.' }
+if ($dsBySym['MIKRO'].DiscoveryEligible) { throw 'MIKRO (750M altı) manipülasyon tabanına takılmalı.' }
+if ($dsBySym['NEGOZ'].DiscoveryEligible) { throw 'NEGOZ (negatif özkaynak) dışarı olmalı.' }
+if ($dsBySym['OLU'].DiscoveryEligible) { throw 'OLU (yaşam belirtisi yok) dışarı olmalı.' }
+if ([double]$dsBySym['UMUT'].DiscoveryScore100 -lt 60) { throw "UMUT (tüm sinyaller pozitif) yüksek skorlamalı: $($dsBySym['UMUT'].DiscoveryScore100)" }
+if ([double]$dsBySym['OLU'].DiscoveryScore100 -ge [double]$dsBySym['UMUT'].DiscoveryScore100) { throw 'Keşif skoru sıralaması yanlış.' }
+if ($dsBySym['UMUT'].DiscoveryNote -notmatch 'momentum filizi') { throw 'UMUT notunda momentum filizi olmalı.' }
+# Tanım: Kesif tanımı listede + 20k sermaye alanı
+$ksDef = @(Get-ModelPortfolioDefinitions | Where-Object { $_.Id -eq 'Kesif' })
+if ($ksDef.Count -ne 1) { throw 'Kesif tanımı Get-ModelPortfolioDefinitions içinde olmalı.' }
+if ([double]$ksDef[0].InitialCapitalTL -ne 20000) { throw "Kesif sermayesi 20.000 TL olmalı: $($ksDef[0].InitialCapitalTL)" }
+if ($ksDef[0].RankBy -ne 'DiscoveryScore100') { throw 'Kesif RankBy DiscoveryScore100 olmalı.' }
+Write-Host "Keşif portföyü testi başarılı (uygunluk kapıları: dev/mikro/negatif-özkaynak/ölü dışarı; skor sıralaması; 20k tanım)."
+
 # --- PEAD (Update-EarningsReactions) iki kosu ---
 function New-PeadStock { param($Sym, $Price, $Since, $ReportDate, $Yoy)
     [pscustomobject]@{ Symbol = $Sym; Price = $Price; DaysSinceLastReport = $Since; LatestReportDate = $ReportDate; NetIncomeUsdYoYPct = $Yoy; EbitdaUsdYoYPct = $Yoy; EbitdaSequentialIncreaseCount = 4; PositiveQuarterCount = 5 } }

@@ -2189,6 +2189,17 @@ try {
     # Belirgin sapmayi 'kaynaklar celiskili' olarak bayraklar (seffaflik; skoru
     # DEGISTIRMEZ). Best-effort: dosya yoksa alanlar null, kimse bayraklanmaz.
     try { $stocks = @(Add-FundamentalCrossCheck -Stocks $stocks) } catch { Write-Warning "Temel capraz-dogrulama islenemedi: $($_.Exception.Message)" }
+    # P5-A3: TradingView analist kolonlari SONDAJI (ayri best-effort POST; kritik
+    # taramaya eklenmez). BIST icin doluysa alanlar islenir + PIT'e arsivlenir;
+    # bos/hatali ise rapor etkilenmez (log soyler).
+    try {
+        $tvAnalystMap = Get-TradingViewAnalystData
+        if ($tvAnalystMap.Count -gt 0) { $stocks = @(Add-TradingViewAnalystData -Stocks $stocks -AnalystMap $tvAnalystMap) }
+    }
+    catch { Write-Warning "TV analist sondaji calismadi (rapor etkilenmez): $($_.Exception.Message)" }
+    # B: Kesif skoru anotasyonu — PIT arsivi + panel icin her hisseye yazilir
+    # (Kesif portfoy secimi kendi icinde yeniden hesaplar; bu yalniz gorunum/arsiv).
+    try { $stocks = @(Add-DiscoveryScore -Stocks $stocks) } catch { Write-Warning "Kesif skoru islenemedi: $($_.Exception.Message)" }
 
     # Makro rejim: makro anlik goruntuyu ERKEN cek (asagidaki gec cekim, null ise
     # yedek olarak kalir), deterministik rejim motorunu calistir ve sinirli sektor

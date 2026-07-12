@@ -2931,7 +2931,10 @@ function Get-BistScore {
     # Bilanco kalite ayari: sinirli [-3,+3], carpani VARSAYILAN 0 (golge -> skora
     # etki yok). Alan yoksa/finans-holdingse 0. IC birikince carpan acilir.
     $balanceSheetAdjustment = Get-BalanceSheetAdjustment -Stock $Stock
-    $score = [Math]::Round((Limit-Value -Value ($rawScore - $riskPenalty + $earningsTimingAdjustment + $smartMoneyAdjustment + $macroRegimeAdjustment + $balanceSheetAdjustment)), 1)
+    # PEAD ayari: sinirli [-2,+2], carpani VARSAYILAN 0 (golge). Aciklama
+    # penceresi disinda/veri yoksa 0.
+    $earningsDriftAdjustment = Get-EarningsDriftAdjustment -Stock $Stock
+    $score = [Math]::Round((Limit-Value -Value ($rawScore - $riskPenalty + $earningsTimingAdjustment + $smartMoneyAdjustment + $macroRegimeAdjustment + $balanceSheetAdjustment + $earningsDriftAdjustment)), 1)
     $signal = Get-SignalLabel -Score $score
     $riskFlags = @(Get-BistRiskFlags -Stock $Stock)
     $riskLevel = Get-RiskLevel -RiskFlags $riskFlags
@@ -2966,6 +2969,9 @@ function Get-BistScore {
         $bsNote = [string](Get-ObjectPropertyValue -Object $Stock -Name 'BalanceSheetNote')
         $explanation += [Environment]::NewLine + ('Bilanço kalite ayarı: {0}{1} puan ({2}).' -f $(if ($balanceSheetAdjustment -gt 0) { '+' } else { '' }), [Math]::Round($balanceSheetAdjustment, 1), $bsNote)
     }
+    if ($earningsDriftAdjustment -ne 0) {
+        $explanation += [Environment]::NewLine + ('PEAD (kazanç-tepki sürüklenmesi) ayarı: {0}{1} puan (açıklama penceresi içi tepki-sürprizi).' -f $(if ($earningsDriftAdjustment -gt 0) { '+' } else { '' }), [Math]::Round($earningsDriftAdjustment, 1))
+    }
 
     $properties = [ordered]@{}
     foreach ($property in $Stock.PSObject.Properties) {
@@ -2974,7 +2980,7 @@ function Get-BistScore {
                 'TrendScore', 'ValueScore', 'QualityScore', 'EarningsScore', 'MomentumScore',
                 'LiquidityScore', 'MacroSectorScore', 'ConfirmationLabel', 'ConfirmationScore',
                 'TechnicalPassCount', 'TechnicalCheckCount', 'AllTechnicalConfirmed', 'EntryNote',
-                'FailedConfirmations', 'RiskPenalty', 'SmartMoneyAdjustment', 'MacroRegimeAdjustment', 'BalanceSheetAdjustment', 'Strategy'
+                'FailedConfirmations', 'RiskPenalty', 'SmartMoneyAdjustment', 'MacroRegimeAdjustment', 'BalanceSheetAdjustment', 'EarningsDriftAdjustment', 'Strategy'
             )) {
             $properties[$property.Name] = $property.Value
         }
@@ -3003,6 +3009,7 @@ function Get-BistScore {
     $properties.SmartMoneyAdjustment = [Math]::Round($smartMoneyAdjustment, 1)
     $properties.MacroRegimeAdjustment = [Math]::Round($macroRegimeAdjustment, 1)
     $properties.BalanceSheetAdjustment = [Math]::Round($balanceSheetAdjustment, 1)
+    $properties.EarningsDriftAdjustment = [Math]::Round($earningsDriftAdjustment, 1)
     $properties.Strategy = $Strategy
 
     return [pscustomobject]$properties
@@ -4165,6 +4172,20 @@ function Get-ModelPortfolioDefinitions {
         }
     )
 
+    # KESIF portfoyu (kullanici istegi): 'su an hacmi olmayan ama gelecek vaad
+    # eden' kucuk hisselerden 3-5x asimetrik getiri arayisi. 20.000 TL, 5 hisse,
+    # aylik yeniden secim (ekle/cikar + esitleme) — motorun standart aylik
+    # rebalance dongusu. YUKSEK RISK: dusuk hacim, manipulasyon ve derin dusus
+    # riski buyuktur; kucuk sermayeyle sinirli tutulmasi bilincli tasarimdir.
+    $definitions += [pscustomobject][ordered]@{
+        Id = 'Kesif'
+        Name = 'Keşif Model Portföyü'
+        Strategy = 'Dengeli'
+        RankBy = 'DiscoveryScore100'
+        InitialCapitalTL = 20000
+        Description = 'Yüksek riskli keşif portföyü: evrenin KÜÇÜK ve DÜŞÜK HACİMLİ yarısından (piyasa değeri ve günlük TL cirosu medyan altı; ≥750M TL taban, negatif özkaynak/veri-şüpheli dışarı) momentum filizi + büyüme/dönüş + temiz bilanço + erken akıllı-para izi arayan Keşif Skoru ile 5 hisse seçer. Hedef asimetrik getiri (1 yılda 3-5x potansiyel adaylar); BIST üzeri getiri amaçlanır ancak GARANTİ DEĞİLDİR — düşük hacim, sert düşüş ve manipülasyon riski yüksektir; bu yüzden sermaye 20.000 TL ile sınırlandırılmıştır. Aylık yeniden seçim: skor düşen çıkar, yeni aday girer, kalanlar eşitlenir.'
+    }
+
     # VERI-KAPILI 7. portfoy: bot KENDI OGRENDIGI faktor agirliklariyla kurar.
     # Yalniz ogrenilmis agirlik dosyasi (data/learned_factor_weights.json) varken
     # listeye eklenir; yoksa hic olusturulmaz (yeterli PIT verisi birikip ceyreklik
@@ -4477,6 +4498,17 @@ function Get-ModelPortfolioSelection {
             $scoredAll |
                 Where-Object { Test-ModelPortfolioEligibleStock -Stock $_ } |
                 Sort-Object @{ Expression = { [double](Get-ObjectPropertyValue -Object $_ -Name 'LearnedFactorScore100') }; Descending = $true }
+        )
+    }
+    elseif ($RankBy -eq 'DiscoveryScore100') {
+        # KESIF portfoyu: kesitsel kesif skoru + KENDI uygunluk kapisi
+        # (Test-DiscoveryEligibleStock — standart buyuk/likit kapisinin tersine
+        # kucuk + dusuk hacimli hisseleri hedefler, cop korumalari ile).
+        $scoredAll = @(Add-DiscoveryScore -Stocks $scoredAll)
+        $candidates = @(
+            $scoredAll |
+                Where-Object { [bool](Get-ObjectPropertyValue -Object $_ -Name 'DiscoveryEligible') } |
+                Sort-Object @{ Expression = { [double](Get-ObjectPropertyValue -Object $_ -Name 'DiscoveryScore100') }; Descending = $true }
         )
     }
     elseif ($RankBy -eq 'RiskAdjusted') {
@@ -4936,6 +4968,10 @@ function New-SingleModelPortfolio {
 
     $rankBy = Get-ObjectPropertyValue -Object $Definition -Name 'RankBy'
     if ([string]::IsNullOrWhiteSpace([string]$rankBy)) { $rankBy = 'Score' }
+    # Tanim-bazli sermaye: tanim InitialCapitalTL tasiyorsa (or. Kesif 20.000 TL)
+    # set varsayilanini (100k) EZER — kucuk-sermayeli ozel portfoyler icin.
+    $defCapital = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Definition -Name 'InitialCapitalTL')
+    if ($null -ne $defCapital -and $defCapital -gt 0) { $InitialCapital = [double]$defCapital }
     $weightingMethod = Get-ModelPortfolioWeightingMethod -Object $Definition
     $minWeightPct = Get-ModelPortfolioWeightLimit -Object $Definition -Name 'MinWeightPct' -Default 8.0
     $maxWeightPct = Get-ModelPortfolioWeightLimit -Object $Definition -Name 'MaxWeightPct' -Default 28.0
@@ -5034,7 +5070,14 @@ function New-ModelPortfolioSet {
 
     $portfolios = [System.Collections.Generic.List[object]]::new()
     foreach ($definition in Get-ModelPortfolioDefinitions) {
-        [void]$portfolios.Add((New-SingleModelPortfolio -Definition $definition -Stocks $Stocks -AsOf $AsOf -InitialCapital $InitialCapital -BenchmarkLevel $BenchmarkLevel -CostBps $CostBps))
+        # Kurulamayan portfoy (or. Kesif havuzu < 5 aday) TUM SETI dusurmesin —
+        # atlanir, migration yolunda sonraki kosuda tekrar denenir.
+        try {
+            [void]$portfolios.Add((New-SingleModelPortfolio -Definition $definition -Stocks $Stocks -AsOf $AsOf -InitialCapital $InitialCapital -BenchmarkLevel $BenchmarkLevel -CostBps $CostBps))
+        }
+        catch {
+            Write-Warning ("{0} portfoyu kurulamadi (atlandi): {1}" -f $definition.Id, $_.Exception.Message)
+        }
     }
 
     return [pscustomobject][ordered]@{
@@ -6052,7 +6095,9 @@ function Get-SignalConfig {
         # VARSAYILAN 0.0 (GOLGE) — once IC olcumu birikir, Invoke-SignalEvaluation
         # kaniti gorunce carpani acar. Diger iki carpan 1.0 (yerlesik) iken bu 0.0.
         BalanceSheetMult = 0.0
-        Note = 'Varsayilan (henuz oto-ayar yok; akilli-para/makro tam olcek, bilanco golge).'
+        # PEAD (kazanc-tepki suruklenmesi): ayni golge disiplini — 0'dan baslar.
+        EarningsDriftMult = 0.0
+        Note = 'Varsayilan (henuz oto-ayar yok; akilli-para/makro tam olcek, bilanco+PEAD golge).'
     }
 }
 
@@ -6066,12 +6111,14 @@ function Set-SignalConfig {
     if ($null -eq $Config) { $script:SignalConfig = $null; return }
     $clamp01 = { param($v, $default) $d = ConvertTo-DoubleOrNull $v; if ($null -eq $d) { $default } else { [Math]::Max(0.0, [Math]::Min(1.0, $d)) } }
     $bsRaw = Get-ObjectPropertyValue -Object $Config -Name 'BalanceSheetMult'
+    $edRaw = Get-ObjectPropertyValue -Object $Config -Name 'EarningsDriftMult'
     $script:SignalConfig = [pscustomobject][ordered]@{
         UpdatedAt = [string](Get-ObjectPropertyValue -Object $Config -Name 'UpdatedAt')
         SmartMoneyMult = & $clamp01 (Get-ObjectPropertyValue -Object $Config -Name 'SmartMoneyMult') 1.0
         MacroRegimeMult = & $clamp01 (Get-ObjectPropertyValue -Object $Config -Name 'MacroRegimeMult') 1.0
-        # Bilanco carpani dosyada YOKSA golge (0.0) kalir; varsa [0,1] kirpilir.
+        # Golge carpanlar dosyada YOKSA golge (0.0) kalir; varsa [0,1] kirpilir.
         BalanceSheetMult = & $clamp01 $bsRaw 0.0
+        EarningsDriftMult = & $clamp01 $edRaw 0.0
         Note = [string](Get-ObjectPropertyValue -Object $Config -Name 'Note')
     }
 }
@@ -6286,6 +6333,10 @@ function Add-FundamentalCrossCheck {
         $s | Add-Member -NotePropertyName 'SecondaryPE' -NotePropertyValue $secPe -Force
         $s | Add-Member -NotePropertyName 'SecondaryPB' -NotePropertyValue $secPb -Force
         $s | Add-Member -NotePropertyName 'SecondaryROE' -NotePropertyValue $secRoe -Force
+        # P5-A2: Is Yatirim analist hedef fiyati/potansiyeli (SEVIYE ile skorlanmaz;
+        # revizyon arsivi collect tarafinda birikir — burada gorunum + PIT icin).
+        $s | Add-Member -NotePropertyName 'TargetPriceTL' -NotePropertyValue $(if ($secRow) { ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $secRow -Name 'targetPriceTL') } else { $null }) -Force
+        $s | Add-Member -NotePropertyName 'UpsidePotentialPct' -NotePropertyValue $(if ($secRow) { ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $secRow -Name 'upsidePotentialPct') } else { $null }) -Force
 
         if ($null -eq $secRow) {
             $s | Add-Member -NotePropertyName 'SecondaryFundamentalDivergence' -NotePropertyValue $null -Force
@@ -6308,6 +6359,264 @@ function Add-FundamentalCrossCheck {
         }
     }
     return @($Stocks)
+}
+
+function Get-EarningsDriftSignal {
+    <#
+        P5-A1: PEAD (kazanc-tepki suruklenmesi) HAM SINYALI. Konsensus tahmini
+        gerektirmez: piyasanin acikla(n)maya tepkisi surprizin kendisidir (Chan/
+        Jegadeesh/Lakonishok — tepki-bazli surpriz, SUE'ye yakin tahmin gucu verir).
+        Bot zaten hisse basina EarningsSurpriseScore (0-100 tepki-proxy'si) ve
+        DaysSinceLastReport uretiyor; bu fonksiyon SINYALI standartlastirir:
+          - Aciklama PENCERE ICINDE (0..WindowDays gun) degilse null (sinyal yok)
+          - Icindeyse signal = clamp((surprise-50)/50, -1..+1) — +1 guclu pozitif
+        PIT'e arsivlenir; IC'si signal-eval ile olculur (golge-once disiplini).
+    #>
+    param($Stock, [int]$WindowDays = 30)
+    $since = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Stock -Name 'DaysSinceLastReport')
+    if ($null -eq $since -or $since -lt 0 -or $since -gt $WindowDays) { return $null }
+    $surprise = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Stock -Name 'EarningsSurpriseScore')
+    if ($null -eq $surprise) { return $null }
+    $sig = ($surprise - 50.0) / 50.0
+    if ($sig -gt 1.0) { $sig = 1.0 } elseif ($sig -lt -1.0) { $sig = -1.0 }
+    return [Math]::Round($sig, 3)
+}
+
+function Get-EarningsDriftAdjustment {
+    <#
+        PEAD sinyalini sinirli skor ayarina cevirir: signal(-1..+1) x 2 -> [-2,+2];
+        carpan Get-SignalConfig.EarningsDriftMult (VARSAYILAN 0 -> GOLGE, skora
+        etki yok). IC kaniti birikince Invoke-SignalEvaluation carpani acar.
+    #>
+    param($Stock)
+    $sig = Get-EarningsDriftSignal -Stock $Stock
+    if ($null -eq $sig) { return 0.0 }
+    $adj = [double]$sig * 2.0 * [double](Get-SignalConfig).EarningsDriftMult
+    if ($adj -gt 2.0) { $adj = 2.0 } elseif ($adj -lt -2.0) { $adj = -2.0 }
+    return [Math]::Round($adj, 2)
+}
+
+function Get-TradingViewAnalystData {
+    <#
+        P5-A3: SIFIR-MALIYETLI SONDAJ — TradingView tarayicisindan analist
+        konsensus kolonlarini AYRI, best-effort bir POST ile dener (kritik evren
+        taramasina EKLENMEZ: bilinmeyen kolon tum istegi 400 ile dusurebilir).
+        BIST icin dolu donerse bedava konsensus/surpriz kaynagi kazanilir; bos/
+        hata donerse @{} doner ve rapor etkilenmez (log soyler).
+        Donus: @{ SYM = @{ Rating; PriceTarget; AnalystCount; EpsSurprisePct } }
+    #>
+    [CmdletBinding()]
+    param([int]$TimeoutSec = 20)
+    $columnSets = @(
+        @('name', 'recommendation_mark', 'price_target_average', 'recommendation_total', 'eps_surprise_percent_fq'),
+        @('name', 'recommendation_mark', 'price_target_average')   # yedek: dar guvenli kume
+    )
+    foreach ($cols in $columnSets) {
+        try {
+            $payload = @{
+                filter = @(
+                    @{ left = 'exchange'; operation = 'equal'; right = 'BIST' },
+                    @{ left = 'type'; operation = 'equal'; right = 'stock' }
+                )
+                options = @{ lang = 'tr' }
+                markets = @('turkey')
+                symbols = @{ query = @{ types = @() }; tickers = @() }
+                columns = $cols
+                sort = @{ sortBy = 'market_cap_basic'; sortOrder = 'desc' }
+                range = @(0, 10000)
+            }
+            $resp = Invoke-RestMethod -Method Post -Uri $script:TradingViewScannerUrl `
+                -ContentType 'application/json' `
+                -Headers @{ 'User-Agent' = 'BIST-Hisse-Tarayici/1.0'; 'Accept' = 'application/json' } `
+                -Body ($payload | ConvertTo-Json -Depth 8 -Compress) -TimeoutSec $TimeoutSec -ErrorAction Stop
+            if ($null -eq $resp.data -or $resp.data.Count -eq 0) { continue }
+            $map = @{}
+            $filled = 0
+            foreach ($item in @($resp.data)) {
+                $d = @($item.d)
+                $sym = [string]$d[0]
+                if ([string]::IsNullOrWhiteSpace($sym)) { continue }
+                $rating = ConvertTo-DoubleOrNull $d[1]
+                $target = if ($d.Count -gt 2) { ConvertTo-DoubleOrNull $d[2] } else { $null }
+                $count = if ($d.Count -gt 3) { ConvertTo-DoubleOrNull $d[3] } else { $null }
+                $eps = if ($d.Count -gt 4) { ConvertTo-DoubleOrNull $d[4] } else { $null }
+                if ($null -ne $rating -or $null -ne $target) { $filled++ }
+                $map[$sym] = [pscustomobject]@{ Rating = $rating; PriceTarget = $target; AnalystCount = $count; EpsSurprisePct = $eps }
+            }
+            Write-Host ("TV analist sondaji: {0} hisse, {1} dolu (kolon seti: {2})" -f $map.Count, $filled, ($cols.Count - 1))
+            if ($filled -gt 0) { return $map }
+            return @{}   # kolonlar kabul edildi ama hep bos -> BIST'te veri yok
+        }
+        catch {
+            Write-Host ("TV analist sondaji basarisiz (kolon seti {0}): {1}" -f ($cols.Count - 1), $_.Exception.Message)
+        }
+    }
+    return @{}
+}
+
+function Add-TradingViewAnalystData {
+    <#
+        Sondaj sonucunu hisselere isler (TvAnalystRating 1=Guclu Al..5=Sat,
+        TvPriceTarget, TvAnalystCount, TvEpsSurprisePct). Bos map -> alanlar
+        eklenmez (veri-kapili; panel/PIT null gorur). Skoru DEGISTIRMEZ.
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Stocks, [hashtable]$AnalystMap)
+    if ($null -eq $AnalystMap -or $AnalystMap.Count -eq 0) { return @($Stocks) }
+    foreach ($s in @($Stocks)) {
+        $sym = [string](Get-ObjectPropertyValue -Object $s -Name 'Symbol')
+        if (-not $sym -or -not $AnalystMap.ContainsKey($sym)) { continue }
+        $a = $AnalystMap[$sym]
+        $s | Add-Member -NotePropertyName 'TvAnalystRating' -NotePropertyValue $a.Rating -Force
+        $s | Add-Member -NotePropertyName 'TvPriceTarget' -NotePropertyValue $a.PriceTarget -Force
+        $s | Add-Member -NotePropertyName 'TvAnalystCount' -NotePropertyValue $a.AnalystCount -Force
+        $s | Add-Member -NotePropertyName 'TvEpsSurprisePct' -NotePropertyValue $a.EpsSurprisePct -Force
+    }
+    return @($Stocks)
+}
+
+function Test-DiscoveryEligibleStock {
+    <#
+        KESIF portfoyu uygunluk kapisi — standart kapidan BILEREK farkli:
+        standart kapi buyuk/likit/karli ister; kesif kapisi KUCUK ve HENUZ
+        KESFEDILMEMIS (dusuk hacimli) hisseleri arar ama copten korunur:
+          - Fiyat gecerli; PD/DD > 0 (negatif ozkaynak YOK)
+          - Piyasa degeri: [MinMarketCapTL, evren medyani] — mikro-manipulasyon
+            kabuklari disari (taban), zaten kesfedilmisler disari (tavan)
+          - Gunluk TL cirosu: [MinAdvTL, evren ADV medyani] — 20k TL'lik portfoyde
+            4k'lik pozisyon icin yeterli taban; tavan 'dusuk hacim' tanimini
+            GORELI yapar (evrenin likit yarisi disari)
+          - 'veri supheli' aykiri-deger bayragi tasiyanlar disari
+          - Yasam belirtisi: son ceyrek net kar > 0 VEYA FAVOK > 0 VEYA
+            USD ciro buyumesi > %20 (donus hikayeleri kalir, olu kabuklar kalmaz)
+          - Gunluk oynaklik <= 12 (kucuk hisse oynak olur; delilik disari)
+    #>
+    param($Stock, [double]$MedianMarketCap, [double]$MedianAdvTL,
+        [double]$MinMarketCapTL = 750000000, [double]$MinAdvTL = 250000)
+    $price = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Stock -Name 'Price')
+    if ($null -eq $price -or $price -le 0) { return $false }
+    $pb = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Stock -Name 'PB')
+    if ($null -ne $pb -and $pb -le 0) { return $false }
+    $mcap = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Stock -Name 'MarketCap')
+    if ($null -eq $mcap -or $mcap -lt $MinMarketCapTL) { return $false }
+    if ($MedianMarketCap -gt 0 -and $mcap -gt $MedianMarketCap) { return $false }
+    $advTL = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Stock -Name 'AdvTL')
+    if ($null -eq $advTL) {
+        $avgVol = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Stock -Name 'AverageVolume10D')
+        if ($null -ne $avgVol) { $advTL = $avgVol * $price }
+    }
+    if ($null -eq $advTL -or $advTL -lt $MinAdvTL) { return $false }
+    if ($MedianAdvTL -gt 0 -and $advTL -gt $MedianAdvTL) { return $false }
+    foreach ($f in @(Get-ObjectPropertyValue -Object $Stock -Name 'DataQualityFlags')) {
+        if ([string]$f -match 'veri şüpheli|Geçersiz') { return $false }
+    }
+    $volD = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Stock -Name 'VolatilityD')
+    if ($null -ne $volD -and $volD -gt 12) { return $false }
+    $ni = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Stock -Name 'LatestNetIncomeTRYBn')
+    $ebitda = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Stock -Name 'LatestEbitdaUSDMn')
+    $revGrowth = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Stock -Name 'RevenueUsdYoYPct')
+    $alive = ($null -ne $ni -and $ni -gt 0) -or ($null -ne $ebitda -and $ebitda -gt 0) -or ($null -ne $revGrowth -and $revGrowth -gt 20)
+    if (-not $alive) { return $false }
+    if ([string]::IsNullOrWhiteSpace([string](Get-ObjectPropertyValue -Object $Stock -Name 'SectorTR'))) { return $false }
+    return $true
+}
+
+function Add-DiscoveryScore {
+    <#
+        KESIF SKORU (0-100, kesitsel) — 'henuz hacmi olmayan ama gelecek vaad eden'
+        hisseler icin cok-boyutlu asimetrik-getiri arayisi. Bilesenler (veri yoksa
+        o bilesen 0 — kesif mandasinda KANIT istenir, notr varsayilmaz):
+          Boyut 15: evren icinde kucukluk yuzdeligi (kucuk = kat-kat buyume kapasitesi)
+          Taban 15: 52H bandinda %20-80 arasi (10; ne dipte ne tavana yapismis)
+                    + zirveden < %50 uzak (5; olum sarmali disari)
+          Momentum filizi 20: Fiyat>SMA50 (5), Fiyat>SMA200 (5),
+                    3A perf %5..%100 (5; baslamis ama kacmamis), RSI 50-70 (5)
+          Buyume/donus 20: USD ciro >%15 (7), net kar donusu/USD >%25 (7), FAVOK >%20 (6)
+          Kalite 15: BilancoSkoru >=60 (7) / >=40 (3); tahakkuk Temiz (4), Riskli (-4);
+                    temiz veri-kalite (4)
+          Erken akilli-para izi 15: yabanci oran 1H +0.1bp+ (5), insider alim (5),
+                    goreli hacim 1.1-3.0 (5; birikme var, patlama yok)
+        Her hisseye DiscoveryScore100 + DiscoveryEligible + DiscoveryNote yazar.
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Stocks)
+    $all = @($Stocks)
+    # Evren medyanlari (kesitsel baglam)
+    $caps = @($all | ForEach-Object { ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $_ -Name 'MarketCap') } | Where-Object { $null -ne $_ -and $_ -gt 0 } | Sort-Object)
+    $advs = @($all | ForEach-Object {
+            $p = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $_ -Name 'Price')
+            $v = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $_ -Name 'AverageVolume10D')
+            if ($null -ne $p -and $p -gt 0 -and $null -ne $v) { $p * $v }
+        } | Where-Object { $null -ne $_ } | Sort-Object)
+    $medCap = if ($caps.Count) { [double]$caps[[int][Math]::Floor($caps.Count / 2)] } else { 0.0 }
+    $medAdv = if ($advs.Count) { [double]$advs[[int][Math]::Floor($advs.Count / 2)] } else { 0.0 }
+
+    foreach ($s in $all) {
+        $eligible = Test-DiscoveryEligibleStock -Stock $s -MedianMarketCap $medCap -MedianAdvTL $medAdv
+        $score = 0.0
+        $notes = [System.Collections.Generic.List[string]]::new()
+
+        $mcap = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'MarketCap')
+        if ($null -ne $mcap -and $caps.Count -gt 1) {
+            $below = @($caps | Where-Object { $_ -lt $mcap }).Count
+            $pctl = $below / [double]$caps.Count          # 0=en kucuk
+            $score += (1.0 - $pctl) * 15.0
+            if ($pctl -lt 0.35) { [void]$notes.Add('küçük ölçek') }
+        }
+
+        $rangePos = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'Range52PositionPct')
+        if ($null -ne $rangePos -and $rangePos -ge 20 -and $rangePos -le 80) { $score += 10.0; [void]$notes.Add('sağlıklı taban') }
+        $dHigh = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'Dist52WHighPct')
+        if ($null -ne $dHigh -and $dHigh -ge -50) { $score += 5.0 }
+
+        $price = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'Price')
+        $sma50 = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'SMA50')
+        $sma200 = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'SMA200')
+        $momPts = 0.0
+        if ($null -ne $price -and $null -ne $sma50 -and $sma50 -gt 0 -and $price -ge $sma50) { $momPts += 5.0 }
+        if ($null -ne $price -and $null -ne $sma200 -and $sma200 -gt 0 -and $price -ge $sma200) { $momPts += 5.0 }
+        $p3m = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'Perf3Month')
+        if ($null -ne $p3m -and $p3m -ge 5 -and $p3m -le 100) { $momPts += 5.0 }
+        $rsi = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'RSI')
+        if ($null -ne $rsi -and $rsi -ge 50 -and $rsi -le 70) { $momPts += 5.0 }
+        $score += $momPts
+        if ($momPts -ge 15) { [void]$notes.Add('momentum filizi') }
+
+        $growPts = 0.0
+        $revG = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'RevenueUsdYoYPct')
+        if ($null -ne $revG -and $revG -ge 15) { $growPts += 7.0 }
+        $niG = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'NetIncomeUsdYoYPct')
+        $turnaround = [bool](Get-ObjectPropertyValue -Object $s -Name 'StrongUsdEarnings')
+        if ($turnaround -or ($null -ne $niG -and $niG -ge 25)) { $growPts += 7.0 }
+        $ebG = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'EbitdaUsdYoYPct')
+        if ($null -ne $ebG -and $ebG -ge 20) { $growPts += 6.0 }
+        $score += $growPts
+        if ($growPts -ge 13) { [void]$notes.Add('güçlü büyüme') }
+
+        $qPts = 0.0
+        $bsq = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'BalanceSheetScore')
+        if ($null -ne $bsq) { if ($bsq -ge 60) { $qPts += 7.0 } elseif ($bsq -ge 40) { $qPts += 3.0 } }
+        $accr = [string](Get-ObjectPropertyValue -Object $s -Name 'AccrualsFlag')
+        if ($accr -eq 'Temiz') { $qPts += 4.0 } elseif ($accr -eq 'Riskli') { $qPts -= 4.0 }
+        if (@(Get-ObjectPropertyValue -Object $s -Name 'DataQualityFlags').Count -eq 0) { $qPts += 4.0 }
+        if ($qPts -lt 0) { $qPts = 0.0 }
+        $score += $qPts
+        if ($qPts -ge 11) { [void]$notes.Add('temiz bilanço') }
+
+        $smPts = 0.0
+        $fchg = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'ForeignChg1wBps')
+        if ($null -ne $fchg -and $fchg -ge 0.10) { $smPts += 5.0; [void]$notes.Add('yabancı girişi') }
+        if ([string](Get-ObjectPropertyValue -Object $s -Name 'InsiderSignal') -eq '+') { $smPts += 5.0; [void]$notes.Add('içeriden alım') }
+        $rv = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'RelativeVolume')
+        if ($null -ne $rv -and $rv -ge 1.1 -and $rv -le 3.0) { $smPts += 5.0; [void]$notes.Add('hacim birikmesi') }
+        $score += $smPts
+
+        $final = [Math]::Round([Math]::Max(0.0, [Math]::Min(100.0, $score)), 1)
+        $s | Add-Member -NotePropertyName 'DiscoveryScore100' -NotePropertyValue $final -Force
+        $s | Add-Member -NotePropertyName 'DiscoveryEligible' -NotePropertyValue $eligible -Force
+        $s | Add-Member -NotePropertyName 'DiscoveryNote' -NotePropertyValue ($(if ($notes.Count) { $notes -join ', ' } else { '' })) -Force
+    }
+    return $all
 }
 
 function Get-MacroSnapshotMetric {
@@ -7631,6 +7940,19 @@ function Save-PitSnapshot {
                 # P4: TL-bazli islem-yapilabilirlik (likidite/slippage baglami)
                 AdvTL            = Get-ObjectPropertyValue -Object $s -Name 'AdvTL'
                 TradabilityTier  = Get-ObjectPropertyValue -Object $s -Name 'TradabilityTier'
+                # P5-A1: PEAD ham sinyali (pencere ici tepki-surprizi; disi null) —
+                # IC'si signal-eval ile olculur, kanit birikince carpan acilir.
+                EarningsSurpriseScore = Get-ObjectPropertyValue -Object $s -Name 'EarningsSurpriseScore'
+                DaysSinceLastReport = Get-ObjectPropertyValue -Object $s -Name 'DaysSinceLastReport'
+                EarningsDriftSignal = (Get-EarningsDriftSignal -Stock $s)
+                # P5-A2/A3: analist verisi (Is Yatirim hedef + TV sondaji; yoksa null)
+                TargetPriceTL    = Get-ObjectPropertyValue -Object $s -Name 'TargetPriceTL'
+                UpsidePotentialPct = Get-ObjectPropertyValue -Object $s -Name 'UpsidePotentialPct'
+                TvAnalystRating  = Get-ObjectPropertyValue -Object $s -Name 'TvAnalystRating'
+                TvPriceTarget    = Get-ObjectPropertyValue -Object $s -Name 'TvPriceTarget'
+                TvEpsSurprisePct = Get-ObjectPropertyValue -Object $s -Name 'TvEpsSurprisePct'
+                # B: Kesif skoru (kucuk-cap asimetrik getiri arayisi)
+                DiscoveryScore100 = Get-ObjectPropertyValue -Object $s -Name 'DiscoveryScore100'
                 LatestReportDate = (Get-ObjectPropertyValue -Object $s -Name 'LatestReportDate')
                 NextEarningsDate = (Get-ObjectPropertyValue -Object $s -Name 'NextEarningsDate')
                 FiscalPeriodEnd  = (Get-ObjectPropertyValue -Object $s -Name 'FiscalPeriodEnd')
@@ -8293,6 +8615,12 @@ Export-ModuleMember -Function `
     Add-BalanceSheetQuality, `
     Get-FundamentalDivergence, `
     Add-FundamentalCrossCheck, `
+    Get-EarningsDriftSignal, `
+    Get-EarningsDriftAdjustment, `
+    Get-TradingViewAnalystData, `
+    Add-TradingViewAnalystData, `
+    Test-DiscoveryEligibleStock, `
+    Add-DiscoveryScore, `
     Get-MacroSnapshotMetric, `
     Get-ModelPortfolioDefinitions, `
     Get-ModelPortfolioSelection, `

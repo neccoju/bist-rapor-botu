@@ -59,9 +59,11 @@ $snaps = @($snaps | Sort-Object Date)
 Write-Host "Gecerli snapshot: $($snaps.Count)"
 
 # Cakismayan walk-forward donemler.
-# BalanceSheetScore: GOLGE faktor — ayarı 0 oldugu icin AYARIN degil HAM SINYALIN
-# (0-100 skor) ileri-getiri IC'sini olceriz; kanit (KORU) cikinca carpan acilir.
-$adjFields = @('SmartMoneyAdjustment', 'MacroRegimeAdjustment', 'ForeignChg1wBps', 'BalanceSheetScore')
+# BalanceSheetScore + EarningsDriftSignal: GOLGE faktorler — ayarlari 0 oldugu
+# icin AYARIN degil HAM SINYALIN ileri-getiri IC'sini olceriz; kanit (KORU)
+# cikinca carpan acilir. EarningsDriftSignal yalniz aciklama penceresi icinde
+# dolu (disi null) -> IC otomatik olarak olay-kosullu olculur.
+$adjFields = @('SmartMoneyAdjustment', 'MacroRegimeAdjustment', 'ForeignChg1wBps', 'BalanceSheetScore', 'EarningsDriftSignal')
 $icByField = @{}; foreach ($fn in $adjFields) { $icByField[$fn] = New-Object System.Collections.Generic.List[double] }
 $regimeFwd = @{ 'risk-on' = (New-Object System.Collections.Generic.List[double]); 'risk-off' = (New-Object System.Collections.Generic.List[double]); 'neutral' = (New-Object System.Collections.Generic.List[double]) }
 $overlayDefensive = New-Object System.Collections.Generic.List[double]   # nakit-onerilen gunlerde BIST fwd
@@ -217,20 +219,25 @@ $curSm = if ($curCfg) { [double](Get-ObjectPropertyValue -Object $curCfg -Name '
 $curMr = if ($curCfg) { [double](Get-ObjectPropertyValue -Object $curCfg -Name 'MacroRegimeMult') } else { 1.0 }
 $curBsRaw = if ($curCfg) { ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $curCfg -Name 'BalanceSheetMult') } else { $null }
 $curBs = if ($null -ne $curBsRaw) { [double]$curBsRaw } else { 0.0 }   # golge varsayilan
+$curEdRaw = if ($curCfg) { ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $curCfg -Name 'EarningsDriftMult') } else { $null }
+$curEd = if ($null -ne $curEdRaw) { [double]$curEdRaw } else { 0.0 }   # golge varsayilan
 if ($curSm -le 0 -and $null -eq $curCfg) { $curSm = 1.0 }
 $smV = @($findings | Where-Object { $_.signal -eq 'SmartMoneyAdjustment' } | Select-Object -First 1)
 $mrV = @($findings | Where-Object { $_.signal -eq 'MacroRegimeAdjustment' } | Select-Object -First 1)
 $bsV = @($findings | Where-Object { $_.signal -eq 'BalanceSheetScore' } | Select-Object -First 1)
+$edV = @($findings | Where-Object { $_.signal -eq 'EarningsDriftSignal' } | Select-Object -First 1)
 $newSm = if ($smV) { & $multFor $smV.verdict $curSm } else { $curSm }
 $newMr = if ($mrV) { & $multFor $mrV.verdict $curMr } else { $curMr }
 $newBs = if ($bsV) { & $multForShadow $bsV.verdict $curBs } else { $curBs }
+$newEd = if ($edV) { & $multForShadow $edV.verdict $curEd } else { $curEd }
 $cfg = [pscustomobject][ordered]@{
     UpdatedAt = (Get-Date).ToUniversalTime().ToString('o')
     SmartMoneyMult = $newSm
     MacroRegimeMult = $newMr
     BalanceSheetMult = $newBs
-    Note = 'Invoke-SignalEvaluation otomatik yazdi (cikis kurali). Yerlesik: KAPAT->0, ZAYIFLAT->0.5, KORU->1.0. Golge (bilanco): KORU->0.5 pilot, diger->0, YETERSIZ->degismez.'
+    EarningsDriftMult = $newEd
+    Note = 'Invoke-SignalEvaluation otomatik yazdi (cikis kurali). Yerlesik: KAPAT->0, ZAYIFLAT->0.5, KORU->1.0. Golge (bilanco/PEAD): KORU->0.5 pilot, diger->0, YETERSIZ->degismez.'
     Source = 'signal-eval auto'
 }
 $cfg | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $cfgPath -Encoding UTF8
-Write-Host ("OTO-AYAR -> signal_config.json (SmartMoney x{0}, MacroRegime x{1}, Bilanco x{2})" -f $newSm, $newMr, $newBs)
+Write-Host ("OTO-AYAR -> signal_config.json (SmartMoney x{0}, MacroRegime x{1}, Bilanco x{2}, PEAD x{3})" -f $newSm, $newMr, $newBs, $newEd)
