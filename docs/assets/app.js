@@ -624,6 +624,22 @@
     const tip = (r.fundamentalDivergenceNote || "Temel veri kaynakları çelişkili") + (parts.length ? " · " + parts.join(", ") : "");
     return ' <span class="divmark" title="' + esc(tip) + '">≠</span>';
   }
+  // P4: veri-kalite uyarısı — ticker yanında ⚠, tooltip bayrakları listeler
+  // (bayat bilanço, aşırı/eksik oran, kaynak çelişkisi, düşük hacim...).
+  function dataQualityMark(r) {
+    const flags = arr(r && r.dataQualityFlags);
+    if (!flags.length) return "";
+    return ' <span class="dqmark" title="' + esc(flags.join(" · ")) + '">⚠</span>';
+  }
+  // P4: işlem-yapılabilirlik — Hacim hücresinde TL-ADV kademesi (renk nokta) +
+  // tooltip (günlük ciro, kayma bağlamı). Yüksek=yeşil, Çok Düşük=kırmızı.
+  function tradabilityMark(r) {
+    const t = r && r.tradabilityTier;
+    if (!t || t === "Bilinmiyor") return "";
+    const cls = t === "Yüksek" ? "pos" : (t === "Çok Düşük" ? "neg" : "flat");
+    const adv = isNum(r.advTL) ? " · günlük ciro ~" + fmtTR(r.advTL / 1e6, 1) + "M TL" : "";
+    return ' <span class="bsq-dot ' + cls + '" title="İşlem-yapılabilirlik: ' + esc(t) + adv + '">●</span>';
+  }
   // Bilanço kalitesi hücresi: 0-100 skoru renk-kodlu + tahakkuk bayrağı noktası.
   // Finans/holding'de veri null -> "—" (bu oranlar o gruplarda uygulanmaz).
   function balanceSheetCell(score, accruals) {
@@ -723,6 +739,8 @@
         const cell = isNum(v) ? '<span class="td-num">' + fmtTR(v) + "</span>" : '<span class="td-num flat">—</span>';
         return "<td class='td-num'>" + cell + divergenceMark(r) + "</td>";
       }
+      if (c.key === "ticker") return "<td class='" + (c.cls || "") + "'>" + (has(v) ? esc(v) : "—") + dataQualityMark(r) + "</td>";
+      if (c.key === "volume") return "<td class='td-num'>" + (has(v) ? esc(v) : '<span class="flat">—</span>') + tradabilityMark(r) + "</td>";
       if (c.type === "num") {
         if (!isNum(v)) return '<td class="td-num flat">—</td>';
         if (c.pct) return '<td class="td-num ' + pctClass(v) + '">' + pctText(v) + "</td>";

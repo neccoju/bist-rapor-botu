@@ -326,6 +326,7 @@ button { font-family: inherit; cursor: pointer; }
 .bsq-dot { font-size: 9px; vertical-align: middle; }
 .bsq-dot.pos { color: var(--pos); } .bsq-dot.neg { color: var(--neg); } .bsq-dot.flat { color: var(--text-faint); }
 .divmark { color: var(--warn); font-weight: 700; cursor: help; margin-left: 3px; }
+.dqmark { color: var(--warn); cursor: help; margin-left: 4px; font-size: 11px; }
 
 /* ---- Para akışı ---- */
 .flowlist { display: flex; flex-direction: column; gap: var(--sp-2); }

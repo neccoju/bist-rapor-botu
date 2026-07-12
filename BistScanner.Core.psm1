@@ -6676,12 +6676,38 @@ function Get-EarningsSurpriseScore {
     return [Math]::Round([Math]::Max(0, [Math]::Min(100, 50 + $score)), 1)
 }
 
+function Get-TradabilityTier {
+    <#
+        P4: ISLEM-YAPILABILIRLIK (TL bazli ADV). Adet-bazli likidite tek basina
+        yaniltir (dusuk fiyatli hissede yuksek adet = az para); gunluk TL cirosu
+        (AverageVolume10D x Price) gercek 'ne kadar pozisyon kayma olmadan alinir'i
+        gosterir. Kademeler + slippage uyarisi. Veri yoksa Tier='Bilinmiyor'.
+        Ek olarak MaxMakulPozisyonTL: gunluk cironun ~%10'u (bir gunde piyasa
+        etkisi olusturmadan makul alinabilecek kaba tavan).
+    #>
+    param($Stock, [double]$MaxAdvShare = 0.10)
+    $price = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Stock -Name 'Price')
+    $avgVol = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Stock -Name 'AverageVolume10D')
+    if ($null -eq $price -or $price -le 0 -or $null -eq $avgVol -or $avgVol -lt 0) {
+        return [pscustomobject][ordered]@{ AdvTL = $null; Tier = 'Bilinmiyor'; MaxPositionTL = $null; Note = 'İşlem hacmi verisi yok.' }
+    }
+    $advTL = $avgVol * $price
+    $tier = if ($advTL -ge 50000000) { 'Yüksek' }
+        elseif ($advTL -ge 10000000) { 'Orta' }
+        elseif ($advTL -ge 2000000) { 'Düşük' }
+        else { 'Çok Düşük' }
+    $maxPos = [Math]::Round($advTL * $MaxAdvShare)
+    $note = ('Günlük ciro ~{0:N0} TL ({1}); kayma olmadan makul ~{2:N0} TL/gün.' -f [Math]::Round($advTL), $tier, $maxPos)
+    return [pscustomobject][ordered]@{ AdvTL = [Math]::Round($advTL); Tier = $tier; MaxPositionTL = $maxPos; Note = $note }
+}
+
 function Add-DataQualityAssessment {
     <#
         Her hisseye veri-kalite bayraklari (DataQualityFlags) ve DataQualityOk
         (kritik sorun yoksa $true) ekler. Bayat bilanco, eksik kritik alan,
-        gecersiz fiyat ve dusuk likiditeyi yakalar. Skoru DEGISTIRMEZ; portfoy
-        uygunlugu ve raporda seffaflik icin kullanilir.
+        gecersiz fiyat ve dusuk likiditeyi yakalar. P4: alan-bazli AYKIRI DEGER
+        (outlier) sanity + TL-bazli islem-yapilabilirlik kademesi de eklendi.
+        Skoru DEGISTIRMEZ; portfoy uygunlugu ve raporda seffaflik icin kullanilir.
     #>
     [CmdletBinding()]
     param(
@@ -6697,10 +6723,18 @@ function Add-DataQualityAssessment {
         $price = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'Price')
         if ($null -eq $price -or $price -le 0) { [void]$flags.Add('Geçersiz/eksik fiyat'); $critical = $true }
 
-        $pe = Get-ObjectPropertyValue -Object $s -Name 'PE'
-        $pb = Get-ObjectPropertyValue -Object $s -Name 'PB'
-        $roe = Get-ObjectPropertyValue -Object $s -Name 'ROE'
+        $pe = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'PE')
+        $pb = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'PB')
+        $roe = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'ROE')
         if ($null -eq $pe -and $null -eq $pb -and $null -eq $roe) { [void]$flags.Add('Temel veriler eksik') }
+
+        # P4: alan-bazli aykiri deger (outlier) sanity — muhtemel veri hatasi/uc
+        # durum seffaflik icin isaretlenir (SKORU DEGISTIRMEZ). Negatif PD/DD gercek
+        # bir kirmizi bayrak (negatif ozkaynak); asiri F/K/PD/DD/ROE veri suphesi.
+        if ($null -ne $pb -and $pb -lt 0) { [void]$flags.Add('Negatif özkaynak (PD/DD<0)') }
+        elseif ($null -ne $pb -and $pb -gt 100) { [void]$flags.Add('Aşırı PD/DD — veri şüpheli') }
+        if ($null -ne $pe -and $pe -gt 1500) { [void]$flags.Add('Aşırı F/K — veri şüpheli') }
+        if ($null -ne $roe -and [Math]::Abs($roe) -gt 300) { [void]$flags.Add('Aşırı ROE — veri şüpheli') }
 
         $dLast = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'DaysSinceLastReport')
         if ($null -ne $dLast -and $dLast -gt $StaleReportDays) {
@@ -6710,6 +6744,13 @@ function Add-DataQualityAssessment {
         $avgVol = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $s -Name 'AverageVolume10D')
         if ($null -ne $avgVol -and $avgVol -lt 50000) { [void]$flags.Add('Çok düşük likidite'); $critical = $true }
         elseif ($null -ne $avgVol -and $avgVol -lt 150000) { [void]$flags.Add('Düşük likidite') }
+
+        # P4: TL-bazli islem-yapilabilirlik kademesi (adet-likiditeyi TAMAMLAR).
+        $trad = Get-TradabilityTier -Stock $s
+        $s | Add-Member -NotePropertyName AdvTL -NotePropertyValue $trad.AdvTL -Force
+        $s | Add-Member -NotePropertyName TradabilityTier -NotePropertyValue $trad.Tier -Force
+        $s | Add-Member -NotePropertyName TradabilityMaxPositionTL -NotePropertyValue $trad.MaxPositionTL -Force
+        if ($trad.Tier -eq 'Çok Düşük') { [void]$flags.Add('Çok düşük işlem hacmi (kayma/slippage riski)') }
 
         $s | Add-Member -NotePropertyName DataQualityFlags -NotePropertyValue ($flags.ToArray()) -Force
         $s | Add-Member -NotePropertyName DataQualityOk -NotePropertyValue (-not $critical) -Force
@@ -7587,6 +7628,9 @@ function Save-PitSnapshot {
                 SecondaryPB      = Get-ObjectPropertyValue -Object $s -Name 'SecondaryPB'
                 SecondaryROE     = Get-ObjectPropertyValue -Object $s -Name 'SecondaryROE'
                 SecondaryFundamentalDivergence = Get-ObjectPropertyValue -Object $s -Name 'SecondaryFundamentalDivergence'
+                # P4: TL-bazli islem-yapilabilirlik (likidite/slippage baglami)
+                AdvTL            = Get-ObjectPropertyValue -Object $s -Name 'AdvTL'
+                TradabilityTier  = Get-ObjectPropertyValue -Object $s -Name 'TradabilityTier'
                 LatestReportDate = (Get-ObjectPropertyValue -Object $s -Name 'LatestReportDate')
                 NextEarningsDate = (Get-ObjectPropertyValue -Object $s -Name 'NextEarningsDate')
                 FiscalPeriodEnd  = (Get-ObjectPropertyValue -Object $s -Name 'FiscalPeriodEnd')
@@ -8212,6 +8256,7 @@ Export-ModuleMember -Function `
     Set-SignalCalibration, `
     Update-SignalCalibration, `
     Add-DataQualityAssessment, `
+    Get-TradabilityTier, `
     Update-EarningsReactions, `
     Get-KapDisclosures, `
     Get-StoredKapDisclosures, `

@@ -697,7 +697,10 @@
       "macroScore": 62,
       "llmNote": "Defansif tüketim; bilanço güçlü, momentum ılımlı.",
       "action": "alım bölgesi",
-      "fundamentalDivergence": false
+      "fundamentalDivergence": false,
+      "tradabilityTier": "Yüksek",
+      "advTL": 95000000.0,
+      "dataQualityFlags": []
     },
     {
       "ticker": "GLYHO",
@@ -718,7 +721,10 @@
       "macroScore": 62,
       "llmNote": "Holding NAV iskontosu; katalizör bekleniyor.",
       "action": "izle",
-      "fundamentalDivergence": false
+      "fundamentalDivergence": false,
+      "tradabilityTier": "Orta",
+      "advTL": 15000000.0,
+      "dataQualityFlags": []
     },
     {
       "ticker": "TUPRS",
@@ -739,7 +745,10 @@
       "macroScore": 62,
       "llmNote": "Rafineri marjları destekleyici; trend yukarı.",
       "action": "alım bölgesi",
-      "fundamentalDivergence": false
+      "fundamentalDivergence": false,
+      "tradabilityTier": "Yüksek",
+      "advTL": 180000000.0,
+      "dataQualityFlags": []
     },
     {
       "ticker": "AKSA",
@@ -760,7 +769,10 @@
       "macroScore": 62,
       "llmNote": "Yatay; hacim teyidi zayıf.",
       "action": "bekle",
-      "fundamentalDivergence": false
+      "fundamentalDivergence": false,
+      "tradabilityTier": "Orta",
+      "advTL": 15000000.0,
+      "dataQualityFlags": []
     },
     {
       "ticker": "ARASE",
@@ -781,7 +793,10 @@
       "macroScore": 62,
       "llmNote": "Güçlü momentum; aşırı alıma yaklaşıyor.",
       "action": "riskli",
-      "fundamentalDivergence": false
+      "fundamentalDivergence": false,
+      "tradabilityTier": "Düşük",
+      "advTL": 4500000.0,
+      "dataQualityFlags": []
     },
     {
       "ticker": "DSTKF",
@@ -802,7 +817,10 @@
       "macroScore": 62,
       "llmNote": "Hacim patlaması; kâr-al bölgesine dikkat.",
       "action": "riskli",
-      "fundamentalDivergence": false
+      "fundamentalDivergence": false,
+      "tradabilityTier": "Orta",
+      "advTL": 15000000.0,
+      "dataQualityFlags": []
     },
     {
       "ticker": "THYAO",
@@ -823,7 +841,10 @@
       "macroScore": 62,
       "llmNote": "Yolcu verileri güçlü; trend sağlam.",
       "action": "alım bölgesi",
-      "fundamentalDivergence": false
+      "fundamentalDivergence": false,
+      "tradabilityTier": "Orta",
+      "advTL": 15000000.0,
+      "dataQualityFlags": []
     },
     {
       "ticker": "BIMAS",
@@ -844,7 +865,10 @@
       "macroScore": 62,
       "llmNote": "Defansif; enflasyon korumalı ciro.",
       "action": "izle",
-      "fundamentalDivergence": false
+      "fundamentalDivergence": false,
+      "tradabilityTier": "Orta",
+      "advTL": 15000000.0,
+      "dataQualityFlags": []
     },
     {
       "ticker": "GUBRF",
@@ -869,7 +893,12 @@
       "fundamentalDivergenceNote": "Kaynaklar çelişkili: F/K 12.4↔28.0 (TradingView↔İş Yatırım).",
       "secondaryPE": 28.0,
       "secondaryPB": 1.9,
-      "secondaryROE": 6.0
+      "secondaryROE": 6.0,
+      "tradabilityTier": "Orta",
+      "advTL": 22000000.0,
+      "dataQualityFlags": [
+        "Temel veri kaynakları çelişkili (F/K 12.4↔28.0)"
+      ]
     },
     {
       "ticker": "YGGYO",
@@ -890,7 +919,13 @@
       "macroScore": 62,
       "llmNote": "Aşırı satım; dönüş teyidi yok.",
       "action": "bekle",
-      "fundamentalDivergence": false
+      "fundamentalDivergence": false,
+      "tradabilityTier": "Çok Düşük",
+      "advTL": 600000.0,
+      "dataQualityFlags": [
+        "Çok düşük işlem hacmi (kayma/slippage riski)",
+        "Bilanço bayat olabilir (150 gün)"
+      ]
     }
   ],
   "sectorRotation": [

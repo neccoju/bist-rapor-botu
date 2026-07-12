@@ -309,7 +309,30 @@ $dqStocks = @(
 if (-not ($dqStocks | Where-Object Symbol -eq 'OK').DataQualityOk) { throw 'Veri kalitesi: OK temiz olmaliydi.' }
 if (($dqStocks | Where-Object Symbol -eq 'BADP').DataQualityOk) { throw 'Veri kalitesi: sıfır fiyat kritik olmaliydi.' }
 if (($dqStocks | Where-Object Symbol -eq 'ILQ').DataQualityOk) { throw 'Veri kalitesi: illikit kritik olmaliydi.' }
+$dqOK = $dqStocks | Where-Object Symbol -eq 'OK'
+if ($dqOK.TradabilityTier -ne 'Yüksek') { throw "OK (100TL x 1M adet=100M) Yüksek olmalı: $($dqOK.TradabilityTier)" }
 Write-Host "Add-DataQualityAssessment testi başarılı."
+
+# --- P4: aykırı değer sanity + TL-ADV işlem-yapılabilirlik ---
+$p4 = @(
+    [pscustomobject]@{ Symbol = 'NEGEQ'; Price = 20; PB = -1.5; PE = 8; ROE = 12; AverageVolume10D = 500000 },
+    [pscustomobject]@{ Symbol = 'GLITCH'; Price = 20; PB = 250; PE = 3000; ROE = 800; AverageVolume10D = 500000 },
+    [pscustomobject]@{ Symbol = 'THIN'; Price = 4; PB = 1.2; PE = 9; ROE = 15; AverageVolume10D = 100000 }
+)
+[void](Add-DataQualityAssessment -Stocks $p4)
+$neg = $p4 | Where-Object Symbol -eq 'NEGEQ'
+if (@($neg.DataQualityFlags) -notcontains 'Negatif özkaynak (PD/DD<0)') { throw 'Negatif PD/DD bayrağı yok.' }
+$gl = $p4 | Where-Object Symbol -eq 'GLITCH'
+foreach ($f in @('Aşırı PD/DD — veri şüpheli', 'Aşırı F/K — veri şüpheli', 'Aşırı ROE — veri şüpheli')) {
+    if (@($gl.DataQualityFlags) -notcontains $f) { throw "Aykırı değer bayrağı eksik: $f" }
+}
+$thin = $p4 | Where-Object Symbol -eq 'THIN'   # 4TL x 100k = 400k TL -> Çok Düşük
+if ($thin.TradabilityTier -ne 'Çok Düşük') { throw "THIN Çok Düşük olmalı: $($thin.TradabilityTier)" }
+if (@($thin.DataQualityFlags) -notcontains 'Çok düşük işlem hacmi (kayma/slippage riski)') { throw 'Slippage bayrağı yok.' }
+if ([double]$thin.TradabilityMaxPositionTL -ne 40000) { throw "THIN makul pozisyon %10=40k olmalı: $($thin.TradabilityMaxPositionTL)" }
+# Aykırı değerler SKORU değiştirmez (yalnız şeffaflık) — bayrak var ama kritik değil
+if (-not $neg.DataQualityOk) { throw 'Aykırı değer kritik olmamalı (sadece şeffaflık bayrağı).' }
+Write-Host "P4 veri sağlığı testi başarılı (negatif özkaynak/aşırı oran bayrakları; TL-ADV kademe + slippage tavanı)."
 
 # --- PEAD (Update-EarningsReactions) iki kosu ---
 function New-PeadStock { param($Sym, $Price, $Since, $ReportDate, $Yoy)

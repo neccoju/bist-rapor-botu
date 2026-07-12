@@ -487,6 +487,11 @@ function ConvertTo-DashboardReport {
                 secondaryPE = (Get-DashNum -Object $_ -Name 'SecondaryPE')
                 secondaryPB = (Get-DashNum -Object $_ -Name 'SecondaryPB')
                 secondaryROE = (Get-DashNum -Object $_ -Name 'SecondaryROE')
+                # P4: TL-bazlı işlem-yapılabilirlik kademesi + günlük ciro (slippage
+                # bağlamı; "Hacim" hücresinde tooltip olarak gösterilir).
+                tradabilityTier = (Get-DashStr -Object $_ -Name 'TradabilityTier')
+                advTL = (Get-DashNum -Object $_ -Name 'AdvTL')
+                dataQualityFlags = @(@(Get-DashProp -Object $_ -Name 'DataQualityFlags') | Where-Object { $_ } | ForEach-Object { [string]$_ })
                 llmNote   = $null    # bot per-stock LLM yorumu üretmiyor (ileride eklenebilir)
                 action    = (Get-DashStockAction -Stock $_)
             }
