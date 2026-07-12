@@ -7565,6 +7565,28 @@ function Save-PitSnapshot {
                 ForeignChg1wBps  = Get-ObjectPropertyValue -Object $s -Name 'ForeignChg1wBps'
                 InsiderSignal    = Get-ObjectPropertyValue -Object $s -Name 'InsiderSignal'
                 MacroRegimeAdjustment = Get-ObjectPropertyValue -Object $s -Name 'MacroRegimeAdjustment'
+                # P3: ek temel alanlar — as-observed arsivlenir ki faktor IC'si
+                # (deger/kalite/marj/buyume/bilanco) look-ahead ICERMEDEN olculebilsin.
+                # RawFactorScore100 gibi turevler DEGIL, HAM girdiler saklanir (PIT saf).
+                NetMargin        = Get-ObjectPropertyValue -Object $s -Name 'NetMargin'
+                GrossMargin      = Get-ObjectPropertyValue -Object $s -Name 'GrossMargin'
+                OperatingMargin  = Get-ObjectPropertyValue -Object $s -Name 'OperatingMargin'
+                ROA              = Get-ObjectPropertyValue -Object $s -Name 'ROA'
+                CurrentRatio     = Get-ObjectPropertyValue -Object $s -Name 'CurrentRatio'
+                EvEbitda         = Get-ObjectPropertyValue -Object $s -Name 'EvEbitda'
+                NetIncomeUsdYoYPct = Get-ObjectPropertyValue -Object $s -Name 'NetIncomeUsdYoYPct'
+                RevenueUsdYoYPct = Get-ObjectPropertyValue -Object $s -Name 'RevenueUsdYoYPct'
+                EbitdaUsdYoYPct  = Get-ObjectPropertyValue -Object $s -Name 'EbitdaUsdYoYPct'
+                # P1 (bilanco kalitesi golge) — IC olcumu icin DOGRU arsiv burasi
+                # (signal-eval data/pit'i okur; New-PointInTimeSnapshot panel icindi).
+                BalanceSheetScore = Get-ObjectPropertyValue -Object $s -Name 'BalanceSheetScore'
+                BalanceSheetFScore = Get-ObjectPropertyValue -Object $s -Name 'BalanceSheetFScore'
+                AccrualsFlag     = Get-ObjectPropertyValue -Object $s -Name 'AccrualsFlag'
+                # P2 (ikincil kaynak capraz-dogrulama)
+                SecondaryPE      = Get-ObjectPropertyValue -Object $s -Name 'SecondaryPE'
+                SecondaryPB      = Get-ObjectPropertyValue -Object $s -Name 'SecondaryPB'
+                SecondaryROE     = Get-ObjectPropertyValue -Object $s -Name 'SecondaryROE'
+                SecondaryFundamentalDivergence = Get-ObjectPropertyValue -Object $s -Name 'SecondaryFundamentalDivergence'
                 LatestReportDate = (Get-ObjectPropertyValue -Object $s -Name 'LatestReportDate')
                 NextEarningsDate = (Get-ObjectPropertyValue -Object $s -Name 'NextEarningsDate')
                 FiscalPeriodEnd  = (Get-ObjectPropertyValue -Object $s -Name 'FiscalPeriodEnd')

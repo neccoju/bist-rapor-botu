@@ -1284,7 +1284,8 @@ $pitDir = Join-Path ([System.IO.Path]::GetTempPath()) ("pit_test_" + [guid]::New
 try {
     $pitStocks = @(
         ($sample | Select-Object *),
-        ([pscustomobject]@{ Symbol = 'TEST2'; Price = 50.0; MarketCap = 5e9; PE = 7.0; PB = 1.0; ROE = 18.0; DebtToEquity = 30.0; DividendYield = 1.0; Sector = 'Finance'; VolatilityD = 3.0; AverageVolume10D = 1e6; LatestReportDate = $null; NextEarningsDate = $null; FiscalPeriodEnd = $null })
+        ([pscustomobject]@{ Symbol = 'TEST2'; Price = 50.0; MarketCap = 5e9; PE = 7.0; PB = 1.0; ROE = 18.0; DebtToEquity = 30.0; DividendYield = 1.0; Sector = 'Finance'; VolatilityD = 3.0; AverageVolume10D = 1e6; LatestReportDate = $null; NextEarningsDate = $null; FiscalPeriodEnd = $null;
+            NetMargin = 12.5; ROA = 8.1; NetIncomeUsdYoYPct = 22.0; BalanceSheetScore = 74; AccrualsFlag = 'Temiz'; SecondaryPE = 7.4; SecondaryFundamentalDivergence = $false })
     )
     # Macro: Get-MacroSnapshot sekli (degerler Metrics[] icinde Id ile) — regresyon kilidi:
     # onceki surum yalniz duz alan okudugu icin Macro dugumune hep null yaziyordu.
@@ -1314,7 +1315,16 @@ try {
     if ($null -ne $pitMissing) { throw 'PIT exact-eslesme yoksa null donmeliydi.' }
     $pitBefore = Get-PitSnapshot -Date ([datetime]'2026-06-20') -Directory $pitDir -OnOrBefore
     if ($null -eq $pitBefore) { throw 'PIT on-or-before en yakin onceki kaydi dondurmedi.' }
-    Write-Host "PIT anlik goruntu deposu testi başarılı (evren $($pitRead.UniverseCount), on-or-before OK)."
+    # P3: genisletilmis temel alanlar as-observed arsivlenmeli (look-ahead'siz faktor IC).
+    $pitT2 = @($pitRead.Constituents | Where-Object { $_.Symbol -eq 'TEST2' })[0]
+    if ([double]$pitT2.NetMargin -ne 12.5) { throw "PIT NetMargin arsivlenmedi: $($pitT2.NetMargin)" }
+    if ([double]$pitT2.ROA -ne 8.1) { throw "PIT ROA arsivlenmedi: $($pitT2.ROA)" }
+    if ([double]$pitT2.NetIncomeUsdYoYPct -ne 22.0) { throw 'PIT büyüme (NetIncomeUsdYoYPct) arsivlenmedi.' }
+    if ([double]$pitT2.BalanceSheetScore -ne 74) { throw "PIT BalanceSheetScore (P1 IC yolu) arsivlenmedi: $($pitT2.BalanceSheetScore)" }
+    if ([string]$pitT2.AccrualsFlag -ne 'Temiz') { throw 'PIT AccrualsFlag arsivlenmedi.' }
+    if ([double]$pitT2.SecondaryPE -ne 7.4) { throw 'PIT SecondaryPE (P2) arsivlenmedi.' }
+    if ($null -eq ($pitT2.PSObject.Properties['SecondaryFundamentalDivergence'])) { throw 'PIT SecondaryFundamentalDivergence alani yok.' }
+    Write-Host "PIT anlik goruntu deposu testi başarılı (evren $($pitRead.UniverseCount), on-or-before OK; P3 temel alanlar + P1/P2 arsivlendi)."
 }
 finally {
     if (Test-Path -LiteralPath $pitDir) { Remove-Item -LiteralPath $pitDir -Recurse -Force -ErrorAction SilentlyContinue }
