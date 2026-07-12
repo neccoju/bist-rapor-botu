@@ -8623,6 +8623,7 @@ Export-ModuleMember -Function `
     Add-DiscoveryScore, `
     Get-MacroSnapshotMetric, `
     Get-ModelPortfolioDefinitions, `
+    New-SingleModelPortfolio, `
     Get-ModelPortfolioSelection, `
     Get-LastModelPortfolioTradingDay, `
     Get-BistMarketNow, `
