@@ -1,22 +1,37 @@
 ﻿{
     "Version":  1,
-    "UpdatedAt":  "2026-07-10T18:15:54.1398332Z",
+    "UpdatedAt":  "2026-07-13T18:15:54.0245734Z",
     "Mode":  "PaperOnly",
     "Notes":  "Gerçek emir değildir; raporun ürettiği teorik işlem niyetlerinin denetim kaydıdır.",
     "Intents":  [
                     {
-                        "Id":  "InstantEntry:InstantEntry:19:GLYHO:2026-07-10T18:15:54.1398332Z",
-                        "CreatedAt":  "2026-07-10T18:15:54.1398332Z",
+                        "Id":  "InstantEntry:InstantEntry:20:GEDIK:2026-07-13T18:15:54.0245734Z",
+                        "CreatedAt":  "2026-07-13T18:15:54.0245734Z",
                         "Source":  "InstantEntry",
                         "PortfolioId":  "InstantEntry",
                         "PortfolioName":  "Anlık Fırsat Portföyü",
                         "Side":  "Sell",
-                        "Symbol":  "GLYHO",
-                        "Company":  "GLOBAL YATIRIM HOLDİNG A.Ş.",
-                        "Price":  17.26,
-                        "Quantity":  146.028037,
-                        "AmountTL":  2520.44,
-                        "Note":  "Iz-suren stop: tepe kazanc %9.4, tepeden %7.8 geri verildi. Gerçekleşen K/Z 20.44 TL.",
+                        "Symbol":  "GEDIK",
+                        "Company":  "GEDİK YATIRIM MENKUL DEĞERLER A.Ş.",
+                        "Price":  6.91,
+                        "Quantity":  705.218618,
+                        "AmountTL":  4873.06,
+                        "Note":  "Iz-suren stop: tepe kazanc %8.3, tepeden %10.0 geri verildi. Gerçekleşen K/Z -126.94 TL.",
+                        "Mode":  "PaperOnly"
+                    },
+                    {
+                        "Id":  "InstantEntry:InstantEntry:21:ENERY:2026-07-13T18:15:54.0245734Z",
+                        "CreatedAt":  "2026-07-13T18:15:54.0245734Z",
+                        "Source":  "InstantEntry",
+                        "PortfolioId":  "InstantEntry",
+                        "PortfolioName":  "Anlık Fırsat Portföyü",
+                        "Side":  "Buy",
+                        "Symbol":  "ENERY",
+                        "Company":  "Enerya Enerji A.S.",
+                        "Price":  9.96,
+                        "Quantity":  502.008032,
+                        "AmountTL":  5000,
+                        "Note":  "Günlük anlık fırsat bütçesiyle alındı. Sıkı anlık alış filtresi geçti: skor 85+, MACD yeni sıfır kesişimi veya pozitif ivme + 52H %20-50 bandı. Haftalık MACD histogramı son 8 haftada 7/7 kez, son 7 hafta üst üste iyileşti; son 0.11, önceki 0.09. Backtestte pozitif ivme etiketi en güçlü 1 aylık segmentti; skorda ek ağırlık aldı. Temel filtre geçti: bilanço 96.6, kalite 77.5, değer 66.2; son 5 çeyrek kârlı. RSI 55.0; aşırı alıma girmeden momentum toparlanması var. 52 haftalık bandın orta-alt bölgesinde: konum 47.1%, 52H ortalamaya mesafe 4.1%. Sektör rotasyonu BIST Üstü; BIST100e göre ortalama fark 9.8 puan. FD/FAVÖK 11.29; ucuz/makul değerleme filtresinde. Göreli hacim 1.17x; fiyat hareketi tamamen hacimsiz değil.",
                         "Mode":  "PaperOnly"
                     }
                 ]

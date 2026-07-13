@@ -1,22 +1,24 @@
 ﻿{
-    "UpdatedAt":  "2026-07-10T18:15:54.1398332Z",
+    "UpdatedAt":  "2026-07-13T18:15:54.0245734Z",
     "Summary":  {
-                    "TrackedCount":  1,
-                    "CompletedCount":  0,
-                    "DirectionalCount":  0,
-                    "PeadHitRatePct":  null,
-                    "AvgPositiveSurpriseDriftPct":  null
+                    "TrackedCount":  0,
+                    "CompletedCount":  1,
+                    "DirectionalCount":  1,
+                    "PeadHitRatePct":  0,
+                    "AvgPositiveSurpriseDriftPct":  -4.72
                 },
     "Tracked":  [
-                    {
-                        "Symbol":  "DOCO",
-                        "ReportDate":  "2026-06-11",
-                        "DetectedAt":  "2026-06-15T12:08:48.9769781+00:00",
-                        "EntryPrice":  11642.5,
-                        "SurpriseScore":  87
-                    }
+
                 ],
     "Completed":  [
-
+                      {
+                          "Symbol":  "DOCO",
+                          "ReportDate":  "2026-06-11",
+                          "CompletedAt":  "2026-07-13T18:15:54.0245734Z",
+                          "SurpriseScore":  87,
+                          "DriftPct":  -4.72,
+                          "DirectionalHit":  false,
+                          "Directional":  true
+                      }
                   ]
 }
