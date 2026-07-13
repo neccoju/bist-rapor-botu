@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-07-10T16:33:45.278600+00:00",
+  "generatedAt": "2026-07-13T14:46:08.164234+00:00",
   "source": "borsapy 0.10.2 get_news_content",
-  "count": 180,
+  "count": 183,
   "lastRun": {
     "targets": 3,
     "enriched": 3,
     "errors": 0,
-    "elapsedSec": 16
+    "elapsedSec": 11
   },
   "items": {
     "1618795": {
@@ -4031,6 +4031,72 @@
       "impact": 1,
       "amounts": [],
       "rationale": "Bildirimde işlem detayları ve tutar yer almadığı için fiyat etkisi belirsiz."
+    },
+    "1632417": {
+      "symbol": "ASTOR",
+      "title": "Yeni İş İlişkisi",
+      "category": "Ihale/Sozlesme",
+      "date": "13.07.2026 13:03:31",
+      "directionHint": "+",
+      "contentChars": 82789,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-13T14:45:59.089657+00:00",
+      "directionRefined": "?",
+      "summary": "ASTOR yeni bir iş ilişkisi kurduğunu açıkladı, sözleşme veya ihale detayları ve tutarı belirtilmemiştir.",
+      "impact": 2,
+      "amounts": [
+        "31.700.000,00 ABD Dolar",
+        "46,8084 TL",
+        "1.483.826.280,00 TL"
+      ],
+      "rationale": "İş ilişkisi olumlu; tutar ve taraf açıklanmadığı için fiyat etkisi belirsiz."
+    },
+    "1632224": {
+      "symbol": "ARDYZ",
+      "title": "Özel Durum Açıklaması (Genel)",
+      "category": "Ozel Durum (Genel)",
+      "date": "13.07.2026 09:15:09",
+      "directionHint": "?",
+      "contentChars": 61037,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-13T14:46:02.469971+00:00",
+      "directionRefined": "0",
+      "summary": "ARDYZ, finansal tablolarına ilişkin genel açıklama yapmış; ek bilgi, rakam veya özel bir gelişme bulunmamaktadır.",
+      "impact": 1,
+      "amounts": [],
+      "rationale": "Yalnızca rutin ve yasal zorunluluk kapsamında genel açıklama yapılmış."
+    },
+    "1632197": {
+      "symbol": "YEOTK",
+      "title": "Yeni İş İlişkisi",
+      "category": "Ihale/Sozlesme",
+      "date": "13.07.2026 09:00:38",
+      "directionHint": "+",
+      "contentChars": 86717,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-13T14:46:05.297127+00:00",
+      "directionRefined": "?",
+      "summary": "YEOTK yeni bir iş ilişkisi açıkladı; tutar, taraf ve konu detayları bildirimde yer almıyor.",
+      "impact": 2,
+      "amounts": [
+        "40.000.000 ABD Dolar"
+      ],
+      "rationale": "İş ilişkisi olumlu olabilir ancak detaylar olmadığı için fiyat etkisi belirsiz."
     }
   }
 }
