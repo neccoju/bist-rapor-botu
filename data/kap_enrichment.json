@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-07-13T16:43:29.956304+00:00",
+  "generatedAt": "2026-07-14T14:46:08.892775+00:00",
   "source": "borsapy 0.10.2 get_news_content",
-  "count": 184,
+  "count": 186,
   "lastRun": {
-    "targets": 1,
-    "enriched": 1,
+    "targets": 2,
+    "enriched": 2,
     "errors": 0,
-    "elapsedSec": 5
+    "elapsedSec": 12
   },
   "items": {
     "1618795": {
@@ -4117,6 +4117,50 @@
       "impact": 1,
       "amounts": [],
       "rationale": "Sadece rutin finansal tablo açıklaması, yeni bilgi veya fiyatı etkileyici unsur yok."
+    },
+    "1632922": {
+      "symbol": "BIMAS",
+      "title": "Payların Geri Alınmasına İlişkin Bildirim",
+      "category": "Geri Alim",
+      "date": "13.07.2026 19:16:08",
+      "directionHint": "+",
+      "contentChars": 50779,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-14T14:45:58.206894+00:00",
+      "directionRefined": "+",
+      "summary": "BİM, pay geri alım programı başlattığını bildirdi. Geri alım miktarı ve tutarı açıklanmadı. Yönetim, piyasa koşullarına göre hareket edecek.",
+      "impact": 3,
+      "amounts": [],
+      "rationale": "Geri alım programı genelde hisseye destek sağlar, miktar belirtilmediği için etki sınırlı."
+    },
+    "1632858": {
+      "symbol": "AHGAZ",
+      "title": "Payların Geri Alınmasına İlişkin Bildirim",
+      "category": "Geri Alim",
+      "date": "13.07.2026 18:31:48",
+      "directionHint": "+",
+      "contentChars": 98625,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-14T14:46:04.635055+00:00",
+      "directionRefined": "+",
+      "summary": "AHGAZ, pay geri alım programı başlatmıştır. Şirket, piyasadan kendi hisselerini geri alacaktır. Tutar ve adet belirtilmemiştir.",
+      "impact": 3,
+      "amounts": [
+        "37,48 TL",
+        "37,56 TL",
+        "37,523 TL"
+      ],
+      "rationale": "Geri alım programı genellikle hisse fiyatını destekler, ancak miktar belirtilmediği için etki sınırlı."
     }
   }
 }
