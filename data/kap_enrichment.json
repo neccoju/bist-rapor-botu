@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-07-14T15:43:12.506626+00:00",
+  "generatedAt": "2026-07-15T14:46:11.613738+00:00",
   "source": "borsapy 0.10.2 get_news_content",
-  "count": 187,
+  "count": 190,
   "lastRun": {
-    "targets": 1,
-    "enriched": 1,
+    "targets": 3,
+    "enriched": 3,
     "errors": 0,
-    "elapsedSec": 4
+    "elapsedSec": 14
   },
   "items": {
     "1618795": {
@@ -4185,6 +4185,74 @@
         "400.000 TL"
       ],
       "rationale": "Geri alım programı genellikle hisse fiyatı için destekleyici ve olumlu algılanır."
+    },
+    "1633774": {
+      "symbol": "GLYHO",
+      "title": "Özel Durum Açıklaması (Genel)",
+      "category": "Ozel Durum (Genel)",
+      "date": "14.07.2026 18:41:29",
+      "directionHint": "?",
+      "contentChars": 64755,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-15T14:45:58.885299+00:00",
+      "directionRefined": "0",
+      "summary": "GLYHO, finansal tablolarına ilişkin genel açıklama yaptı; yeni bir gelişme veya rakam paylaşılmadı.",
+      "impact": 1,
+      "amounts": [],
+      "rationale": "Yatırımcı açısından yeni bilgi veya fiyatı etkileyen bir unsur yok."
+    },
+    "1633765": {
+      "symbol": "ENERY",
+      "title": "Payların Geri Alınmasına İlişkin Bildirim",
+      "category": "Geri Alim",
+      "date": "14.07.2026 18:31:06",
+      "directionHint": "+",
+      "contentChars": 118707,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-15T14:46:02.915964+00:00",
+      "directionRefined": "+",
+      "summary": "ENERY, pay geri alım programı başlatmıştır. Geri alımın detayları ve tutarı açıklanmamıştır. Yönetim ve GMY imzalı bildirim.",
+      "impact": 3,
+      "amounts": [
+        "9,81 TL",
+        "9,84 TL",
+        "9,828 TL"
+      ],
+      "rationale": "Geri alım programı genelde hisseye destek sağlar, detaylar açıklanmadığı için etki sınırlı."
+    },
+    "1633764": {
+      "symbol": "AHGAZ",
+      "title": "Payların Geri Alınmasına İlişkin Bildirim",
+      "category": "Geri Alim",
+      "date": "14.07.2026 18:30:36",
+      "directionHint": "+",
+      "contentChars": 99441,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-15T14:46:06.182502+00:00",
+      "directionRefined": "+",
+      "summary": "AHGAZ, pay geri alım programı başlatmıştır. Geri alımın detayları ve miktarı bildirimde belirtilmemiştir.",
+      "impact": 3,
+      "amounts": [
+        "37,02 TL",
+        "37,10 TL",
+        "37,06 TL"
+      ],
+      "rationale": "Geri alım programı genellikle hisseye destek ve yatırımcıya güven verir."
     }
   }
 }
