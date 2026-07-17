@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-07-16T15:46:26.727802+00:00",
+  "generatedAt": "2026-07-17T14:46:40.071753+00:00",
   "source": "borsapy 0.10.2 get_news_content",
-  "count": 191,
+  "count": 199,
   "lastRun": {
-    "targets": 1,
-    "enriched": 1,
+    "targets": 8,
+    "enriched": 8,
     "errors": 0,
-    "elapsedSec": 9
+    "elapsedSec": 39
   },
   "items": {
     "1618795": {
@@ -4283,6 +4283,188 @@
         "49.534.072,39 TL"
       ],
       "rationale": "Yüksek kurumsal not ve güçlü temettü yatırımcı güvenini artırır."
+    },
+    "1634304": {
+      "symbol": "YEOTK",
+      "title": "Yeni İş İlişkisi",
+      "category": "Ihale/Sozlesme",
+      "date": "17.07.2026 09:00:46",
+      "directionHint": "+",
+      "contentChars": 85768,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-17T14:46:02.721867+00:00",
+      "directionRefined": "?",
+      "summary": "YEOTK yeni bir iş ilişkisi açıkladı; tutar, taraf ve detay belirtilmemiş. Sözleşme/i̇hale kategorisinde.",
+      "impact": 2,
+      "amounts": [],
+      "rationale": "İş ilişkisi olumlu olabilir, ancak tutar ve taraf bilgisi yok; fiyat etkisi belirsiz."
+    },
+    "1634273": {
+      "symbol": "RGYAS",
+      "title": "Özel Durum Açıklaması (Genel)",
+      "category": "Ozel Durum (Genel)",
+      "date": "16.07.2026 19:06:56",
+      "directionHint": "?",
+      "contentChars": 63209,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-17T14:46:06.068176+00:00",
+      "directionRefined": "0",
+      "summary": "Şirket, finansal tablolarına ilişkin genel açıklama yapmış, ek önemli bilgi veya rakam paylaşılmamıştır.",
+      "impact": 1,
+      "amounts": [],
+      "rationale": "Yalnızca mevzuata uygunluk teyidi, yeni bilgi veya finansal veri yok."
+    },
+    "1634271": {
+      "symbol": "RGYAS",
+      "title": "Kar Payı Dağıtım İşlemlerine İlişkin Bildirim",
+      "category": "Temettu",
+      "date": "16.07.2026 19:06:20",
+      "directionHint": "+",
+      "contentChars": 76373,
+      "pdfChars": 3198,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f52dc40019f6b9e9f8905f5",
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f52dc40019f6b9e9f9105f6"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 3198,
+      "inputSnippet": " 1 331.000.000,00 2 66.200.000 Yoktur SPK'ya Göre Yasal Kayıtlara (YK) Göre 3 Dönem Karı 21.722.949.000 0 4 Vergiler (-) 5.416.587.000 0 5 Net Dönem Kârı ( = ) 16.306.362.000 0 6 Geçmiş Yıllar Zararları (-) 0 0 7 Genel Kanuni Yedek Akçe (-) 0 NET DAĞITILABİLİR DÖNEM KARI 0 ( = ) 0 9 Yıl İçinde Yapılan Bağışlar (+) 79.255.123 0 10 Bağışlar Eklenmiş Net Dağıtılabilir Dönem Karı 16.385.617.123 0 11 Ortaklara Birinci Kâr Payı 0,00 0 - Nakit 0,00 0 - Bedelsiz 0,00 0 - Toplam 0 12 İmtiyazlı Pay Sahipl",
+      "engine": "github",
+      "enrichedAt": "2026-07-17T14:46:14.034621+00:00",
+      "directionRefined": "+",
+      "summary": "RGYAS 2025 için toplam 2,4 milyar TL nakit temettü dağıtacak, A grubu paya %7,82, B grubu paya %6,65 oranında ödeme yapılacak.",
+      "impact": 4,
+      "amounts": [
+        "2,4 milyar TL",
+        "A grubu: 1,32 milyar TL",
+        "B grubu: 1,08 milyar TL",
+        "1 TL",
+        "16.306.362.000 TL",
+        "1.991.150.534,34 TL"
+      ],
+      "rationale": "Yüksek tutarda nakit temettü, yatırımcıya doğrudan değer yaratır."
+    },
+    "1634256": {
+      "symbol": "TRALT",
+      "title": "Özel Durum Açıklaması (Genel)",
+      "category": "Ozel Durum (Genel)",
+      "date": "16.07.2026 18:39:58",
+      "directionHint": "?",
+      "contentChars": 79740,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-17T14:46:19.621757+00:00",
+      "directionRefined": "0",
+      "summary": "Şirket, finansal tablolara ilişkin genel bir açıklama yapmış, yeni bir finansal veri veya gelişme bildirilmemiştir.",
+      "impact": 1,
+      "amounts": [
+        "4.000 USD",
+        "1.884.000.000 USD"
+      ],
+      "rationale": "Sadece rutin ve yasal zorunluluk gereği yapılan genel açıklama."
+    },
+    "1634248": {
+      "symbol": "AHGAZ",
+      "title": "Payların Geri Alınmasına İlişkin Bildirim",
+      "category": "Geri Alim",
+      "date": "16.07.2026 18:30:08",
+      "directionHint": "+",
+      "contentChars": 100271,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-17T14:46:26.029557+00:00",
+      "directionRefined": "+",
+      "summary": "AHGAZ, pay geri alım programı başlatmıştır. Şirket yönetimi ve muhasebe müdürü tarafından imzalanmıştır. Alım tutarı ve adet belirtilmemiştir.",
+      "impact": 3,
+      "amounts": [
+        "36,58 TL",
+        "36,70 TL",
+        "36,628 TL"
+      ],
+      "rationale": "Geri alım programı genellikle hisseye destek ve yatırımcı güveni sağlar; tutar belirtilmemiş."
+    },
+    "1634229": {
+      "symbol": "GLYHO",
+      "title": "Özel Durum Açıklaması (Genel)",
+      "category": "Ozel Durum (Genel)",
+      "date": "16.07.2026 18:22:26",
+      "directionHint": "?",
+      "contentChars": 62426,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-17T14:46:29.274043+00:00",
+      "directionRefined": "0",
+      "summary": "GLYHO, finansal tablolarına ilişkin genel açıklama yapmıştır; yeni bir gelişme veya rakamsal bilgi yoktur.",
+      "impact": 1,
+      "amounts": [],
+      "rationale": "Yatırımcı açısından yeni bilgi veya fiyatı etkileyen bir unsur bulunmamaktadır."
+    },
+    "1634199": {
+      "symbol": "TRALT",
+      "title": "Özel Durum Açıklaması (Genel)",
+      "category": "Ozel Durum (Genel)",
+      "date": "16.07.2026 18:15:47",
+      "directionHint": "?",
+      "contentChars": 61303,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-17T14:46:32.653063+00:00",
+      "directionRefined": "0",
+      "summary": "Şirket, finansal tablolara ilişkin genel açıklama yapmış, yeni bir finansal veri veya özel durum bildirilmemiştir.",
+      "impact": 1,
+      "amounts": [
+        "4.000 USD",
+        "1.884.000.000 USD"
+      ],
+      "rationale": "Sadece rutin, yasal zorunlu genel açıklama; fiyat üzerinde etkisi yoktur."
+    },
+    "1634175": {
+      "symbol": "TTKOM",
+      "title": "Özel Durum Açıklaması (Genel)",
+      "category": "Ozel Durum (Genel)",
+      "date": "16.07.2026 18:09:36",
+      "directionHint": "?",
+      "contentChars": 61813,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-17T14:46:36.483833+00:00",
+      "directionRefined": "0",
+      "summary": "TTKOM, finansal tablolara ilişkin genel açıklama yaptı; açıklama SPK düzenlemelerine uygun ve eksiksiz olduğunu belirtti, yeni finansal veri veya rakam yok.",
+      "impact": 1,
+      "amounts": [
+        "1 Milyar ABD Dolar"
+      ],
+      "rationale": "Yalnızca prosedürel ve genel açıklama, fiyatı etkileyen yeni bilgi yok."
     }
   }
 }
