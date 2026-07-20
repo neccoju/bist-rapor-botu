@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-07-17T15:37:06.106922+00:00",
+  "generatedAt": "2026-07-20T14:46:15.828160+00:00",
   "source": "borsapy 0.10.2 get_news_content",
-  "count": 201,
+  "count": 204,
   "lastRun": {
-    "targets": 2,
-    "enriched": 2,
+    "targets": 3,
+    "enriched": 3,
     "errors": 0,
-    "elapsedSec": 9
+    "elapsedSec": 17
   },
   "items": {
     "1618795": {
@@ -4505,6 +4505,84 @@
       "impact": 2,
       "amounts": [],
       "rationale": "Not ve detaylar paylaşılmadığı için fiyat etkisi nötr ve sınırlı olur."
+    },
+    "1634792": {
+      "symbol": "AKSA",
+      "title": "Kurumsal Yönetim İlkelerine Uyum Derecelendirmesi",
+      "category": "Kredi Notu",
+      "date": "20.07.2026 10:35:54",
+      "directionHint": "~",
+      "contentChars": 78960,
+      "pdfChars": 13504,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f52dc40019f7e73444a2edc"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 5333,
+      "inputSnippet": "rı basit bir Evet/Hayır yanıtıyla skorlanabildiği gibi, bazıları daha ayrıntılı açıklamaları gerektirir. Derecelendirme notları 1 (en zayıf) ilâ 10 (en güçlü) arasında verilir. En yüksek (10) dereceyi elde edebilmek için Şirketlerin SPK Kurumsal Yönetim İlkeleri’ne tam uyum göstermiş olması gerekir (notların daha ayrıntılı bir açıklaması için bu raporun son bölümüne bakınız). Toplam derecelendirme notunu belirlemede her bir ana bölüm için SPK Kurumsal Yönetim İlkeleri’ne paralel olarak aşağıdaki",
+      "engine": "github",
+      "enrichedAt": "2026-07-20T14:46:02.202483+00:00",
+      "directionRefined": "+",
+      "summary": "AKSA, SPK Kurumsal Yönetim İlkelerine uyum derecelendirmesi ve 2,25 milyar TL temettü dağıtımı açıklamıştır.",
+      "impact": 4,
+      "amounts": [
+        "2.253.300.000 TL",
+        "3.885.000.000 TL",
+        "4.016.418.000 TL",
+        "990.681.447,81 TL",
+        "194.250.000 TL",
+        "49.534.072,39 TL"
+      ],
+      "rationale": "Kurumsal yönetim uyumu ve yüksek temettü yatırımcı için olumlu ve güven artırıcıdır."
+    },
+    "1634786": {
+      "symbol": "LIDFA",
+      "title": "Kurumsal Yönetim İlkelerine Uyum Derecelendirmesi",
+      "category": "Kredi Notu",
+      "date": "20.07.2026 10:10:44",
+      "directionHint": "~",
+      "contentChars": 78949,
+      "pdfChars": 14773,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f52dc40019f7e5bcb882cd1"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 6805,
+      "inputSnippet": "rı basit bir Evet/Hayır yanıtıyla skorlanabildiği gibi, bazıları daha ayrıntılı açıklamaları gerektirir. Derecelendirme notları 1 (en zayıf) ilâ 10 (en güçlü) arasında verilir. En yüksek (10) dereceyi elde edebilmek için Şirketlerin SPK Kurumsal Yönetim İlkeleri’ne tam uyum göstermiş olması gerekir (notların daha ayrıntılı bir açıklaması için bu raporun son bölümüne bakınız). Toplam derecelendirme notunu belirlemede her bir ana bölüm için SPK Kurumsal Yönetim İlkeleri’ne paralel olarak aşağıdaki",
+      "engine": "github",
+      "enrichedAt": "2026-07-20T14:46:08.892919+00:00",
+      "directionRefined": "+",
+      "summary": "Lider Faktoring 2025 için 920,95 milyon TL dağıtılabilir kar ve 170,25 milyon TL brüt temettü açıklamıştır; kurumsal yönetim uyumu yüksek.",
+      "impact": 4,
+      "amounts": [
+        "920,95 milyon TL",
+        "170,25 milyon TL",
+        "969.397.000 TL",
+        "48.469.850 TL",
+        "27.800 TL",
+        "920.954.950 TL"
+      ],
+      "rationale": "Yüksek temettü ve kurumsal yönetim uyumu yatırımcı için olumlu sinyal."
+    },
+    "1634769": {
+      "symbol": "YEOTK",
+      "title": "Yeni İş İlişkisi",
+      "category": "Ihale/Sozlesme",
+      "date": "20.07.2026 09:28:42",
+      "directionHint": "+",
+      "contentChars": 83501,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-20T14:46:12.132982+00:00",
+      "directionRefined": "?",
+      "summary": "YEOTK yeni bir iş ilişkisi kurduğunu açıkladı; tutar, taraf ve konu detayları bildirimde yer almıyor.",
+      "impact": 2,
+      "amounts": [],
+      "rationale": "İş ilişkisi olumlu olabilir ancak detaylar verilmediği için fiyat etkisi belirsiz."
     }
   }
 }
