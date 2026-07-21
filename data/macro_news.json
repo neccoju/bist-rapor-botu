@@ -1,9 +1,79 @@
 {
- "generatedAt": "2026-07-20T16:13:52.710916+00:00",
+ "generatedAt": "2026-07-21T16:06:15.133668+00:00",
  "source": "Google News RSS (TR) + kural tabanli siniflandirici",
  "note": "Baslik-kurali siniflandirmasi kabadir; rejim motoru bu olaylari dusuk guvenle ve sinirli sayida kullanir.",
- "count": 6,
+ "count": 15,
  "items": [
+  {
+   "id": "9c2353909c35",
+   "title": "TCMB Temmuz 2026 Faiz Kararı Ne Zaman Açıklanacak? Merkez Bankası Faiz İndirimi Bekleniyor mu? - Milliyet",
+   "source": "Milliyet",
+   "date": "2026-07-21T08:51:29+00:00",
+   "engine": "rule",
+   "eventType": "interest_rate",
+   "direction": 1,
+   "confidence": 0.35
+  },
+  {
+   "id": "9ed4cba0e280",
+   "title": "Merkez Bankası faiz indirimi yapacak mı? PPK için kritik ipucu! İşte ekonomistlerin ortak beklentisi - Sabah",
+   "source": "Sabah",
+   "date": "2026-07-21T07:27:00+00:00",
+   "engine": "rule",
+   "eventType": "interest_rate",
+   "direction": 1,
+   "confidence": 0.25
+  },
+  {
+   "id": "d18873250e08",
+   "title": "AKARYAKITTA SON DURUM 21 TEMMUZ | Tabelada fiyat değişti: Benzin, motorin ve LPG ne kadar oldu? - Yeni Asır",
+   "source": "Yeni Asır",
+   "date": "2026-07-21T05:44:36+00:00",
+   "engine": "llm",
+   "eventType": "commodity_oil",
+   "direction": -1,
+   "confidence": 0.4
+  },
+  {
+   "id": "2c29bc02bd5b",
+   "title": "Motorine zam: Akaryakıt fiyatları yeniden yükseldi - Kamudan Haber",
+   "source": "Kamudan Haber",
+   "date": "2026-07-21T05:41:00+00:00",
+   "engine": "llm",
+   "eventType": "commodity_oil",
+   "direction": -1,
+   "confidence": 0.4
+  },
+  {
+   "id": "812ac6df1264",
+   "title": "Araç sahipleri dikkat! Akaryakıt fiyatları bir kez daha güncellendi: İşte benzin ve motorin fiyatları - Sabah",
+   "source": "Sabah",
+   "date": "2026-07-21T05:32:16+00:00",
+   "engine": "llm",
+   "eventType": "commodity_oil",
+   "direction": -1,
+   "confidence": 0.4
+  },
+  {
+   "id": "30b75e5a1c24",
+   "title": "Motorine zam geldi: Güncel akaryakıt fiyatları - Diken",
+   "source": "Diken",
+   "date": "2026-07-21T05:07:19+00:00",
+   "engine": "llm",
+   "eventType": "commodity_oil",
+   "direction": -1,
+   "confidence": 0.4
+  },
+  {
+   "id": "adaa3061187c",
+   "title": "Motorine zam geldi.. 21 Temmuz akaryakıt fiyatları - Doğruhaber",
+   "source": "Doğruhaber",
+   "date": "2026-07-21T04:53:00+00:00",
+   "engine": "llm",
+   "eventType": "commodity_oil",
+   "direction": -1,
+   "confidence": 0.4
+  },
   {
    "id": "be3f742289de",
    "title": "Haziran'dan bu yana ilk kez bu seviyede! Brent petrol 90 doları aştı - Kamudan Haber",
@@ -11,6 +81,16 @@
    "date": "2026-07-20T14:33:00+00:00",
    "engine": "llm",
    "eventType": "commodity_oil",
+   "direction": -1,
+   "confidence": 0.4
+  },
+  {
+   "id": "b4350ed2f083",
+   "title": "Merkez Bankası faiz kararı ne zaman açıklanacak? Faizler düşecek mi? - Dünya Gazetesi",
+   "source": "Dünya Gazetesi",
+   "date": "2026-07-20T08:16:00+00:00",
+   "engine": "llm",
+   "eventType": "interest_rate",
    "direction": -1,
    "confidence": 0.4
   },
@@ -53,6 +133,16 @@
    "eventType": "commodity_oil",
    "direction": -1,
    "confidence": 0.35
+  },
+  {
+   "id": "4209c2a182e9",
+   "title": "Benzin ve motorine zam var mı? İşte 20 Temmuz güncel akaryakıt fiyatları... - Sabah",
+   "source": "Sabah",
+   "date": "2026-07-20T05:05:06+00:00",
+   "engine": "llm",
+   "eventType": "commodity_oil",
+   "direction": -1,
+   "confidence": 0.4
   },
   {
    "id": "2422ef8f5246",
