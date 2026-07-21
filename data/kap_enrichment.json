@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-07-21T14:46:14.055726+00:00",
+  "generatedAt": "2026-07-21T15:52:33.788714+00:00",
   "source": "borsapy 0.10.2 get_news_content",
-  "count": 208,
+  "count": 215,
   "lastRun": {
-    "targets": 3,
-    "enriched": 3,
+    "targets": 7,
+    "enriched": 7,
     "errors": 0,
-    "elapsedSec": 15
+    "elapsedSec": 39
   },
   "items": {
     "1618795": {
@@ -4678,6 +4678,182 @@
       "impact": 1,
       "amounts": [],
       "rationale": "Yalnızca rutin, mevzuata uygunluk beyanı; fiyatı etkileyen yeni bilgi yok."
+    },
+    "1635435": {
+      "symbol": "OZSUB",
+      "title": "Özel Durum Açıklaması (Genel)",
+      "category": "Ozel Durum (Genel)",
+      "date": "21.07.2026 17:00:08",
+      "directionHint": "?",
+      "contentChars": 59965,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-21T15:51:55.916766+00:00",
+      "directionRefined": "0",
+      "summary": "Şirket, finansal tablolarına ilişkin genel açıklama yapmış; SPK düzenlemelerine uygun ve doğru bilgi verdiğini beyan ediyor.",
+      "impact": 1,
+      "amounts": [
+        "47.762.518,13 TL"
+      ],
+      "rationale": "Sadece rutin uyum ve doğruluk beyanı; fiyat üzerinde etkisi yok."
+    },
+    "1635164": {
+      "symbol": "TURSG",
+      "title": "Sorumluluk Beyanı (Konsolide)",
+      "category": "Bilanco/Finansal",
+      "date": "20.07.2026 18:41:54",
+      "directionHint": "0",
+      "contentChars": 80520,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-21T15:52:00.101085+00:00",
+      "directionRefined": "0",
+      "summary": "TURSG, 2026 yılı 6 aylık konsolide finansal tabloları için sorumluluk beyanı yayımladı; bilgiler SPK düzenlemelerine uygun ve tam.",
+      "impact": 1,
+      "amounts": [],
+      "rationale": "Standart sorumluluk beyanı; fiyat üzerinde etkisi yoktur."
+    },
+    "1635163": {
+      "symbol": "TURSG",
+      "title": "Faaliyet Raporu (Konsolide)",
+      "category": "Bilanco/Finansal",
+      "date": "20.07.2026 18:41:45",
+      "directionHint": "0",
+      "contentChars": 73034,
+      "pdfChars": 13651,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f52dddd019f80121b9f57da"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 9000,
+      "inputSnippet": "....... 5 2026 YILI 1.YARIYIL DÖNEMİ SİGORTA SEKTÖRÜNDE YAŞANILAN GELİŞMELER ... 8 TÜRKİYE SİGORTA’NIN BAŞLICA FİNANSAL GÖSTERGELERİ ......................... 9 2026 YILI 1.YARIYIL ÖZET DEĞERLENDİRMESİ ........................................ 9 Konsolide Faaliyet Raporu 2026 1.Yarıyıl 3/13 KURUMSAL PROFİL Türkiye’nin en büyük ve lider sigorta şirketi olan Türkiye Sigorta, T.C. Hazine ve Maliye Bakanlığı’nın Yeni Ekonomi Programı çerçevesinde, Türkiye ekonomisinin tasarruf bazının artırılması ve ",
+      "engine": "github",
+      "enrichedAt": "2026-07-21T15:52:04.764343+00:00",
+      "directionRefined": "+",
+      "summary": "2026 1. yarıda 94,2 milyar TL prim, 13,5 milyar TL net kâr, %15 pazar payı; sermaye 20 milyar TL'ye çıkarıldı.",
+      "impact": 4,
+      "amounts": [
+        "94,2 milyar TL",
+        "13,5 milyar TL",
+        "20 milyar TL",
+        "191,1 milyar TL",
+        "10 milyar TL"
+      ],
+      "rationale": "Yüksek kârlılık, pazar liderliği ve sermaye artışı fiyat için olumlu."
+    },
+    "1635162": {
+      "symbol": "TURSG",
+      "title": "Finansal Rapor",
+      "category": "Bilanco/Finansal",
+      "date": "20.07.2026 18:41:31",
+      "directionHint": "0",
+      "contentChars": 1694365,
+      "pdfChars": 16384,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f52dc40019f8025b6ee5fc4"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 9000,
+      "inputSnippet": "9.731 29.834.905.098 2- Vadeye Kadar Elde Tutulacak Finansal Varlıklar 4.2 ve 11 25.985.402.625 24.596.258.610 3- Alım Satım Amaçlı Finansal Varlıklar 4.2 ve 11 35.066.694.955 32.075.900.647 4- Krediler - - 5- Krediler Karşılığı (-) - - 6- Riski Hayat Poliçesi Sahiplerine Ait Finansal Yatırımlar - - 7- Şirket Hissesi - - 8- Finansal Varlıklar Değer Düşüklüğü Karşılığı (-) - - C- Esas Faaliyetlerden Alacaklar 4.2 ve 12 51.943.757.357 31.481.788.521 1- Sigortacılık Faaliyetlerinden Alacaklar 12 48",
+      "engine": "github",
+      "enrichedAt": "2026-07-21T15:52:10.992193+00:00",
+      "directionRefined": "+",
+      "summary": "TURSG'nin 2026/06 bilançosunda varlıklar 191,1 milyar TL'ye yükseldi, teknik karşılıklar 73,3 milyar TL, alacaklar ve finansal varlıklar arttı.",
+      "impact": 4,
+      "amounts": [
+        "191,1 milyar TL",
+        "73,3 milyar TL",
+        "178,2 milyar TL",
+        "35,1 milyar TL",
+        "25,9 milyar TL",
+        "36.395.417 7.800.283.195 0 0 2.450.519.971 0 15.156.030.898 13.495.830.133 173.936.406 59.040.205.186 0 59.040.205.186 $"
+      ],
+      "rationale": "Varlık ve alacaklarda güçlü artış, finansal pozisyonun güçlenmesi fiyat için olumlu."
+    },
+    "1635161": {
+      "symbol": "TURSG",
+      "title": "Sorumluluk Beyanı (Konsolide Olmayan)",
+      "category": "Bilanco/Finansal",
+      "date": "20.07.2026 18:41:19",
+      "directionHint": "0",
+      "contentChars": 67653,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-21T15:52:15.724259+00:00",
+      "directionRefined": "0",
+      "summary": "TURSG, 2026 6 aylık konsolide olmayan finansal tablolarını KAP'a sunmuş, bilgiler SPK düzenlemelerine uygun ve tam olarak beyan edilmiştir.",
+      "impact": 1,
+      "amounts": [],
+      "rationale": "Sadece sorumluluk beyanı; finansal tabloya dair rakam veya yeni bilgi yok."
+    },
+    "1635160": {
+      "symbol": "TURSG",
+      "title": "Faaliyet Raporu (Konsolide Olmayan)",
+      "category": "Bilanco/Finansal",
+      "date": "20.07.2026 18:41:09",
+      "directionHint": "0",
+      "contentChars": 72740,
+      "pdfChars": 13769,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f52dc40019f8012c8ae5c66"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 9000,
+      "inputSnippet": "NETİM YAPISI VE ÇALIŞAN PROFİLİ ................................................ 5 2026 YILI 1.YARIYIL DÖNEMİ SİGORTA SEKTÖRÜNDE YAŞANILAN GELİŞMELER ... 8 TÜRKİYE SİGORTA’NIN BAŞLICA FİNANSAL GÖSTERGELERİ ......................... 9 2026 YILI 1.YARIYIL ÖZET DEĞERLENDİRME .......................................... 9 Konsolide Olmayan Faaliyet Raporu 2026 1.Yarıyıl 3 /13 KURUMSAL PROFİL Türkiye’nin en büyük ve lider sigorta şirketi olan Türkiye Sigorta, T.C. Hazine ve Maliye Bakanlığı’nın Yeni Ek",
+      "engine": "github",
+      "enrichedAt": "2026-07-21T15:52:21.821924+00:00",
+      "directionRefined": "+",
+      "summary": "2026 ilk yarıda 94,2 milyar TL prim üretimi, %15 pazar payı, 13,5 milyar TL net kâr ve 193,3 milyar TL aktif büyüklük; sermaye 20 milyar TL'ye çıkarıldı.",
+      "impact": 4,
+      "amounts": [
+        "94,2 milyar TL",
+        "13,5 milyar TL",
+        "193,3 milyar TL",
+        "20 milyar TL",
+        "10 milyar TL"
+      ],
+      "rationale": "Güçlü finansal sonuçlar ve sermaye artışı, büyüme ve kârlılık beklentisini destekliyor."
+    },
+    "1635159": {
+      "symbol": "TURSG",
+      "title": "Finansal Rapor",
+      "category": "Bilanco/Finansal",
+      "date": "20.07.2026 18:40:57",
+      "directionHint": "0",
+      "contentChars": 1696286,
+      "pdfChars": 16357,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f52dc40019f801b8bbb5e24"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 9000,
+      "inputSnippet": "ar 4.2 ve 11 37.121.359.731 29.834.905.098 2- Vadeye Kadar Elde Tutulacak Finansal Varlıklar 4.2 ve 11 25.985.402.625 24.596.258.610 3- Alım Satım Amaçlı Finansal Varlıklar 4.2 ve 11 35.066.694.955 32.075.900.647 4- Krediler - - 5- Krediler Karşılığı (-) - - 6- Riski Hayat Poliçesi Sahiplerine Ait Finansal Yatırımlar - - 7- Şirket Hissesi - - 8- Finansal Varlıklar Değer Düşüklüğü Karşılığı (-) - - C- Esas Faaliyetlerden Alacaklar 4.2 ve 12 51.943.757.357 31.481.788.521 1- Sigortacılık Faaliyetle",
+      "engine": "github",
+      "enrichedAt": "2026-07-21T15:52:29.169403+00:00",
+      "directionRefined": "+",
+      "summary": "TURSG'nin 2026/06 finansal varlıkları ve alacakları güçlü artış gösterdi, yükümlülüklerde de yükseliş var.",
+      "impact": 4,
+      "amounts": [
+        "193,33 milyar TL varlık",
+        "178,17 milyar TL cari varlık",
+        "73,31 milyar TL teknik karşılık",
+        "15,75 milyar TL finansal borç",
+        "23,38 milyar TL esas borç",
+        "36.395.417 10.009.755.380 0 0 2.450.519.971 0 15.156.030.898 13.450.691.418 25.474.205 61.056.076.455 0 61.056.076.455 $"
+      ],
+      "rationale": "Varlık ve alacaklardaki artış finansal gücü gösteriyor, yükümlülükler kontrollü, bilanço olumlu."
     }
   }
 }
