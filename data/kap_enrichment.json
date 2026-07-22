@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-07-21T15:52:33.788714+00:00",
+  "generatedAt": "2026-07-22T14:46:15.640089+00:00",
   "source": "borsapy 0.10.2 get_news_content",
-  "count": 215,
+  "count": 217,
   "lastRun": {
-    "targets": 7,
-    "enriched": 7,
+    "targets": 2,
+    "enriched": 2,
     "errors": 0,
-    "elapsedSec": 39
+    "elapsedSec": 20
   },
   "items": {
     "1618795": {
@@ -4854,6 +4854,52 @@
         "36.395.417 10.009.755.380 0 0 2.450.519.971 0 15.156.030.898 13.450.691.418 25.474.205 61.056.076.455 0 61.056.076.455 $"
       ],
       "rationale": "Varlık ve alacaklardaki artış finansal gücü gösteriyor, yükümlülükler kontrollü, bilanço olumlu."
+    },
+    "1635533": {
+      "symbol": "BIMAS",
+      "title": "Payların Geri Alınmasına İlişkin Bildirim",
+      "category": "Geri Alim",
+      "date": "21.07.2026 20:32:50",
+      "directionHint": "+",
+      "contentChars": 52397,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-22T14:45:57.088592+00:00",
+      "directionRefined": "+",
+      "summary": "BİM, pay geri alım programı başlattığını bildirdi. Geri alım miktarı ve fiyat aralığı açıklanmadı.",
+      "impact": 3,
+      "amounts": [],
+      "rationale": "Geri alım programı genelde hisseye destek ve olumlu algı yaratır."
+    },
+    "1635523": {
+      "symbol": "RGYAS",
+      "title": "Birleşme İşlemlerine İlişkin Bildirim",
+      "category": "Birlesme/Devralma",
+      "date": "21.07.2026 18:57:47",
+      "directionHint": "+",
+      "contentChars": 62250,
+      "pdfChars": 1585,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f52dc3f019f85612d1f5e40",
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f52dc3f019f85612d8b5e41"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 1585,
+      "inputSnippet": " 01 07 Doğrulama Kodu: e229d3fb-eeac-4e90-8a8a-21177a3ced9b https://spk.gov.tr/dokuman-dogrulama Doğrulama Kodu: e229d3fb-eeac-4e90-8a8a-21177a3ced9b https://spk.gov.tr/dokuman-dogrulama Doğrulama Kodu: e229d3fb-eeac-4e90-8a8a-21177a3ced9b https://spk.gov.tr/dokuman-dogrulama 3. DuyURU METNiNİN soRuMLULUĞuxu yü«ırxnx rcişirrn Kanuni yetki ve sorumluluklarımz dahilinde ve görevimiz çerçevesinde bu duyuru metni ve ek|erinde yer alan sorumlu olduğumuz krsımlarda bulunan bilgilerin ve verilerin gerç",
+      "engine": "github",
+      "enrichedAt": "2026-07-22T14:46:12.018221+00:00",
+      "directionRefined": "+",
+      "summary": "Rönesans Gayrimenkul Yatırım A.Ş. ile Altunizade Gayrimenkul Yatırım İnşaat Turizm Sanayi ve Ticaret A.Ş. arasında birleşme işlemi bildirildi.",
+      "impact": 4,
+      "amounts": [
+        "331.000.000 TL",
+        "0 TL"
+      ],
+      "rationale": "Birleşme, ölçek ve sinerji avantajı ile şirket değerini artırabilir."
     }
   }
 }
