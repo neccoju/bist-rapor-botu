@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-07-24T14:46:15.177640+00:00",
+  "generatedAt": "2026-07-24T15:42:55.303267+00:00",
   "source": "borsapy 0.10.2 get_news_content",
-  "count": 225,
+  "count": 226,
   "lastRun": {
-    "targets": 5,
-    "enriched": 5,
+    "targets": 1,
+    "enriched": 1,
     "errors": 0,
-    "elapsedSec": 21
+    "elapsedSec": 7
   },
   "items": {
     "1618795": {
@@ -5074,6 +5074,35 @@
         "12.000.000 ABD Dolar"
       ],
       "rationale": "Yalnızca rutin ve yasal zorunlu genel açıklama, fiyat üzerinde etkisi yok."
+    },
+    "1636220": {
+      "symbol": "RALYH",
+      "title": "Sermaye Artırımı - Azaltımı İşlemlerine İlişkin Bildirim",
+      "category": "Sermaye Artirimi",
+      "date": "23.07.2026 18:16:20",
+      "directionHint": "~",
+      "contentChars": 61547,
+      "pdfChars": 6700,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f52dc40019f8f51216a4039"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 6700,
+      "inputSnippet": " RAL YATIRIM HOLDİNG ANONİM ŞİRKETİ ESAS SÖZLEŞME TADİL TASARISI Eski Hali Yeni Hali ŞİRKETİN SERMAYESİ MADDE 6 Şirket Sermaye Piyasası Kanunu hükümlerine göre kayıtlı sermaye sistemini kabul etmiş ve Sermaye Piyasası Kurulu’nun 11/8/94 tarih ve 805 sayılı izni ile bu sisteme geçmiştir. Şirketin kayıtlı sermaye 2.500.000.000TL, Sermaye Piyasası Kurulunca verilen kayıtlı sermaye tavan izni, 2024-2028 yılları (5 yıl) için geçerlidir. 2028 yılı sonunda izin verilen kayıtlı sermaye tavanına ulaşılma",
+      "engine": "github",
+      "enrichedAt": "2026-07-24T15:42:52.307665+00:00",
+      "directionRefined": "+",
+      "summary": "RALYH çıkarılmış sermayesini 333 milyon TL'den 826 milyon TL'ye artırıyor; pay dağılımı ve imtiyazlar güncellendi.",
+      "impact": 4,
+      "amounts": [
+        "826 milyon TL",
+        "333 milyon TL",
+        "2,5 milyar TL kayıtlı sermaye tavanı",
+        "2.500.000.000 TL",
+        "1 TL",
+        "333.000.000 TL"
+      ],
+      "rationale": "Sermaye artışı büyüme ve likidite için olumlu; pay sahipliği ve imtiyazlar netleşti."
     }
   }
 }
