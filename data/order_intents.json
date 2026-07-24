@@ -1,9 +1,23 @@
 ﻿{
     "Version":  1,
-    "UpdatedAt":  "2026-07-23T18:16:01.6989914Z",
+    "UpdatedAt":  "2026-07-24T18:15:59.9936098Z",
     "Mode":  "PaperOnly",
     "Notes":  "Gerçek emir değildir; raporun ürettiği teorik işlem niyetlerinin denetim kaydıdır.",
     "Intents":  [
-
+                    {
+                        "Id":  "InstantEntry:InstantEntry:25:TRMET:2026-07-24T18:15:59.9936098Z",
+                        "CreatedAt":  "2026-07-24T18:15:59.9936098Z",
+                        "Source":  "InstantEntry",
+                        "PortfolioId":  "InstantEntry",
+                        "PortfolioName":  "Anlık Fırsat Portföyü",
+                        "Side":  "Buy",
+                        "Symbol":  "TRMET",
+                        "Company":  "TR Anadolu Metal Madencilik Isletmeleri Anonim Sirketi",
+                        "Price":  136.1,
+                        "Quantity":  36.737693,
+                        "AmountTL":  5000,
+                        "Note":  "Günlük anlık fırsat bütçesiyle alındı. Sıkı anlık alış filtresi geçti: skor 85+, MACD yeni sıfır kesişimi veya pozitif ivme + 52H %20-50 bandı. Haftalık MACD histogramı son 8 haftada 7/7 kez, son 7 hafta üst üste iyileşti; son 0.82, önceki -0.10. Histogram negatiften pozitife bu hafta geçti; erken dönüş sinyali en güçlü teknik gerekçe. Backtestte sıfır üstüne yeni dönüş yüksek kazanma oranı verdi; skorda teyit olarak öne alındı. Temel filtre geçti: bilanço 96.1, kalite 62.5, değer 71.2; son 4 çeyrek kârlı. RSI 66.0; momentum var ama kısa vadeli yorulma riski izlenmeli. 52 haftalık bandın üst yarısında: konum 66.9%; güç var ama dip fırsatı değil. Sektör rotasyonu Nötr; BIST100e göre ortalama fark 2.6 puan. FD/FAVÖK 6.38; ucuz/makul değerleme filtresinde. Göreli hacim 2.10x; fiyat hareketi tamamen hacimsiz değil.",
+                        "Mode":  "PaperOnly"
+                    }
                 ]
 }
