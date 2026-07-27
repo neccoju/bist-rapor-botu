@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-07-24T15:42:55.303267+00:00",
+  "generatedAt": "2026-07-27T14:46:06.258912+00:00",
   "source": "borsapy 0.10.2 get_news_content",
-  "count": 226,
+  "count": 228,
   "lastRun": {
-    "targets": 1,
-    "enriched": 1,
+    "targets": 2,
+    "enriched": 2,
     "errors": 0,
-    "elapsedSec": 7
+    "elapsedSec": 11
   },
   "items": {
     "1618795": {
@@ -5103,6 +5103,49 @@
         "333.000.000 TL"
       ],
       "rationale": "Sermaye artışı büyüme ve likidite için olumlu; pay sahipliği ve imtiyazlar netleşti."
+    },
+    "1636775": {
+      "symbol": "YEOTK",
+      "title": "Yeni İş İlişkisi",
+      "category": "Ihale/Sozlesme",
+      "date": "27.07.2026 09:19:41",
+      "directionHint": "+",
+      "contentChars": 79580,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-27T14:45:56.691690+00:00",
+      "directionRefined": "?",
+      "summary": "YEOTK yeni bir iş ilişkisi kurduğunu açıkladı; tutar, taraf ve detay belirtilmemiştir.",
+      "impact": 2,
+      "amounts": [],
+      "rationale": "İş ilişkisi olumlu; ancak detay ve tutar yok, fiyat etkisi belirsiz."
+    },
+    "1636767": {
+      "symbol": "ARDYZ",
+      "title": "Yeni İş İlişkisi",
+      "category": "Ihale/Sozlesme",
+      "date": "27.07.2026 09:13:29",
+      "directionHint": "+",
+      "contentChars": 78544,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-27T14:45:59.885713+00:00",
+      "directionRefined": "?",
+      "summary": "ARDYZ yeni bir iş ilişkisi kurduğunu açıkladı; tutar, taraf ve detay belirtilmemiştir.",
+      "impact": 2,
+      "amounts": [
+        "993.600 USD",
+        "46.947.302 TL"
+      ],
+      "rationale": "İş ilişkisi olumlu olabilir ancak detay ve finansal büyüklük yok."
     }
   }
 }
