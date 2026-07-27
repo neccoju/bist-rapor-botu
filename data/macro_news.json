@@ -1,98 +1,88 @@
 {
- "generatedAt": "2026-07-23T16:13:19.107780+00:00",
+ "generatedAt": "2026-07-27T16:48:56.212314+00:00",
  "source": "Google News RSS (TR) + kural tabanli siniflandirici",
  "note": "Baslik-kurali siniflandirmasi kabadir; rejim motoru bu olaylari dusuk guvenle ve sinirli sayida kullanir.",
- "count": 9,
+ "count": 8,
  "items": [
   {
-   "id": "c52e5000639c",
-   "title": "Brent petrol fiyatları, 26 Mayıs'tan bu yana ilk kez varil başına 100 doları aştı. - Vietnam.vn",
-   "source": "Vietnam.vn",
-   "date": "2026-07-23T14:29:23+00:00",
-   "engine": "llm",
+   "id": "8002a5a18e72",
+   "title": "Petrol fiyatları ABD ile İran arasındaki diplomatik temasların etkisiyle düştü - NTV Haber",
+   "source": "NTV Haber",
+   "date": "2026-07-27T11:09:57+00:00",
+   "engine": "rule",
    "eventType": "commodity_oil",
-   "direction": -1,
-   "confidence": 0.4
+   "direction": 1,
+   "confidence": 0.35
   },
   {
-   "id": "1a63828d6ada",
-   "title": "Brent petrol 100 doların üzerine çıktı - İlke Haber Ajansı",
+   "id": "8542cba4dfa9",
+   "title": "Brent petrolün varil fiyatı 86,61 dolara geriledi - İlke Haber Ajansı",
    "source": "İlke Haber Ajansı",
-   "date": "2026-07-23T13:46:00+00:00",
+   "date": "2026-07-27T07:02:42+00:00",
    "engine": "rule",
-   "eventType": "fx_pressure",
-   "direction": -1,
+   "eventType": "commodity_oil",
+   "direction": 1,
    "confidence": 0.35
   },
   {
-   "id": "c3b2a48cef02",
-   "title": "Brent petrolün varil fiyatı 100 doları aştı - Uzmanpara",
-   "source": "Uzmanpara",
-   "date": "2026-07-23T13:34:40+00:00",
+   "id": "441fc0ba1261",
+   "title": "Brent Petrol Fiyatları Düşüyor - SonDakika",
+   "source": "SonDakika",
+   "date": "2026-07-27T06:59:51+00:00",
    "engine": "llm",
    "eventType": "commodity_oil",
    "direction": -1,
    "confidence": 0.4
   },
   {
-   "id": "37e820295891",
-   "title": "Kızıldeniz endişesi: Brent petrol yeniden 100 dolar - Diken",
+   "id": "4b78d369f555",
+   "title": "Motorine indirim geliyor: Güncel akaryakıt fiyatları - Diken",
    "source": "Diken",
-   "date": "2026-07-23T13:16:56+00:00",
+   "date": "2026-07-27T06:52:34+00:00",
+   "engine": "llm",
+   "eventType": "commodity_oil",
+   "direction": 1,
+   "confidence": 0.4
+  },
+  {
+   "id": "37d36c13d97b",
+   "title": "Petrol fiyatlarında sert düşüş - Gazete Oksijen",
+   "source": "Gazete Oksijen",
+   "date": "2026-07-27T05:58:00+00:00",
    "engine": "llm",
    "eventType": "commodity_oil",
    "direction": -1,
    "confidence": 0.4
   },
   {
-   "id": "7e0a65d4433c",
-   "title": "Benzine zam geliyor: Güncel akaryakıt fiyatları - Diken",
-   "source": "Diken",
-   "date": "2026-07-22T07:44:49+00:00",
-   "engine": "llm",
+   "id": "05731f7bf93f",
+   "title": "Petrol fiyatları sert düştü: Ateşkes umuduyla Brent petrol yüzde 5 geriledi - Kibris Gerçek",
+   "source": "Kibris Gerçek",
+   "date": "2026-07-27T05:37:00+00:00",
+   "engine": "rule",
    "eventType": "commodity_oil",
-   "direction": -1,
-   "confidence": 0.4
+   "direction": 1,
+   "confidence": 0.35
   },
   {
-   "id": "815a69423deb",
-   "title": "Petrolde Hürmüz ve Babülmendep alarmı! Fiyatlar sert yükseldi - Bigpara",
+   "id": "19985e08dd7a",
+   "title": "Petrol fiyatları: Brent petrol 90 dolar sınırına geriledi - Kanal 3 Tv",
+   "source": "Kanal 3 Tv",
+   "date": "2026-07-27T05:15:01+00:00",
+   "engine": "rule",
+   "eventType": "commodity_oil",
+   "direction": 1,
+   "confidence": 0.35
+  },
+  {
+   "id": "95615d132df9",
+   "title": "Orta Doğu'da 'ateşkes' molası: Petrol fiyatları sert düştü - Bigpara",
    "source": "Bigpara",
-   "date": "2026-07-22T06:57:00+00:00",
+   "date": "2026-07-27T04:41:00+00:00",
    "engine": "rule",
    "eventType": "commodity_oil",
-   "direction": -1,
+   "direction": 1,
    "confidence": 0.35
-  },
-  {
-   "id": "0d4c8a777392",
-   "title": "Petrol fiyatları arz endişesiyle yükselişini sürdürüyor - TRT Haber",
-   "source": "TRT Haber",
-   "date": "2026-07-22T06:56:00+00:00",
-   "engine": "llm",
-   "eventType": "commodity_oil",
-   "direction": -1,
-   "confidence": 0.4
-  },
-  {
-   "id": "259fe30c7cdc",
-   "title": "Fiyatlar pompaya yansıdı: İşte güncel akaryakıt fiyatları - Haber 7",
-   "source": "Haber 7",
-   "date": "2026-07-22T06:51:00+00:00",
-   "engine": "llm",
-   "eventType": "commodity_oil",
-   "direction": -1,
-   "confidence": 0.4
-  },
-  {
-   "id": "e4c3845d8077",
-   "title": "AKARYAKIT FİYATLARI 22 TEMMUZ | Benzin, motorin ve LPG'nin litre fiyatı ne kadar? İstanbul, İzmir, Ankara akaryakıt fiyatları... - Yeni Asır",
-   "source": "Yeni Asır",
-   "date": "2026-07-22T05:33:32+00:00",
-   "engine": "llm",
-   "eventType": "commodity_oil",
-   "direction": -1,
-   "confidence": 0.4
   }
  ]
 }
