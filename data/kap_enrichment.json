@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-07-27T16:33:31.259551+00:00",
+  "generatedAt": "2026-07-28T14:46:14.269330+00:00",
   "source": "borsapy 0.10.2 get_news_content",
-  "count": 228,
+  "count": 230,
   "lastRun": {
-    "targets": 0,
-    "enriched": 0,
+    "targets": 2,
+    "enriched": 2,
     "errors": 0,
-    "elapsedSec": 0
+    "elapsedSec": 11
   },
   "items": {
     "1618795": {
@@ -5146,6 +5146,49 @@
         "46.947.302 TL"
       ],
       "rationale": "İş ilişkisi olumlu olabilir ancak detay ve finansal büyüklük yok."
+    },
+    "1637412": {
+      "symbol": "BIMAS",
+      "title": "Payların Geri Alınmasına İlişkin Bildirim",
+      "category": "Geri Alim",
+      "date": "27.07.2026 19:26:15",
+      "directionHint": "+",
+      "contentChars": 54807,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-28T14:46:05.151526+00:00",
+      "directionRefined": "+",
+      "summary": "BİM, pay geri alım programı başlatmıştır. Geri alımın detayları ve tutarı bildirilmemiştir. Amaç hisse değerini desteklemektir.",
+      "impact": 3,
+      "amounts": [],
+      "rationale": "Geri alım programı genelde hisse fiyatı için olumlu; detaylar açıklanmadığı için etki sınırlı."
+    },
+    "1637348": {
+      "symbol": "MEGMT",
+      "title": "Özel Durum Açıklaması (Genel)",
+      "category": "Ozel Durum (Genel)",
+      "date": "27.07.2026 18:25:26",
+      "directionHint": "?",
+      "contentChars": 62226,
+      "pdfChars": 5633,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f52dc3f019f93e5d27329e2",
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f52dc3f019f93e5d27a29e3"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 5633,
+      "inputSnippet": " BAĞIMSIZLIK BEYANI Mega Metal Sanayi ve Ticaret A.Ş. (Şirket) Yönetim Kurulunda, mevzuat, esas sözleşme ve Sermaye Piyasası Kurulunun ;Kurumsal Yönetim Tebliği (II-17.1)’nde belirtilen Sermaye Piyasası Kurulu Kurumsal Yönetim İlkelerinde belirlenen kriterlere göre “Bağımsız Üye” olarak görev yapmaya aday olduğumu belirtirim. Bu kapsamda; a) Şirkette, şirketin yönetim kontrolü ya da önemli derecede etki sahibi olduğu ortaklıklar ile şirketin yönetim kontrolünü elinde bulunduran veya şirkette öne",
+      "engine": "github",
+      "enrichedAt": "2026-07-28T14:46:11.706440+00:00",
+      "directionRefined": "+",
+      "summary": "MEGMT, deneyimli Selen Kocabaş'ın bağımsız yönetim kurulu üyeliğine adaylığını açıkladı.",
+      "impact": 2,
+      "amounts": [],
+      "rationale": "Kurumsal yönetim ve tecrübeli bağımsız üye, yatırımcı güvenini artırabilir."
     }
   }
 }
