@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-07-28T14:46:14.269330+00:00",
+  "generatedAt": "2026-07-28T16:15:07.640870+00:00",
   "source": "borsapy 0.10.2 get_news_content",
-  "count": 230,
+  "count": 233,
   "lastRun": {
-    "targets": 2,
-    "enriched": 2,
+    "targets": 3,
+    "enriched": 3,
     "errors": 0,
-    "elapsedSec": 11
+    "elapsedSec": 14
   },
   "items": {
     "1618795": {
@@ -5189,6 +5189,68 @@
       "impact": 2,
       "amounts": [],
       "rationale": "Kurumsal yönetim ve tecrübeli bağımsız üye, yatırımcı güvenini artırabilir."
+    },
+    "1637895": {
+      "symbol": "ARASE",
+      "title": "Kredi Derecelendirmesi",
+      "category": "Kredi Notu",
+      "date": "28.07.2026 18:19:27",
+      "directionHint": "~",
+      "contentChars": 56984,
+      "pdfChars": 3971,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f52dc40019fa789b651316e"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 3971,
+      "inputSnippet": " F-16-04 Telif hakkı © 2007, JCR Eurasia Rating Finanskent Mah. Finans Cad. No: 4 İç Kapı No: 6 34760 Ümraniye / İstanbul - Türkiye Telefon: +90 (212) 352 56 73 Faks: +90 (216) 629 20 97 İzinsiz çoğaltılması yasaktır Tüm hakları saklıdır Tüm bilgiler JCR Eurasia Rating`in güvenilir olduğuna inandığı kaynaklardan ve Şirket tarafından sağlanan bilgi / açıklamalardan alınmıştır Ancak, JCR Eurasia Rating bu bilgilerin gerçekliğini, doğruluğunu ve yeterliliğini garanti etmez JCR Eurasia Rating derece",
+      "engine": "github",
+      "enrichedAt": "2026-07-28T16:14:56.040338+00:00",
+      "directionRefined": "+",
+      "summary": "JCR Eurasia, Doğu Aras Enerji'nin uzun vadeli ulusal kredi notunu AA- (tr) ve görünümünü durağan olarak teyit etti.",
+      "impact": 3,
+      "amounts": [],
+      "rationale": "Güçlü finansal göstergeler ve sürdürülebilir iş modeliyle kredi notunun korunması."
+    },
+    "1637889": {
+      "symbol": "DSTKF",
+      "title": "Pay Alım Satım Bildirimi",
+      "category": "Insider/Pay Bildirimi",
+      "date": "28.07.2026 18:16:05",
+      "directionHint": "~",
+      "contentChars": 76939,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-28T16:15:01.352480+00:00",
+      "directionRefined": "?",
+      "summary": "DSTKF için 28.07.2026 tarihinde Tera Portföy tarafından pay alım satım bildirimi yapılmıştır. İşlem detayları ve tutar belirtilmemiştir.",
+      "impact": 1,
+      "amounts": [],
+      "rationale": "Bildirimde işlem tutarı ve yönü belirtilmediği için fiyat etkisi belirsiz."
+    },
+    "1637469": {
+      "symbol": "ENJSA",
+      "title": "Özel Durum Açıklaması (Genel)",
+      "category": "Ozel Durum (Genel)",
+      "date": "28.07.2026 09:31:05",
+      "directionHint": "?",
+      "contentChars": 61841,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-28T16:15:04.846786+00:00",
+      "directionRefined": "0",
+      "summary": "ENJSA, finansal tablolarına ilişkin genel açıklama yaptı; tabloların SPK düzenlemelerine uygun ve doğru olduğunu beyan etti.",
+      "impact": 1,
+      "amounts": [],
+      "rationale": "Rutin uyum ve doğruluk beyanı; fiyat üzerinde anlamlı etki beklenmez."
     }
   }
 }
