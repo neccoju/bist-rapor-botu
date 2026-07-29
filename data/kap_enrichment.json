@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-07-28T16:15:07.640870+00:00",
+  "generatedAt": "2026-07-29T14:46:30.934151+00:00",
   "source": "borsapy 0.10.2 get_news_content",
-  "count": 233,
+  "count": 241,
   "lastRun": {
-    "targets": 3,
-    "enriched": 3,
+    "targets": 8,
+    "enriched": 8,
     "errors": 0,
-    "elapsedSec": 14
+    "elapsedSec": 34
   },
   "items": {
     "1618795": {
@@ -5251,6 +5251,180 @@
       "impact": 1,
       "amounts": [],
       "rationale": "Rutin uyum ve doğruluk beyanı; fiyat üzerinde anlamlı etki beklenmez."
+    },
+    "1638439": {
+      "symbol": "INDES",
+      "title": "Kredi Derecelendirmesi",
+      "category": "Kredi Notu",
+      "date": "29.07.2026 15:35:20",
+      "directionHint": "~",
+      "contentChars": 60224,
+      "pdfChars": 3801,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f52dc40019faddc85302a40"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 3801,
+      "inputSnippet": " F-16-04 Telif hakkı © 2007, JCR Eurasia Rating Finanskent Mah. Finans Cad. No: 4 İç Kapı No: 6 34760 Ümraniye / İstanbul - Türkiye Telefon: +90 (212) 352 56 73 Faks: +90 (216) 629 20 97 İzinsiz çoğaltılması yasaktır Tüm hakları saklıdır Tüm bilgiler JCR Eurasia Rating`in güvenilir olduğuna inandığı kaynaklardan ve Şirket tarafından sağlanan bilgi / açıklamalardan alınmıştır Ancak, JCR Eurasia Rating bu bilgilerin gerçekliğini, doğruluğunu ve yeterliliğini garanti etmez JCR Eurasia Rating derece",
+      "engine": "github",
+      "enrichedAt": "2026-07-29T14:45:59.488870+00:00",
+      "directionRefined": "-",
+      "summary": "NETEKS'in kredi notu A (tr)'den A- (tr)'ye düşürüldü, görünüm durağan; yüksek kaldıraç ve kısa vadeli finansman bağımlılığı vurgulandı.",
+      "impact": 3,
+      "amounts": [],
+      "rationale": "Kredi notunun düşürülmesi finansman maliyetini artırabilir, risk algısı olumsuz."
+    },
+    "1638406": {
+      "symbol": "FONET",
+      "title": "Yeni İş İlişkisi",
+      "category": "Ihale/Sozlesme",
+      "date": "29.07.2026 15:18:58",
+      "directionHint": "+",
+      "contentChars": 79791,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-29T14:46:02.464596+00:00",
+      "directionRefined": "?",
+      "summary": "FONET yeni bir iş ilişkisi/ihale sözleşmesi imzaladığını açıkladı; tutar, taraf ve detay belirtilmemiş.",
+      "impact": 2,
+      "amounts": [
+        "198.476.457,00 TL"
+      ],
+      "rationale": "İş ilişkisi olumlu; detay ve tutar olmadığı için fiyat etkisi belirsiz."
+    },
+    "1638082": {
+      "symbol": "TUPRS",
+      "title": "Kredi Derecelendirmesi",
+      "category": "Kredi Notu",
+      "date": "29.07.2026 09:53:25",
+      "directionHint": "~",
+      "contentChars": 60944,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-29T14:46:05.073702+00:00",
+      "directionRefined": "?",
+      "summary": "TÜPRAŞ'ın kredi derecelendirme bildirimi yayımlandı, ancak not ve derecelendirme kuruluşu bilgisi açıklamada yer almıyor.",
+      "impact": 2,
+      "amounts": [],
+      "rationale": "Not ve kuruluş bilgisi olmadığı için fiyat etkisi belirsiz; detaylar açıklanmamış."
+    },
+    "1638064": {
+      "symbol": "YEOTK",
+      "title": "Yeni İş İlişkisi",
+      "category": "Ihale/Sozlesme",
+      "date": "29.07.2026 08:55:23",
+      "directionHint": "+",
+      "contentChars": 82351,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-29T14:46:08.535863+00:00",
+      "directionRefined": "?",
+      "summary": "YEOTK yeni bir iş ilişkisi açıkladı; tutar, taraf ve konu belirtilmemiş. Sözleşme/i̇hale kategorisinde.",
+      "impact": 2,
+      "amounts": [
+        "9.764.908 ABD Dolar"
+      ],
+      "rationale": "Detaylar (tutar/taraf/konu) olmadığı için fiyat etkisi belirsiz."
+    },
+    "1638062": {
+      "symbol": "ARASE",
+      "title": "Özel Durum Açıklaması (Genel)",
+      "category": "Ozel Durum (Genel)",
+      "date": "29.07.2026 08:51:11",
+      "directionHint": "?",
+      "contentChars": 61512,
+      "pdfChars": 3971,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328c9f52dc40019fac6afb5375c5"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 3971,
+      "inputSnippet": " F-16-04 Telif hakkı © 2007, JCR Eurasia Rating Finanskent Mah. Finans Cad. No: 4 İç Kapı No: 6 34760 Ümraniye / İstanbul - Türkiye Telefon: +90 (212) 352 56 73 Faks: +90 (216) 629 20 97 İzinsiz çoğaltılması yasaktır Tüm hakları saklıdır Tüm bilgiler JCR Eurasia Rating`in güvenilir olduğuna inandığı kaynaklardan ve Şirket tarafından sağlanan bilgi / açıklamalardan alınmıştır Ancak, JCR Eurasia Rating bu bilgilerin gerçekliğini, doğruluğunu ve yeterliliğini garanti etmez JCR Eurasia Rating derece",
+      "engine": "github",
+      "enrichedAt": "2026-07-29T14:46:16.712019+00:00",
+      "directionRefined": "0",
+      "summary": "JCR Eurasia, Doğu Aras Enerji'nin uzun vadeli ulusal kredi notunu 'AA- (tr)' ve görünümünü 'Durağan' olarak teyit etti.",
+      "impact": 2,
+      "amounts": [],
+      "rationale": "Not ve görünüm değişmedi; finansal göstergeler makul, fiyat etkisi sınırlı."
+    },
+    "1637993": {
+      "symbol": "BIMAS",
+      "title": "Payların Geri Alınmasına İlişkin Bildirim",
+      "category": "Geri Alim",
+      "date": "28.07.2026 19:32:54",
+      "directionHint": "+",
+      "contentChars": 55613,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-29T14:46:19.579252+00:00",
+      "directionRefined": "+",
+      "summary": "BİM, pay geri alım programı başlatmıştır. Geri alım miktarı ve tutarı bildirilmemiştir. Şirket, hisse fiyatını desteklemeyi amaçlamaktadır.",
+      "impact": 3,
+      "amounts": [],
+      "rationale": "Geri alım programı genelde hisse fiyatı için olumlu; miktar belirtilmediği için etki sınırlı."
+    },
+    "1637948": {
+      "symbol": "ENERY",
+      "title": "Payların Geri Alınmasına İlişkin Bildirim",
+      "category": "Geri Alim",
+      "date": "28.07.2026 18:44:33",
+      "directionHint": "+",
+      "contentChars": 120362,
+      "pdfChars": 0,
+      "pdfUrls": [],
+      "inputSource": "page",
+      "inputChars": 9000,
+      "inputSnippet": "frExplanation\\\":\\\"Finansal Tablolara İlişkin Genel Açıklama\\\",\\\"summaryInfo\\\":\\\"Özet Bilgi\\\",\\\"footerNote\\\":\\\"Yukarıdaki açıklamalarımızın, Sermaye Piyasası Kurulu'nun yürürlükteki Özel Durumlar Tebliğinde yer alan esaslara uygun olduğunu, bu konuda/konularda tarafımıza ulaşan bilgileri tam olarak yansıttığını, bilgilerin defter, kayıt ve belgelerimize uygun olduğunu, konuyla ilgili bilgileri tam ve doğru olarak elde etmek için gerekli tüm çabaları gösterdiğimizi ve yapılan bu açıklamalardan sor",
+      "engine": "github",
+      "enrichedAt": "2026-07-29T14:46:22.248494+00:00",
+      "directionRefined": "+",
+      "summary": "ENERY, pay geri alımı kararı bildirdi. Alım miktarı, fiyat aralığı veya bütçe detayları açıklamada yer almıyor.",
+      "impact": 3,
+      "amounts": [
+        "9,41 TL",
+        "9,42 TL",
+        "9,415 TL"
+      ],
+      "rationale": "Geri alım genelde hisseye destek olur; detaylar açıklanmadığı için etki sınırlı."
+    },
+    "1637893": {
+      "symbol": "YEOTK",
+      "title": "Kredi Derecelendirmesi",
+      "category": "Kredi Notu",
+      "date": "28.07.2026 18:18:49",
+      "directionHint": "~",
+      "contentChars": 56954,
+      "pdfChars": 4402,
+      "pdfUrls": [
+        "https://www.kap.org.tr/tr/api/file/download/4028328d9f52dddd019fa935d7853ed7"
+      ],
+      "inputSource": "pdf",
+      "inputChars": 4402,
+      "inputSnippet": " F-16-04 Telif hakkı © 2007, JCR Eurasia Rating Finanskent Mah. Finans Cad. No: 4 İç Kapı No: 6 34760 Ümraniye / İstanbul - Türkiye Telefon: +90 (212) 352 56 73 Faks: +90 (216) 629 20 97 İzinsiz çoğaltılması yasaktır Tüm hakları saklıdır Tüm bilgiler JCR Eurasia Rating`in güvenilir olduğuna inandığı kaynaklardan ve Şirket tarafından sağlanan bilgi / açıklamalardan alınmıştır Ancak, JCR Eurasia Rating bu bilgilerin gerçekliğini, doğruluğunu ve yeterliliğini garanti etmez JCR Eurasia Rating derece",
+      "engine": "github",
+      "enrichedAt": "2026-07-29T14:46:27.284701+00:00",
+      "directionRefined": "0",
+      "summary": "YEO Teknoloji'nin uzun vadeli ulusal kredi notu 'A (tr)' ve görünümü 'Durağan' olarak teyit edildi; kısa vadeli not 'J1 (tr)'.",
+      "impact": 3,
+      "amounts": [],
+      "rationale": "Not teyidi, şirketin finansal risklerinin dengeli olduğunu gösteriyor; yeni bir pozitif/negatif sinyal yok."
     }
   }
 }
