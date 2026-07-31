@@ -1,9 +1,39 @@
 {
- "generatedAt": "2026-07-30T16:14:06.673744+00:00",
+ "generatedAt": "2026-07-31T16:22:28.940251+00:00",
  "source": "Google News RSS (TR) + kural tabanli siniflandirici",
  "note": "Baslik-kurali siniflandirmasi kabadir; rejim motoru bu olaylari dusuk guvenle ve sinirli sayida kullanir.",
- "count": 12,
+ "count": 9,
  "items": [
+  {
+   "id": "09c59ccbe8d9",
+   "title": "Petrol fiyatları arz artışıyla geriledi: Aylık yükseliş sürüyor - Evrensel.net",
+   "source": "Evrensel.net",
+   "date": "2026-07-31T12:02:35+00:00",
+   "engine": "rule",
+   "eventType": "commodity_oil",
+   "direction": 1,
+   "confidence": 0.35
+  },
+  {
+   "id": "cd22009f60de",
+   "title": "Brent petrol 84 dolara geriledi - Uzmanpara",
+   "source": "Uzmanpara",
+   "date": "2026-07-31T06:20:35+00:00",
+   "engine": "rule",
+   "eventType": "commodity_oil",
+   "direction": 1,
+   "confidence": 0.35
+  },
+  {
+   "id": "60c7894d9098",
+   "title": "Brent petrol düştü, aylık yükseliş yüzde 20'ye ulaştı - Manşet Haber",
+   "source": "Manşet Haber",
+   "date": "2026-07-31T05:45:00+00:00",
+   "engine": "rule",
+   "eventType": "commodity_oil",
+   "direction": 1,
+   "confidence": 0.35
+  },
   {
    "id": "4b7833d38191",
    "title": "Brent petrol 90 dolara yaklaştı! Orta Doğu gerilimi fiyatları yükseltti - CNN Türk",
@@ -62,66 +92,6 @@
    "engine": "rule",
    "eventType": "commodity_oil",
    "direction": -1,
-   "confidence": 0.35
-  },
-  {
-   "id": "a6ff74cfdee8",
-   "title": "ABD'nin stokları düştü: Petrol fiyatları yeniden yükseldi - Evrensel",
-   "source": "Evrensel",
-   "date": "2026-07-29T11:32:24+00:00",
-   "engine": "rule",
-   "eventType": "commodity_oil",
-   "direction": -1,
-   "confidence": 0.35
-  },
-  {
-   "id": "435ff7aaf9c6",
-   "title": "Petrol Fiyatları, ABD-İran Geriliminin Azalacağı Beklentisiyle Sert Düştü - سانا",
-   "source": "سانا",
-   "date": "2026-07-29T08:20:30+00:00",
-   "engine": "rule",
-   "eventType": "commodity_oil",
-   "direction": 1,
-   "confidence": 0.25
-  },
-  {
-   "id": "24ea18e5492c",
-   "title": "Trump’ın açıklaması sonrası petrol fiyatları fırladı - Bigpara",
-   "source": "Bigpara",
-   "date": "2026-07-29T07:14:00+00:00",
-   "engine": "llm",
-   "eventType": "commodity_oil",
-   "direction": -1,
-   "confidence": 0.4
-  },
-  {
-   "id": "7761e60048d4",
-   "title": "Brent petrolün varili 84 dolardan işlem görüyor - Uzmanpara",
-   "source": "Uzmanpara",
-   "date": "2026-07-29T07:04:47+00:00",
-   "engine": "llm",
-   "eventType": "commodity_oil",
-   "direction": -1,
-   "confidence": 0.4
-  },
-  {
-   "id": "1799690c88e4",
-   "title": "ABD'nin stokları düştü: Petrol fiyatları yüseldi - Kıbrıs Postası",
-   "source": "Kıbrıs Postası",
-   "date": "2026-07-29T05:35:00+00:00",
-   "engine": "llm",
-   "eventType": "commodity_oil",
-   "direction": -1,
-   "confidence": 0.4
-  },
-  {
-   "id": "a73e1c6852b6",
-   "title": "Brent petrol, jeopolitik risklerin azalmasıyla yüzde 5'ten fazla düştü - TRT Haber",
-   "source": "TRT Haber",
-   "date": "2026-07-28T17:17:00+00:00",
-   "engine": "rule",
-   "eventType": "commodity_oil",
-   "direction": 1,
    "confidence": 0.35
   }
  ]
