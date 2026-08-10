@@ -2378,6 +2378,31 @@ try {
         # pilot icin hazir; bugun yalniz gozlem.
     }
     catch { Write-Warning "Devre kesici olcumu yazilamadi (rapor etkilenmez): $($_.Exception.Message)" }
+
+    # O4: AY-ICI FELAKET FRENI (GOLGE OLCUM) — canli satis YAPMAZ.
+    # Model portfoyler ay boyu pozisyon tutuyor (Momentum maks. dusus -9.5%).
+    # Aday kural: hisse alis fiyatina gore -20%'den fazla duserse ay sonunu
+    # beklemeden cikilir. Once TETIKLENIRDI kaydi birikir; ay sonunda ileri
+    # getiriyle "erken cikis kurtardi mi yoksa dip-satis mi oldu" olculur.
+    try {
+        $stopPct = [double](Get-EnvironmentValue -Names @('BIST_INTRAMONTH_STOP_PCT') -Default '-20')
+        $stopPath = Join-Path $PSScriptRoot 'data\intramonth_stop.jsonl'
+        $stopKey = '"asOf":"' + $runAt.ToString('yyyy-MM-dd') + '"'
+        $stopAlreadyLogged = (Test-Path $stopPath) -and (Select-String -LiteralPath $stopPath -SimpleMatch $stopKey -Quiet)
+        foreach ($pf in @($updatedPortfolioSet.Portfolios)) {
+            $hits = @(Get-IntraMonthStopSignals -Portfolio $pf -StopPct $stopPct)
+            if ($hits.Count -eq 0 -or $stopAlreadyLogged) { continue }
+            foreach ($hit in $hits) {
+                [void](Add-JsonlLine -Path $stopPath -Object ([ordered]@{
+                            asOf = $runAt.ToString('yyyy-MM-dd'); portfolio = [string]$pf.Id
+                            symbol = $hit.Symbol; lossPct = $hit.LossPct; weightPct = $hit.WeightPct
+                            stopPct = $stopPct; live = $false
+                        }))
+            }
+            Write-Host ("Ay-ici stop (golge): {0} -> {1} hisse tetiklenirdi ({2})" -f $pf.Id, $hits.Count, (@($hits | ForEach-Object { $_.Symbol }) -join ', '))
+        }
+    }
+    catch { Write-Warning "Ay-ici stop olcumu yazilamadi (rapor etkilenmez): $($_.Exception.Message)" }
     # Ay sonu Claude yorumu (best-effort): yalniz portfoy bu donem yeniden
     # dengelendiyse uretilir; aksi halde onceki donemin yorumu korunup gosterilir.
     try {

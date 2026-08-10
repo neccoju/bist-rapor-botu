@@ -632,6 +632,21 @@ if ((Get-PortfolioSleeveVerdict -MonthlyAlphaPct @(-1, -2, -3) -FactorIC 0.10 -R
 if ((Get-PortfolioSleeveVerdict -MonthlyAlphaPct @(-1, -2, -3)).verdict -ne 'UYARI') { throw 'IC yokken 3 ay negatif -> UYARI olmalı.' }
 Write-Host "Portföy kolu çıkış kuralı testi başarılı (IZLE/KORU/UYARI/YARIYA; veri-kapılı, önceden taahhütlü)."
 
+# --- Ö4: ay-içi felaket freni (gölge ölçüm; canlı satış yapmaz) ---
+$imPf = [pscustomobject]@{ Id = 'T'; CurrentValueTL = 100000; Holdings = @(
+        [pscustomobject]@{ Symbol = 'AAA'; GainSinceRebalancePct = -25.4; CurrentValueTL = 15000 },
+        [pscustomobject]@{ Symbol = 'BBB'; GainSinceRebalancePct = -8.0; CurrentValueTL = 20000 },
+        [pscustomobject]@{ Symbol = 'CCC'; GainSinceRebalancePct = -31.2; CurrentValueTL = 10000 },
+        [pscustomobject]@{ Symbol = 'DDD'; GainSinceRebalancePct = 5.0; CurrentValueTL = 25000 },
+        [pscustomobject]@{ Symbol = 'EEE'; CurrentValueTL = 5000 }) }
+$imHits = @(Get-IntraMonthStopSignals -Portfolio $imPf -StopPct -20)
+if ($imHits.Count -ne 2) { throw "-20 eşiğinde 2 hisse tetiklenmeliydi: $($imHits.Count)" }
+if (@($imHits | ForEach-Object { $_.Symbol }) -join ',' -ne 'AAA,CCC') { throw "Yanlış hisseler: $(@($imHits | ForEach-Object { $_.Symbol }) -join ',')" }
+if ([double]($imHits | Where-Object Symbol -eq 'AAA').WeightPct -ne 15) { throw 'Ağırlık yüzdesi yanlış (15 beklenirdi).' }
+if (@(Get-IntraMonthStopSignals -Portfolio $imPf -StopPct -40).Count -ne 0) { throw 'Derin eşikte tetikleme olmamalı.' }
+if (@(Get-IntraMonthStopSignals -Portfolio ([pscustomobject]@{ Holdings = @() }) -StopPct -20).Count -ne 0) { throw 'Boş portföyde tetikleme olmamalı.' }
+Write-Host "Ay-içi felaket freni testi başarılı (gölge: eşik altı tetikler, veri yoksa atlar; canlı satış yok)."
+
 # --- Sektör yoğunlaşma tavanı (Get-SectorCappedWeights) ---
 # 5 isim eşit ağırlık (%20); ikisi aynı sektör (%40). Tavan %35 -> o sektör %35'e
 # inmeli, serbest kalan %5 diğer isimlere dağılmalı, toplam %100 korunmalı.

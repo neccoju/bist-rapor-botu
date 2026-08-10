@@ -223,6 +223,7 @@ jobs:
             'data/regime_log.jsonl',
             'data/shadow_selection.jsonl',
             'data/circuit_breaker.jsonl',
+            'data/intramonth_stop.jsonl',
             'docs/data/latest_report.json'
           ) | Where-Object { Test-Path -LiteralPath $_ }
           # NOT: Tarihli PIT arsivleri (data/pit + data/point_in_time_snapshots) ARTIK

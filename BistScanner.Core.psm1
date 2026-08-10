@@ -6782,6 +6782,35 @@ function Get-SignalVerdict {
     return [pscustomobject]@{ verdict = 'IZLE'; action = 'degisiklik yok'; reason = 'notr' }
 }
 
+function Get-IntraMonthStopSignals {
+    <#
+        O4: AY-ICI FELAKET FRENI (GOLGE OLCUM — canli satis YAPMAZ).
+        Bulgu: model portfoyler ay boyu pozisyon tutuyor; Momentum'un -9.5%
+        maks. dususu bunun bedeli. Aday kural: bir hisse ay-ici alis fiyatina
+        gore -StopPct'ten fazla duserse ay sonunu BEKLEMEDEN cikilir.
+
+        Bu fonksiyon yalniz TETIKLENIRDI kaydini uretir: hangi hisse, hangi
+        kayipta, portfoy degerinin ne kadari. Fayda/zarar (erken cikis kurtardi
+        mi, yoksa dip-satis mi oldu) ay sonunda ileri-getiriyle olculur.
+        Donus: tetiklenen holding listesi (bos olabilir).
+    #>
+    param($Portfolio, [double]$StopPct = -20.0)
+    $rows = [System.Collections.Generic.List[object]]::new()
+    $total = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $Portfolio -Name 'CurrentValueTL')
+    foreach ($h in @(Get-ObjectPropertyValue -Object $Portfolio -Name 'Holdings')) {
+        $gainPct = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $h -Name 'GainSinceRebalancePct')
+        if ($null -eq $gainPct -or $gainPct -gt $StopPct) { continue }
+        $val = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $h -Name 'CurrentValueTL')
+        [void]$rows.Add([pscustomobject][ordered]@{
+                Symbol = [string](Get-ObjectPropertyValue -Object $h -Name 'Symbol')
+                LossPct = [Math]::Round($gainPct, 2)
+                ValueTL = if ($null -ne $val) { [Math]::Round($val, 2) } else { $null }
+                WeightPct = if ($null -ne $val -and $null -ne $total -and $total -gt 0) { [Math]::Round(($val / $total) * 100.0, 2) } else { $null }
+            })
+    }
+    return @($rows.ToArray())
+}
+
 function Get-PortfolioSleeveVerdict {
     <#
         O3: ONCEDEN TAAHHUT EDILMIS PORTFOY KURALI (RFS100 icin yazildi, her
@@ -8702,6 +8731,7 @@ Export-ModuleMember -Function `
     Add-HoldingFlag, `
     Get-SignalVerdict, `
     Get-PortfolioSleeveVerdict, `
+    Get-IntraMonthStopSignals, `
     Get-RegimeCashTarget, `
     Get-CircuitBreakerState, `
     Get-SignalConfig, `
