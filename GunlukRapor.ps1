@@ -2123,7 +2123,9 @@ $instantEntryPortfolioDailyBudgetTL = [double](Get-ConfigValue -Object $settings
 $instantEntryPortfolioInitialCapitalTL = [double](Get-ConfigValue -Object $settings.Report -Name 'InstantEntryPortfolioInitialCapitalTL' -Default 100000)
 $instantEntryPortfolioMinBuyScore = [double](Get-ConfigValue -Object $settings.Report -Name 'InstantEntryPortfolioMinBuyScore' -Default 90)
 $instantEntryPortfolioMaxBuysPerDay = [int](Get-ConfigValue -Object $settings.Report -Name 'InstantEntryPortfolioMaxBuysPerDay' -Default 3)
-$modelCostBps = [double](Get-EnvironmentValue -Names @('BIST_MODEL_COST_BPS') -Default ([string](Get-ConfigValue -Object $settings.Report -Name 'ModelPortfolioCostBps' -Default 50)))
+# Islem maliyeti VARSAYILANI 0 bps (kullanici bildirimi: komisyon odenmiyor).
+# Ihtiyac halinde config ModelPortfolioCostBps veya BIST_MODEL_COST_BPS ile geri acilir.
+$modelCostBps = [double](Get-EnvironmentValue -Names @('BIST_MODEL_COST_BPS') -Default ([string](Get-ConfigValue -Object $settings.Report -Name 'ModelPortfolioCostBps' -Default 0)))
 $snapshotMaxStocks = [int](Get-ConfigValue -Object $settings.Report -Name 'SnapshotMaxStocks' -Default 120)
 $riskRules = Get-ReportRiskRules -Settings $settings
 $outputDirectory = Resolve-ReportPath -Path ([string](Get-ConfigValue -Object $settings.Report -Name 'OutputDirectory' -Default 'reports'))
@@ -3180,7 +3182,7 @@ $(if ($kapRows.Count -gt 0) { New-HtmlTable -Rows $kapRows } else { '<p class="m
 <p class="muted">Fark sütunları sektör endeksi/proxy getirisi eksi BIST100 getirisi olarak okunur. Pozitif değer sektörün BIST100'e göre daha güçlü aktığını gösterir.</p>
 $(New-HtmlTable -Rows $sectorRows)
 <h2>Model Portföyler</h2>
-<p class="muted">Portföyler her çalışmada sadece değerlenir; ay sonu son işlem günü 18:10 sonrası tamamlanmış dönem varsa yeniden sıralanır ve AL/SAT/EŞİTLEME işlemleri state dosyasına yazılır. <b>Dengeli / Değer / Momentum / Kalite</b> portföyleri strateji skoruna (Get-BistScore) göre seçilir ve eşit ağırlıklı kalır. <b>RFS100</b> portföyü ise — backtest bulgusuna dayanarak — aynı uygunluk filtresini geçen hisseleri, eşik puanlaması yerine ham teknik faktörlerin kesitsel z-skor karışımı olan <b>RawFactorScore100</b> ile sıralayıp seçer. <b>Risk Dengeli</b> portföy ayrı izlenir: seçimi Dengeli skorla yapar ama ağırlıkları günlük oynaklık tersine göre dağıtır; normal model portföylerin ağırlığını değiştirmez. Her portföyün kuruluştan beri getirisi BIST100 ile kıyaslanır; <b>Alfa = portföy getirisi − BIST100 getirisi</b>. Tablo ayrıca <b>maksimum düşüşü</b> gösterir. Ay sonu işlemlerinde <b>işlem maliyeti + kayma</b> ($([string]$modelCostBps) bps) düşülür. <b>$leaderText</b></p>
+<p class="muted">Portföyler her çalışmada sadece değerlenir; ay sonu son işlem günü 18:10 sonrası tamamlanmış dönem varsa yeniden sıralanır ve AL/SAT/EŞİTLEME işlemleri state dosyasına yazılır. <b>Dengeli / Değer / Momentum / Kalite</b> portföyleri strateji skoruna (Get-BistScore) göre seçilir ve eşit ağırlıklı kalır. <b>RFS100</b> portföyü ise — backtest bulgusuna dayanarak — aynı uygunluk filtresini geçen hisseleri, eşik puanlaması yerine ham teknik faktörlerin kesitsel z-skor karışımı olan <b>RawFactorScore100</b> ile sıralayıp seçer. <b>Risk Dengeli</b> portföy ayrı izlenir: seçimi Dengeli skorla yapar ama ağırlıkları günlük oynaklık tersine göre dağıtır; normal model portföylerin ağırlığını değiştirmez. Her portföyün kuruluştan beri getirisi BIST100 ile kıyaslanır; <b>Alfa = portföy getirisi − BIST100 getirisi</b>. Tablo ayrıca <b>maksimum düşüşü</b> gösterir. $(if ($modelCostBps -gt 0) { "Ay sonu işlemlerinde <b>işlem maliyeti + kayma</b> ($([string]$modelCostBps) bps) düşülür." } else { "Ay sonu işlemlerinde <b>işlem maliyeti düşülmez</b> (0 bps — komisyonsuz hesap varsayımı; alış-satış makası/kayma modellenmez)." }) <b>$leaderText</b></p>
 $(New-HtmlTable -Rows $portfolioRows)
 $portfolioCommentaryHtml
 <h2>Model Portföy Hisse Dağılımı</h2>

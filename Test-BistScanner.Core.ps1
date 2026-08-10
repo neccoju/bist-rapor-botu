@@ -524,6 +524,16 @@ $costSet1 = Update-ModelPortfolioSet -PortfolioSet $costSet0 -Stocks $costStocks
 $cp1 = $costSet1.Portfolios[0]
 if (-not ([double]$cp1.CumulativeModelCostsTL -ge [double]$cp0.CumulativeModelCostsTL)) { throw "Rebalance maliyeti birikmedi: $($cp1.CumulativeModelCostsTL)" }
 Write-Host "İşlem maliyeti ve RiskDengeli portföy testi başarılı (giriş maliyeti $($cp0.CumulativeModelCostsTL) TL, rebalance sonrası $($cp1.CumulativeModelCostsTL) TL)."
+# Komisyonsuz hesap (kullanıcı bildirimi): CostBps=0 -> hiç maliyet düşülmemeli
+$zeroSet = New-ModelPortfolioSet -Stocks $costStocks -AsOf ([datetime]'2026-06-02T18:30:00') -BenchmarkLevel 10000 -CostBps 0
+$zp0 = $zeroSet.Portfolios[0]
+if ([double]$zp0.CumulativeModelCostsTL -ne 0) { throw "CostBps=0 ile giriş maliyeti 0 olmalı: $($zp0.CumulativeModelCostsTL)" }
+if ([double]$zp0.CurrentValueTL -ne [double]$zp0.InitialCapitalTL) { throw "CostBps=0 ile başlangıç değeri sermayeye eşit olmalı: $($zp0.CurrentValueTL)" }
+if (@($zp0.Transactions | Where-Object { [string]$_.Action -eq 'MALİYET' }).Count -ne 0) { throw 'CostBps=0 ile MALİYET işlemi yazılmamalı.' }
+$zeroSet1 = Update-ModelPortfolioSet -PortfolioSet $zeroSet -Stocks $costStocks -AsOf ([datetime]'2026-06-30T18:30:00') -AllowRebalance -BenchmarkLevel 10500 -CostBps 0
+$zp1 = $zeroSet1.Portfolios[0]
+if ([double]$zp1.CumulativeModelCostsTL -ne 0) { throw "CostBps=0 ile rebalance sonrası da maliyet 0 olmalı: $($zp1.CumulativeModelCostsTL)" }
+Write-Host "Komisyonsuz (0 bps) model testi başarılı (giriş ve ay sonu işlemlerinde maliyet düşülmüyor)."
 
 # --- Strateji-spesifik portföy ayrışması: Momentum vs Değer aynı havuzdan farklı seçmeli ---
 # Tam-donanımlı $sample'dan momentum-güçlü ve değer-güçlü sentetik hisseler türet.

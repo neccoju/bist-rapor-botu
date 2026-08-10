@@ -14,7 +14,7 @@
 #>
 param(
     [datetime]$AsOf = (Get-Date),
-    [double]$CostBps = 50,
+    [double]$CostBps = 0,
     [double]$MaxBookPct = 15,
     [switch]$Apply
 )

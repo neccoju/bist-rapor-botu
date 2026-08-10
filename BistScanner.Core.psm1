@@ -5132,7 +5132,7 @@ function New-ModelPortfolioSet {
         CreatedAt = $AsOf.ToString('o')
         UpdatedAt = $AsOf.ToString('o')
         InitialCapitalPerPortfolioTL = [Math]::Round($InitialCapital, 2)
-        Notes = 'Fiyat bazlı teorik modeldir. Kesirli adet kullanır; işlem maliyeti + kayma modellenir (varsayılan ~20 bps); vergi, temettü ve bedelli/bedelsiz sermaye hareketleri hesaba katılmaz.'
+        Notes = 'Fiyat bazlı teorik modeldir. Kesirli adet kullanır; işlem maliyeti CostBps ile modellenir (varsayılan 0 bps — komisyonsuz hesap); vergi, temettü ve bedelli/bedelsiz sermaye hareketleri hesaba katılmaz.'
         Portfolios = $portfolios.ToArray()
     }
 }
