@@ -44,7 +44,9 @@ jobs:
         run: |
           git config user.name 'bist-mkk-bot'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -f data/mkk_foreign.json data/fundamentals_secondary.json 2>/dev/null || true
+          # target_history.jsonl DA eklenmeli: hedef fiyat REVIZYON sinyali ancak
+          # gunluk arsiv birikince hesaplanabilir (eksikse geçmiş hiç oluşmaz).
+          git add -f data/mkk_foreign.json data/fundamentals_secondary.json data/target_history.jsonl 2>/dev/null || true
           git diff --cached --quiet && { echo 'degisiklik yok'; exit 0; }
           git commit -m 'chore(mkk): yabanci saklama + ikincil temel veri guncellendi [skip ci]'
           for i in 1 2 3 4; do

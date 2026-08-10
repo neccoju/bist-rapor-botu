@@ -618,6 +618,20 @@ if ($ay3 -contains 'H1' -or $ay3 -contains 'H2') { throw "Histerezis: tampon DI�
 if (@($ay3 | Where-Object { $_ -in @('H3', 'H4', 'H5') }).Count -ne 3) { throw "Tampon içindeki mevcutlar korunmalıydı: $($ay3 -join ',')" }
 Write-Host "Ciro freni (histerezis) testi başarılı (küçük oynama: 0 al-sat vs frensiz $ciroFrensiz; gerçek düşüşte çıkış çalışıyor)."
 
+# --- Ö3: portföy kolu önceden taahhütlü kural (RFS100 için yazıldı) ---
+if ((Get-PortfolioSleeveVerdict -MonthlyAlphaPct @(-3.5)).verdict -ne 'IZLE') { throw 'Az veride karar verilmemeli (IZLE).' }
+if ((Get-PortfolioSleeveVerdict -MonthlyAlphaPct @()).verdict -ne 'IZLE') { throw 'Boş seride IZLE olmalı.' }
+$svHalf = Get-PortfolioSleeveVerdict -MonthlyAlphaPct @(-3.5, -2.1, -1.8) -FactorIC (-0.02) -ReferenceIC 0.03
+if ($svHalf.verdict -ne 'YARIYA') { throw "3 ay negatif alfa + zayıf IC -> YARIYA olmalı: $($svHalf.verdict)" }
+if ([double]$svHalf.suggestedCapitalMult -ne 0.5) { throw 'YARIYA kararı sermaye çarpanı 0.5 önermeli.' }
+if ((Get-PortfolioSleeveVerdict -MonthlyAlphaPct @(-3.5, -2.1, -1.8) -FactorIC 0.05 -ReferenceIC 0.03).verdict -ne 'UYARI') { throw '3 ay negatif ama IC güçlü -> UYARI olmalı.' }
+if ((Get-PortfolioSleeveVerdict -MonthlyAlphaPct @(-3.5, 1.2, -1.8) -FactorIC (-0.02) -ReferenceIC 0.03).verdict -ne 'KORU') { throw 'Karışık alfa -> KORU olmalı (ardışık şartı).' }
+# IC referansın ÜSTÜNDE ama alfa negatif: yine UYARI (IC teyit etmiyor)
+if ((Get-PortfolioSleeveVerdict -MonthlyAlphaPct @(-1, -2, -3) -FactorIC 0.10 -ReferenceIC 0.03).verdict -ne 'UYARI') { throw 'Güçlü IC ile 3 ay negatif -> UYARI beklenir.' }
+# IC hiç yoksa (PIT'te arşivsiz faktör): yalnız alfaya bakılır -> UYARI
+if ((Get-PortfolioSleeveVerdict -MonthlyAlphaPct @(-1, -2, -3)).verdict -ne 'UYARI') { throw 'IC yokken 3 ay negatif -> UYARI olmalı.' }
+Write-Host "Portföy kolu çıkış kuralı testi başarılı (IZLE/KORU/UYARI/YARIYA; veri-kapılı, önceden taahhütlü)."
+
 # --- Sektör yoğunlaşma tavanı (Get-SectorCappedWeights) ---
 # 5 isim eşit ağırlık (%20); ikisi aynı sektör (%40). Tavan %35 -> o sektör %35'e
 # inmeli, serbest kalan %5 diğer isimlere dağılmalı, toplam %100 korunmalı.

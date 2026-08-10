@@ -6782,6 +6782,52 @@ function Get-SignalVerdict {
     return [pscustomobject]@{ verdict = 'IZLE'; action = 'degisiklik yok'; reason = 'notr' }
 }
 
+function Get-PortfolioSleeveVerdict {
+    <#
+        O3: ONCEDEN TAAHHUT EDILMIS PORTFOY KURALI (RFS100 icin yazildi, her
+        portfoye uygulanabilir). Amac: "kotu giden portfoyu ne zaman kucultelim?"
+        sorusunu KARAR GUNUNDE degil, SIMDI cevaplamak — duygu degil kural isler.
+
+        Girdi: son aylarin alfa serisi (ay-sonu itibariyle BIST100'e karsi) +
+        (varsa) faktorun PIT-IC'si ile referans IC.
+        Kural:
+          - MinMonths'tan az veri            -> 'IZLE'   (karar yok, veri bekle)
+          - Son N ayin HEPSI negatif alfa VE
+            IC referansin altinda/negatif    -> 'YARIYA' (sermaye x0.5)
+          - Son N ayin hepsi negatif alfa    -> 'UYARI'  (bir sonraki ay kritik)
+          - diger                            -> 'KORU'
+        DONUS: verdict + reason (+ suggestedCapitalMult). CANLI TAHSISI KENDI
+        BASINA DEGISTIRMEZ; rapor/karar destek uretir.
+    #>
+    param(
+        [double[]]$MonthlyAlphaPct = @(),
+        $FactorIC = $null,
+        $ReferenceIC = $null,
+        [int]$ConsecutiveMonths = 3,
+        [int]$MinMonths = 3
+    )
+    $a = @($MonthlyAlphaPct)
+    if ($a.Count -lt $MinMonths) {
+        return [pscustomobject]@{ verdict = 'IZLE'; suggestedCapitalMult = 1.0
+            reason = ("yalniz {0} ay veri (>= {1} gerekli)" -f $a.Count, $MinMonths) }
+    }
+    $last = @($a | Select-Object -Last $ConsecutiveMonths)
+    $allNegative = ($last.Count -eq $ConsecutiveMonths) -and (@($last | Where-Object { $_ -lt 0 }).Count -eq $ConsecutiveMonths)
+    if (-not $allNegative) {
+        return [pscustomobject]@{ verdict = 'KORU'; suggestedCapitalMult = 1.0
+            reason = ("son {0} ayin hepsi negatif alfa degil" -f $ConsecutiveMonths) }
+    }
+    $ic = ConvertTo-DoubleOrNull $FactorIC
+    $ref = ConvertTo-DoubleOrNull $ReferenceIC
+    $icWeak = ($null -ne $ic) -and (($ic -lt 0) -or ($null -ne $ref -and $ic -lt $ref))
+    if ($icWeak) {
+        return [pscustomobject]@{ verdict = 'YARIYA'; suggestedCapitalMult = 0.5
+            reason = ("son {0} ay negatif alfa VE IC zayif ({1})" -f $ConsecutiveMonths, [Math]::Round($ic, 4)) }
+    }
+    return [pscustomobject]@{ verdict = 'UYARI'; suggestedCapitalMult = 1.0
+        reason = ("son {0} ay negatif alfa; IC henuz teyit etmiyor — sonraki ay kritik" -f $ConsecutiveMonths) }
+}
+
 function Add-HoldingFlag {
     <#
         config/holdings.json statik listesindeki hisselere IsHolding=$true isler.
@@ -8655,6 +8701,7 @@ Export-ModuleMember -Function `
     Add-JsonlLine, `
     Add-HoldingFlag, `
     Get-SignalVerdict, `
+    Get-PortfolioSleeveVerdict, `
     Get-RegimeCashTarget, `
     Get-CircuitBreakerState, `
     Get-SignalConfig, `

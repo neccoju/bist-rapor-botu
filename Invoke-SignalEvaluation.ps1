@@ -125,8 +125,67 @@ for ($i = 0; $i -lt $snaps.Count; $i++) {
 }
 
 Write-Host "Bagimsiz donem: $periodsUsed (gereken min: $MinPeriods)"
+
+# --- O2: KISA HORIZON ERKEN KANIT (karar DEGISTIRMEZ) ---
+# Karar hep 30-gunluk cakismasiz pencereyle verilir (yukarida). Ama 6 bagimsiz
+# donem ~6 ay demek; golge faktorlerin (bilanco, PEAD) ve RFS100 teshisinin bu
+# kadar beklemesi ogrenme hizinin darbogaziydi. Ayni PIT arsivinden 10 IS GUNU
+# horizonla PARALEL bir olcum daha yapilir: erken kanit 2-3 ayda gorunur olur.
+# SADECE RAPORLANIR — carpanlar/otomatik kararlar yalniz 30-gun sonucuna bakar.
+$shortHorizon = 10
+$shortMax = 16
+$icShort = @{}; foreach ($fn in $adjFields) { $icShort[$fn] = New-Object System.Collections.Generic.List[double] }
+$shortPeriods = 0
+$nextShort = [datetime]::MinValue
+for ($i = 0; $i -lt $snaps.Count; $i++) {
+    $d0 = $snaps[$i].Date
+    if ($d0 -lt $nextShort) { continue }
+    $fwd = $null
+    for ($j = $i + 1; $j -lt $snaps.Count; $j++) {
+        $gap = ($snaps[$j].Date - $d0).TotalDays
+        if ($gap -ge ($shortHorizon - 3)) { if ($gap -le $shortMax) { $fwd = $snaps[$j] }; break }
+    }
+    if ($null -eq $fwd) { continue }
+    $svals = @{}; foreach ($fn in $adjFields) { $svals[$fn] = New-Object System.Collections.Generic.List[double] }
+    $sret = @{}; foreach ($fn in $adjFields) { $sret[$fn] = New-Object System.Collections.Generic.List[double] }
+    $cnt = 0
+    foreach ($sym in $snaps[$i].Map.Keys) {
+        if (-not $fwd.Map.ContainsKey($sym)) { continue }
+        $p0 = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $snaps[$i].Map[$sym] -Name 'Price')
+        $p1 = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $fwd.Map[$sym] -Name 'Price')
+        if ($null -eq $p0 -or $null -eq $p1 -or $p0 -le 0) { continue }
+        $ret = ($p1 / $p0 - 1.0) * 100.0
+        $cnt++
+        foreach ($fn in $adjFields) {
+            $v = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $snaps[$i].Map[$sym] -Name $fn)
+            if ($null -ne $v) { [void]$svals[$fn].Add($v); [void]$sret[$fn].Add($ret) }
+        }
+    }
+    if ($cnt -lt $MinObsPerPeriod) { continue }
+    $shortPeriods++
+    $nextShort = $d0.AddDays($shortHorizon)
+    foreach ($fn in $adjFields) {
+        if ($svals[$fn].Count -ge $MinObsPerPeriod) {
+            $ic = Get-PearsonCorrelation -X $svals[$fn].ToArray() -Y $sret[$fn].ToArray()
+            if ($null -ne $ic) { [void]$icShort[$fn].Add([double]$ic) }
+        }
+    }
+}
+$earlyEvidence = @()
+foreach ($fn in $adjFields) {
+    $ics = @($icShort[$fn].ToArray())
+    if ($ics.Count -lt 2) { continue }
+    $m = ($ics | Measure-Object -Average).Average
+    $v = 0.0; foreach ($x in $ics) { $v += ($x - $m) * ($x - $m) }
+    $sd = [Math]::Sqrt($v / ($ics.Count - 1))
+    $t = if ($sd -gt 1e-12) { $m / ($sd / [Math]::Sqrt($ics.Count)) } else { [Math]::Sign($m) * 99.0 }
+    $earlyEvidence += [pscustomobject]@{ signal = $fn; samples = $ics.Count; meanIC = [Math]::Round($m, 4); tStat = [Math]::Round($t, 2) }
+    Write-Host ("  [erken/{0}g] {1,-22} IC={2,7} t={3,6} (n={4})" -f $shortHorizon, $fn, [Math]::Round($m, 4), [Math]::Round($t, 2), $ics.Count)
+}
+Write-Host ("Kisa horizon ({0} gun) bagimsiz donem: {1} — ERKEN KANIT, karar degistirmez." -f $shortHorizon, $shortPeriods)
+
 if ($periodsUsed -lt $MinPeriods) {
-    Write-Host "Henuz yeterli bagimsiz donem yok ($($MinPeriods - $periodsUsed) donem daha). Degerlendirme atlandi."
+    Write-Host "Henuz yeterli bagimsiz donem yok ($($MinPeriods - $periodsUsed) donem daha). Karar degerlendirmesi atlandi (erken kanit yukarida)."
     exit 0
 }
 
@@ -169,10 +228,57 @@ $overlayHelps = ($null -ne $defMean -and $null -ne $invMean -and $defMean -lt $i
 $overlayVerdict = if ($defArr.Count -lt $MinPeriods) { 'YETERSIZ' } elseif ($overlayHelps -and $defMean -lt 0) { 'FAYDALI' } elseif ($overlayHelps) { 'ZAYIF-FAYDA' } else { 'FAYDASIZ' }
 Write-Host ("Nakit overlay: savunma-gunu BIST fwd {0}% vs yatirim-gunu {1}% -> {2}" -f $defMean, $invMean, $overlayVerdict)
 
+# --- O3: PORTFOY KOLU (sleeve) ONCEDEN TAAHHUT EDILMIS KURALI ---
+# Canli bulgu: RFS100 (backtest'te en iyi) canli ilk ayda -3.6 alfa ile en kotu.
+# Bir ay gurultu olabilir; ama asiri-uyum (overfit) da olabilir. Karar gununde
+# tartismamak icin kural SIMDI yazili: 3 ardisik ay negatif alfa VE faktor IC'si
+# referansin altinda -> sermaye yariya. Sonuc RAPORLANIR (canli tahsis otomatik
+# degismez; kullanici kararini kural uzerinden verir).
+$sleeveFindings = @()
+$statePathEval = Join-Path $PSScriptRoot 'data/model_portfolios.json'
+if (Test-Path -LiteralPath $statePathEval) {
+    try {
+        $pfSet = Get-Content -LiteralPath $statePathEval -Raw -Encoding UTF8 | ConvertFrom-Json
+        # Referans: botun kendi skoru (Score) yerine akilli-para ayarinin IC'si degil,
+        # portfoy-bazli faktor IC'si kullanilir. RFS100 icin RawFactorScore100 PIT'te
+        # arsivli degilse IC null kalir -> kural yalniz alfa serisine bakar (UYARI).
+        $icFor = @{}
+        foreach ($f in $findings) { $icFor[[string]$f.signal] = $f.meanIC }
+        foreach ($pf in @(Get-ObjectPropertyValue -Object $pfSet -Name 'Portfolios')) {
+            $pfId = [string](Get-ObjectPropertyValue -Object $pf -Name 'Id')
+            # Ay-sonu alfa serisi: islem gecmisindeki AY SONU kayitlari yerine
+            # mevcut AlphaPct tek noktadir; seri birikene kadar tek eleman verilir
+            # (kural MinMonths ile korunur -> IZLE der, erken karar vermez).
+            $alphaNow = ConvertTo-DoubleOrNull (Get-ObjectPropertyValue -Object $pf -Name 'AlphaPct')
+            $alphaSeries = @()
+            if ($null -ne $alphaNow) { $alphaSeries = @([double]$alphaNow) }
+            $rankBy = [string](Get-ObjectPropertyValue -Object $pf -Name 'RankBy')
+            $pfIc = if ($icFor.ContainsKey($rankBy)) { $icFor[$rankBy] } else { $null }
+            $v = Get-PortfolioSleeveVerdict -MonthlyAlphaPct $alphaSeries -FactorIC $pfIc -ReferenceIC $icFor['SmartMoneyAdjustment']
+            $sleeveFindings += [pscustomobject]@{
+                id = $pfId; rankBy = $rankBy; alphaPct = $alphaNow; months = $alphaSeries.Count
+                factorIC = $pfIc; verdict = $v.verdict; suggestedCapitalMult = $v.suggestedCapitalMult; reason = $v.reason
+            }
+            if ($v.verdict -ne 'IZLE' -and $v.verdict -ne 'KORU') {
+                Write-Host ("  [kol] {0,-14} alfa={1,7} -> {2} ({3})" -f $pfId, $alphaNow, $v.verdict, $v.reason)
+            }
+        }
+    }
+    catch { Write-Host "Portfoy kolu degerlendirmesi atlandi: $($_.Exception.Message)" }
+}
+
 $payload = [pscustomobject][ordered]@{
     generatedAt = (Get-Date).ToUniversalTime().ToString('o')
     periodsUsed = $periodsUsed
     horizonDays = $HorizonDays
+    earlyEvidence = [pscustomobject]@{
+        horizonDays = $shortHorizon; periods = $shortPeriods; signals = $earlyEvidence
+        note = 'ERKEN KANIT (kisa horizon). Kararlari DEGISTIRMEZ; golge faktorlerin ve portfoy kollarinin yonu 2-3 ayda gorulsun diye olculur.'
+    }
+    sleeves = [pscustomobject]@{
+        rule = '3 ardisik ay negatif alfa VE faktor IC referansin altinda -> sermaye x0.5 (YARIYA). Yalniz alfa negatifse UYARI. Onceden taahhut edilmistir.'
+        findings = $sleeveFindings
+    }
     note = 'Ayar IC + rejim ileri-getiri ayrismasi. CANLI AGIRLIKLARI DEGISTIRMEZ; Get-SignalVerdict cikis kurali onerisidir, karar kullaniciya aittir.'
     adjustments = $findings
     regime = [pscustomobject]@{ summary = $regimeSummary; separationAsExpected = $regimeWorks }
