@@ -4474,7 +4474,12 @@ function Get-ModelPortfolioSelection {
         [int]$MaxPerSector = 2,
 
         # 'Score' (varsayilan, strateji skoru) veya 'RawFactorScore100' (ham-faktor)
-        [string]$RankBy = 'Score'
+        [string]$RankBy = 'Score',
+
+        # CIRO FRENI (histerezis): mevcut portfoydeki semboller. Bunlar aday
+        # siralamasinda ilk KeepRankBuffer icinde kaldigi surece KORUNUR.
+        [string[]]$CurrentSymbols = @(),
+        [int]$KeepRankBuffer = 8
     )
 
     $scoredAll = @(Get-BistScores -Stocks $Stocks -Strategy $Strategy)
@@ -4540,6 +4545,28 @@ function Get-ModelPortfolioSelection {
     # Gozlemlenebilirlik: dar uygun-havuz, "hep ayni hisseler" sikayetinin ana
     # nedenlerinden biridir; her secimde havuz boyutu loglanir.
     Write-Host ("[secim] {0}/{1}: uygun havuz {2}/{3} hisse" -f $Strategy, $RankBy, $candidates.Count, $scoredAll.Count)
+
+    # CIRO FRENI (histerezis) — canli performans bulgusu: aylik rebalance her ay
+    # neredeyse tam yeniden secim yapiyordu (Momentum/RFS100'de ayda 17 islem,
+    # yillik ~%10-16 maliyet surtunmesi). Skor siralamasindaki KUCUK oynamalar
+    # gereksiz al-sat uretiyor. Kural: mevcut hisse ilk KeepRankBuffer icinde
+    # kaldigi surece SATILMAZ; yalniz gercekten siralamadan dusen cikar.
+    # Adaylar YENIDEN SIRALANIR (mevcutlar one, kendi goreli sirasi korunarak);
+    # sonraki secim dongusu (sektor tavani, sayi, yedek doldurma) AYNEN calisir.
+    # CurrentSymbols bos ise (ilk kurulum) davranis DEGISMEZ.
+    if ($CurrentSymbols.Count -gt 0 -and $KeepRankBuffer -gt 0 -and $candidates.Count -gt 0) {
+        $keepSet = @{}
+        foreach ($c in @($candidates | Select-Object -First $KeepRankBuffer)) {
+            $sym = [string]$c.Symbol
+            if ($CurrentSymbols -contains $sym) { $keepSet[$sym] = $true }
+        }
+        if ($keepSet.Count -gt 0) {
+            $incumbents = @($candidates | Where-Object { $keepSet.ContainsKey([string]$_.Symbol) })
+            $others = @($candidates | Where-Object { -not $keepSet.ContainsKey([string]$_.Symbol) })
+            $candidates = @($incumbents + $others)
+            Write-Host ("[secim] histerezis: ilk {0} icinde kalan {1} mevcut hisse korundu (ciro freni)" -f $KeepRankBuffer, $keepSet.Count)
+        }
+    }
 
     $selected = [System.Collections.Generic.List[object]]::new()
     $selectedSymbols = @{}
@@ -5268,16 +5295,18 @@ function Invoke-ModelPortfolioRebalance {
     $minWeightPct = Get-ModelPortfolioWeightLimit -Object $valuedPortfolio -Name 'MinWeightPct' -Default 8.0
     $maxWeightPct = Get-ModelPortfolioWeightLimit -Object $valuedPortfolio -Name 'MaxWeightPct' -Default 28.0
     $sectorMaxWeightPct = Get-ModelPortfolioWeightLimit -Object $valuedPortfolio -Name 'SectorMaxWeightPct' -Default 35.0
-    $selection = @(Get-ModelPortfolioSelection -Stocks $Stocks -Strategy $valuedPortfolio.Strategy -RankBy $rebalanceRankBy)
-    $totalValue = [double]$valuedPortfolio.CurrentValueTL
-    $targetValuesPreCost = Get-ModelPortfolioTargetValues -Selection $selection -TotalValue $totalValue -WeightingMethod $weightingMethod -MinWeightPct $minWeightPct -MaxWeightPct $maxWeightPct -SectorMaxWeightPct $sectorMaxWeightPct
+    # Mevcut holdingler ONCE cozulur: ciro freni (histerezis) secime girdi olur.
     $oldHoldings = @{}
     foreach ($holding in @($valuedPortfolio.Holdings)) {
         $oldHoldings[[string]$holding.Symbol] = $holding
     }
+    $oldSymbols = @($valuedPortfolio.Holdings | Select-Object -ExpandProperty Symbol)
+
+    $selection = @(Get-ModelPortfolioSelection -Stocks $Stocks -Strategy $valuedPortfolio.Strategy -RankBy $rebalanceRankBy -CurrentSymbols $oldSymbols)
+    $totalValue = [double]$valuedPortfolio.CurrentValueTL
+    $targetValuesPreCost = Get-ModelPortfolioTargetValues -Selection $selection -TotalValue $totalValue -WeightingMethod $weightingMethod -MinWeightPct $minWeightPct -MaxWeightPct $maxWeightPct -SectorMaxWeightPct $sectorMaxWeightPct
 
     $newSymbols = @($selection | Select-Object -ExpandProperty Symbol)
-    $oldSymbols = @($valuedPortfolio.Holdings | Select-Object -ExpandProperty Symbol)
     $removedSymbols = @($oldSymbols | Where-Object { $_ -notin $newSymbols })
     $addedSymbols = @($newSymbols | Where-Object { $_ -notin $oldSymbols })
     $keptSymbols = @($newSymbols | Where-Object { $_ -in $oldSymbols })
