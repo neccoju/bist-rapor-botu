@@ -570,48 +570,43 @@ if ($overlap -ge 3) { throw "Momentum ve Değer portföyleri hâlâ büyük öl�
 Write-Host "Strateji ayrışma testi başarılı (Momentum=$($momTop -join ','); Değer=$($valTop -join ','); kesişim=$overlap)."
 
 # --- Ö1: CİRO FRENİ (histerezis) — küçük sıralama oynaması al-sat üretmemeli ---
-# Momentum ekseninde 8 aday; PerfMonth ile sıralama kontrol edilir.
+# DİKKAT (PS 5.1 vs PS 7): momentum skoru BANTLI ve Sort-Object beraberlik kırma
+# davranışı iki motorda FARKLI. Bu yüzden test, bant-içi sıraya DEĞİL, birbirinden
+# net ayrık ÜÇ KADEME'ye dayanır: YÜKSEK > ORTA > DÜŞÜK. Böylece beklenen sonuç
+# beraberlik nasıl kırılırsa kırılsın aynı kalır.
+$hyHigh = { param($s, $sec) New-StratTestStock $s $sec 11 14 1.4 9 34 64 0.7 }   # YÜKSEK momentum
+$hyMid = { param($s, $sec) New-StratTestStock $s $sec 11 14 1.4 5 12 55 0.3 }   # ORTA
+$hyLow = { param($s, $sec) New-StratTestStock $s $sec 11 14 1.4 1 2 45 -0.3 }  # DÜŞÜK
+# AY1: H1..H5 YÜKSEK (portföye girer), F1..F4 DÜŞÜK
 $hyst = @(
-    (New-StratTestStock 'H1' 'Sektör A' 11 14 1.4 8 30 63 0.6)
-    (New-StratTestStock 'H2' 'Sektör B' 11 14 1.4 8 28 63 0.6)
-    (New-StratTestStock 'H3' 'Sektör C' 11 14 1.4 8 26 62 0.6)
-    (New-StratTestStock 'H4' 'Sektör D' 11 14 1.4 8 24 62 0.5)
-    (New-StratTestStock 'H5' 'Sektör E' 11 14 1.4 8 22 61 0.5)
-    (New-StratTestStock 'H6' 'Sektör F' 11 14 1.4 8 20 61 0.5)
-    (New-StratTestStock 'H7' 'Sektör G' 11 14 1.4 8 18 60 0.4)
-    (New-StratTestStock 'H8' 'Sektör H' 11 14 1.4 8 16 60 0.4)
+    (& $hyHigh 'H1' 'Sektör A'), (& $hyHigh 'H2' 'Sektör B'), (& $hyHigh 'H3' 'Sektör C'),
+    (& $hyHigh 'H4' 'Sektör D'), (& $hyHigh 'H5' 'Sektör E'),
+    (& $hyLow 'F1' 'Sektör F'), (& $hyLow 'F2' 'Sektör G'), (& $hyLow 'F3' 'Sektör H'), (& $hyLow 'F4' 'Sektör I')
 )
 $ay1 = @(Get-ModelPortfolioSelection -Stocks $hyst -Strategy 'Momentum' -Count 5 | ForEach-Object { [string]$_.Symbol })
-if ($ay1.Count -ne 5) { throw "Histerezis kurulum: 5 hisse seçilmeliydi: $($ay1 -join ',')" }
-# AY2: küçük oynama — H6/H7/H8 hafif öne geçti, mevcutlar 6-8. sıraya düştü (tampon içinde)
+if (@($ay1 | Where-Object { $_ -like 'H*' }).Count -ne 5) { throw "Histerezis kurulum: 5 YÜKSEK hisse seçilmeliydi: $($ay1 -join ',')" }
+# AY2: N1..N3 YÜKSEK'e çıktı, mevcutlar ORTA'ya düştü (ama ilk 8 tamponu içinde).
+# Frensiz: 3 yeni giren -> 3 mevcut çıkar (kademe ayrık olduğu için TAM 3, deterministik).
+# Frenli: mevcutların hepsi tampon içinde -> 0 al-sat.
 $hyst2 = @(
-    (New-StratTestStock 'H6' 'Sektör F' 11 14 1.4 8 31 63 0.6)
-    (New-StratTestStock 'H7' 'Sektör G' 11 14 1.4 8 30 63 0.6)
-    (New-StratTestStock 'H8' 'Sektör H' 11 14 1.4 8 29 62 0.6)
-    (New-StratTestStock 'H1' 'Sektör A' 11 14 1.4 8 28 62 0.5)
-    (New-StratTestStock 'H2' 'Sektör B' 11 14 1.4 8 27 61 0.5)
-    (New-StratTestStock 'H3' 'Sektör C' 11 14 1.4 8 26 61 0.5)
-    (New-StratTestStock 'H4' 'Sektör D' 11 14 1.4 8 25 60 0.4)
-    (New-StratTestStock 'H5' 'Sektör E' 11 14 1.4 8 24 60 0.4)
+    (& $hyHigh 'N1' 'Sektör K'), (& $hyHigh 'N2' 'Sektör L'), (& $hyHigh 'N3' 'Sektör M'),
+    (& $hyMid 'H1' 'Sektör A'), (& $hyMid 'H2' 'Sektör B'), (& $hyMid 'H3' 'Sektör C'),
+    (& $hyMid 'H4' 'Sektör D'), (& $hyMid 'H5' 'Sektör E'),
+    (& $hyLow 'F1' 'Sektör F'), (& $hyLow 'F2' 'Sektör G'), (& $hyLow 'F3' 'Sektör H'), (& $hyLow 'F4' 'Sektör I')
 )
 $frensiz = @(Get-ModelPortfolioSelection -Stocks $hyst2 -Strategy 'Momentum' -Count 5 | ForEach-Object { [string]$_.Symbol })
 $frenli = @(Get-ModelPortfolioSelection -Stocks $hyst2 -Strategy 'Momentum' -Count 5 -CurrentSymbols $ay1 | ForEach-Object { [string]$_.Symbol })
 $ciroFrensiz = @($ay1 | Where-Object { $_ -notin $frensiz }).Count
 $ciroFrenli = @($ay1 | Where-Object { $_ -notin $frenli }).Count
-if ($ciroFrensiz -lt 3) { throw "Test kurgusu hatalı: frensiz senaryoda ciro beklenirdi ($ciroFrensiz)." }
+if ($ciroFrensiz -ne 3) { throw "Test kurgusu: frensiz senaryoda tam 3 çıkış beklenirdi ($ciroFrensiz; $($frensiz -join ','))" }
 if ($ciroFrenli -ne 0) { throw "Histerezis: tampon içindeki mevcut hisseler korunmalıydı (değişen=$ciroFrenli; $($frenli -join ','))" }
-# AY3: GERÇEK düşüş — H1/H2 tamponun (ilk 8) dışına çıktı; artık satılmalı
+# AY3: GERÇEK düşüş — H1/H2 DÜŞÜK kademeye indi; tamponun (ilk 8) dışında kalır ve satılır.
+# Tampon: N1..N3 (YÜKSEK) + H3,H4,H5,M1,M2 (ORTA) = 8 -> H1/H2 dışarıda.
 $hyst3 = @(
-    (New-StratTestStock 'N1' 'Sektör K' 11 14 1.4 8 40 65 0.7)
-    (New-StratTestStock 'N2' 'Sektör L' 11 14 1.4 8 38 64 0.7)
-    (New-StratTestStock 'N3' 'Sektör M' 11 14 1.4 8 36 64 0.6)
-    (New-StratTestStock 'H3' 'Sektör C' 11 14 1.4 8 34 63 0.6)
-    (New-StratTestStock 'H4' 'Sektör D' 11 14 1.4 8 32 63 0.6)
-    (New-StratTestStock 'H5' 'Sektör E' 11 14 1.4 8 30 62 0.5)
-    (New-StratTestStock 'N4' 'Sektör N' 11 14 1.4 8 28 62 0.5)
-    (New-StratTestStock 'N5' 'Sektör O' 11 14 1.4 8 26 61 0.5)
-    (New-StratTestStock 'H1' 'Sektör A' 11 14 1.4 8 4 45 -0.3)
-    (New-StratTestStock 'H2' 'Sektör B' 11 14 1.4 8 3 44 -0.3)
+    (& $hyHigh 'N1' 'Sektör K'), (& $hyHigh 'N2' 'Sektör L'), (& $hyHigh 'N3' 'Sektör M'),
+    (& $hyMid 'H3' 'Sektör C'), (& $hyMid 'H4' 'Sektör D'), (& $hyMid 'H5' 'Sektör E'),
+    (& $hyMid 'M1' 'Sektör P'), (& $hyMid 'M2' 'Sektör R'),
+    (& $hyLow 'H1' 'Sektör A'), (& $hyLow 'H2' 'Sektör B')
 )
 $ay3 = @(Get-ModelPortfolioSelection -Stocks $hyst3 -Strategy 'Momentum' -Count 5 -CurrentSymbols $ay1 | ForEach-Object { [string]$_.Symbol })
 if ($ay3 -contains 'H1' -or $ay3 -contains 'H2') { throw "Histerezis: tampon DIŞINA düşen hisse satılmalıydı: $($ay3 -join ',')" }
