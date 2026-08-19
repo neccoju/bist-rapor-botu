@@ -1,20 +1,13 @@
 ﻿{
-    "UpdatedAt":  "2026-08-18T18:16:21.8116572Z",
+    "UpdatedAt":  "2026-08-19T18:15:57.3253233Z",
     "Summary":  {
-                    "TrackedCount":  19,
-                    "CompletedCount":  1,
-                    "DirectionalCount":  1,
+                    "TrackedCount":  18,
+                    "CompletedCount":  2,
+                    "DirectionalCount":  2,
                     "PeadHitRatePct":  0,
-                    "AvgPositiveSurpriseDriftPct":  -4.72
+                    "AvgPositiveSurpriseDriftPct":  -5.95
                 },
     "Tracked":  [
-                    {
-                        "Symbol":  "TURSG",
-                        "ReportDate":  "2026-07-21",
-                        "DetectedAt":  "2026-07-22T18:16:19.9431004Z",
-                        "EntryPrice":  6.82,
-                        "SurpriseScore":  69
-                    },
                     {
                         "Symbol":  "AKBNK",
                         "ReportDate":  "2026-07-28",
@@ -149,6 +142,15 @@
                           "CompletedAt":  "2026-07-13T18:15:54.0245734Z",
                           "SurpriseScore":  87,
                           "DriftPct":  -4.72,
+                          "DirectionalHit":  false,
+                          "Directional":  true
+                      },
+                      {
+                          "Symbol":  "TURSG",
+                          "ReportDate":  "2026-07-21",
+                          "CompletedAt":  "2026-08-19T18:15:57.3253233Z",
+                          "SurpriseScore":  69,
+                          "DriftPct":  -7.18,
                           "DirectionalHit":  false,
                           "Directional":  true
                       }
