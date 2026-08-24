@@ -1,26 +1,36 @@
 {
- "generatedAt": "2026-08-21T15:08:34.848373+00:00",
+ "generatedAt": "2026-08-24T15:21:10.776749+00:00",
  "source": "Google News RSS (TR) + kural tabanli siniflandirici",
  "note": "Baslik-kurali siniflandirmasi kabadir; rejim motoru bu olaylari dusuk guvenle ve sinirli sayida kullanir.",
- "count": 2,
+ "count": 3,
  "items": [
   {
-   "id": "4fc624cdd07b",
-   "title": "Petrol fiyatları geriledi: Brent 93 dolara çekildi - Dünya Gazetesi",
-   "source": "Dünya Gazetesi",
-   "date": "2026-08-21T07:27:00+00:00",
+   "id": "2bde728194bf",
+   "title": "Fiili faiz indirimi: Merkez Bankası haftalık repo ihalelerine yeniden başladı, karar ne anlama geliyor? - T24",
+   "source": "T24",
+   "date": "2026-08-24T07:28:00+00:00",
    "engine": "rule",
-   "eventType": "commodity_oil",
+   "eventType": "interest_rate",
    "direction": 1,
    "confidence": 0.35
   },
   {
-   "id": "21aec30a49b4",
-   "title": "TÜİK açıkladı! Tarımsal girdi enflasyonu geriledi - Türkiye Gazetesi",
-   "source": "Türkiye Gazetesi",
-   "date": "2026-08-20T08:17:15+00:00",
+   "id": "3d9a78d82764",
+   "title": "ABD’nin İran Yaptırımları Piyasayı Hareketlendirdi: Petrol Fiyatları Düşüşte - Para Analiz",
+   "source": "Para Analiz",
+   "date": "2026-08-24T05:34:36+00:00",
    "engine": "rule",
-   "eventType": "inflation",
+   "eventType": "political_regulatory",
+   "direction": -1,
+   "confidence": 0.35
+  },
+  {
+   "id": "5c4db50496aa",
+   "title": "Prof. Hakan Kara: 'Merkez Bankası'ndan faiz indirimi sinyali geldi' - Gazete Oksijen",
+   "source": "Gazete Oksijen",
+   "date": "2026-08-24T05:23:00+00:00",
+   "engine": "rule",
+   "eventType": "interest_rate",
    "direction": 1,
    "confidence": 0.35
   }
