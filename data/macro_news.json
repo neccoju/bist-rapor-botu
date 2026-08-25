@@ -1,9 +1,39 @@
 {
- "generatedAt": "2026-08-24T15:21:10.776749+00:00",
+ "generatedAt": "2026-08-25T15:26:33.667225+00:00",
  "source": "Google News RSS (TR) + kural tabanli siniflandirici",
  "note": "Baslik-kurali siniflandirmasi kabadir; rejim motoru bu olaylari dusuk guvenle ve sinirli sayida kullanir.",
- "count": 3,
+ "count": 6,
  "items": [
+  {
+   "id": "9e9ccb99cb88",
+   "title": "Faizde indirim kapısı aralandı - Sözcü Gazetesi",
+   "source": "Sözcü Gazetesi",
+   "date": "2026-08-25T10:30:40+00:00",
+   "engine": "rule",
+   "eventType": "interest_rate",
+   "direction": 1,
+   "confidence": 0.35
+  },
+  {
+   "id": "43317147d8d5",
+   "title": "Tahran’dan dünyayı rahatlatan haber! Petrol fiyatları sert düştü - Haberler",
+   "source": "Haberler",
+   "date": "2026-08-25T10:25:22+00:00",
+   "engine": "rule",
+   "eventType": "commodity_oil",
+   "direction": 1,
+   "confidence": 0.35
+  },
+  {
+   "id": "8916f3e0286a",
+   "title": "Brent petrolün varili ticari gerilimlerin artmasıyla 90 doların altına geriledi - TRT Haber",
+   "source": "TRT Haber",
+   "date": "2026-08-25T06:49:00+00:00",
+   "engine": "rule",
+   "eventType": "commodity_oil",
+   "direction": 1,
+   "confidence": 0.35
+  },
   {
    "id": "2bde728194bf",
    "title": "Fiili faiz indirimi: Merkez Bankası haftalık repo ihalelerine yeniden başladı, karar ne anlama geliyor? - T24",
