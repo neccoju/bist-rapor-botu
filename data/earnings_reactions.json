@@ -1,41 +1,13 @@
 ﻿{
-    "UpdatedAt":  "2026-08-25T18:16:09.1372222Z",
+    "UpdatedAt":  "2026-08-27T18:16:05.6059500Z",
     "Summary":  {
-                    "TrackedCount":  18,
-                    "CompletedCount":  2,
-                    "DirectionalCount":  2,
-                    "PeadHitRatePct":  0,
-                    "AvgPositiveSurpriseDriftPct":  -5.95
+                    "TrackedCount":  14,
+                    "CompletedCount":  6,
+                    "DirectionalCount":  6,
+                    "PeadHitRatePct":  50,
+                    "AvgPositiveSurpriseDriftPct":  2.32
                 },
     "Tracked":  [
-                    {
-                        "Symbol":  "AKBNK",
-                        "ReportDate":  "2026-07-28",
-                        "DetectedAt":  "2026-07-29T18:16:13.9637716Z",
-                        "EntryPrice":  63.25,
-                        "SurpriseScore":  67
-                    },
-                    {
-                        "Symbol":  "GARAN",
-                        "ReportDate":  "2026-07-30",
-                        "DetectedAt":  "2026-07-30T18:16:08.7658260Z",
-                        "EntryPrice":  123.3,
-                        "SurpriseScore":  65
-                    },
-                    {
-                        "Symbol":  "TAVHL",
-                        "ReportDate":  "2026-07-28",
-                        "DetectedAt":  "2026-07-30T18:16:08.7658260Z",
-                        "EntryPrice":  267.25,
-                        "SurpriseScore":  29
-                    },
-                    {
-                        "Symbol":  "ANSGR",
-                        "ReportDate":  "2026-07-28",
-                        "DetectedAt":  "2026-07-30T18:16:08.7658260Z",
-                        "EntryPrice":  27.06,
-                        "SurpriseScore":  61
-                    },
                     {
                         "Symbol":  "YKBNK",
                         "ReportDate":  "2026-07-30",
@@ -152,6 +124,42 @@
                           "SurpriseScore":  69,
                           "DriftPct":  -7.18,
                           "DirectionalHit":  false,
+                          "Directional":  true
+                      },
+                      {
+                          "Symbol":  "AKBNK",
+                          "ReportDate":  "2026-07-28",
+                          "CompletedAt":  "2026-08-27T18:16:05.6059500Z",
+                          "SurpriseScore":  67,
+                          "DriftPct":  15.26,
+                          "DirectionalHit":  true,
+                          "Directional":  true
+                      },
+                      {
+                          "Symbol":  "GARAN",
+                          "ReportDate":  "2026-07-30",
+                          "CompletedAt":  "2026-08-27T18:16:05.6059500Z",
+                          "SurpriseScore":  65,
+                          "DriftPct":  7.7,
+                          "DirectionalHit":  true,
+                          "Directional":  true
+                      },
+                      {
+                          "Symbol":  "TAVHL",
+                          "ReportDate":  "2026-07-28",
+                          "CompletedAt":  "2026-08-27T18:16:05.6059500Z",
+                          "SurpriseScore":  29,
+                          "DriftPct":  5.52,
+                          "DirectionalHit":  false,
+                          "Directional":  true
+                      },
+                      {
+                          "Symbol":  "ANSGR",
+                          "ReportDate":  "2026-07-28",
+                          "CompletedAt":  "2026-08-27T18:16:05.6059500Z",
+                          "SurpriseScore":  61,
+                          "DriftPct":  0.52,
+                          "DirectionalHit":  true,
                           "Directional":  true
                       }
                   ]
