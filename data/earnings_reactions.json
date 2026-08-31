@@ -1,27 +1,13 @@
 ﻿{
-    "UpdatedAt":  "2026-08-28T18:21:07.9075006Z",
+    "UpdatedAt":  "2026-08-31T18:16:13.7525630Z",
     "Summary":  {
-                    "TrackedCount":  14,
-                    "CompletedCount":  6,
-                    "DirectionalCount":  6,
-                    "PeadHitRatePct":  50,
+                    "TrackedCount":  12,
+                    "CompletedCount":  8,
+                    "DirectionalCount":  7,
+                    "PeadHitRatePct":  42.9,
                     "AvgPositiveSurpriseDriftPct":  2.32
                 },
     "Tracked":  [
-                    {
-                        "Symbol":  "YKBNK",
-                        "ReportDate":  "2026-07-30",
-                        "DetectedAt":  "2026-08-03T18:16:34.9928882Z",
-                        "EntryPrice":  34,
-                        "SurpriseScore":  52
-                    },
-                    {
-                        "Symbol":  "ISGYO",
-                        "ReportDate":  "2026-07-31",
-                        "DetectedAt":  "2026-08-03T18:16:34.9928882Z",
-                        "EntryPrice":  26.3,
-                        "SurpriseScore":  15
-                    },
                     {
                         "Symbol":  "ISBTR",
                         "ReportDate":  "2026-08-03",
@@ -160,6 +146,24 @@
                           "SurpriseScore":  61,
                           "DriftPct":  0.52,
                           "DirectionalHit":  true,
+                          "Directional":  true
+                      },
+                      {
+                          "Symbol":  "YKBNK",
+                          "ReportDate":  "2026-07-30",
+                          "CompletedAt":  "2026-08-31T18:16:13.7525630Z",
+                          "SurpriseScore":  52,
+                          "DriftPct":  7.35,
+                          "DirectionalHit":  false,
+                          "Directional":  false
+                      },
+                      {
+                          "Symbol":  "ISGYO",
+                          "ReportDate":  "2026-07-31",
+                          "CompletedAt":  "2026-08-31T18:16:13.7525630Z",
+                          "SurpriseScore":  15,
+                          "DriftPct":  1.9,
+                          "DirectionalHit":  false,
                           "Directional":  true
                       }
                   ]
