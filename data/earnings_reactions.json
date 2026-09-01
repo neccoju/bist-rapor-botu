@@ -1,34 +1,13 @@
 ﻿{
-    "UpdatedAt":  "2026-08-31T18:16:13.7525630Z",
+    "UpdatedAt":  "2026-09-01T18:16:06.7651743Z",
     "Summary":  {
-                    "TrackedCount":  12,
-                    "CompletedCount":  8,
-                    "DirectionalCount":  7,
-                    "PeadHitRatePct":  42.9,
-                    "AvgPositiveSurpriseDriftPct":  2.32
+                    "TrackedCount":  9,
+                    "CompletedCount":  11,
+                    "DirectionalCount":  10,
+                    "PeadHitRatePct":  50,
+                    "AvgPositiveSurpriseDriftPct":  2.09
                 },
     "Tracked":  [
-                    {
-                        "Symbol":  "ISBTR",
-                        "ReportDate":  "2026-08-03",
-                        "DetectedAt":  "2026-08-04T18:16:04.0499071Z",
-                        "EntryPrice":  492375,
-                        "SurpriseScore":  77
-                    },
-                    {
-                        "Symbol":  "ISCTR",
-                        "ReportDate":  "2026-08-03",
-                        "DetectedAt":  "2026-08-04T18:16:04.0499071Z",
-                        "EntryPrice":  12.59,
-                        "SurpriseScore":  77
-                    },
-                    {
-                        "Symbol":  "OTKAR",
-                        "ReportDate":  "2026-07-31",
-                        "DetectedAt":  "2026-08-04T18:16:04.0499071Z",
-                        "EntryPrice":  298,
-                        "SurpriseScore":  0
-                    },
                     {
                         "Symbol":  "FROTO",
                         "ReportDate":  "2026-08-04",
@@ -163,6 +142,33 @@
                           "CompletedAt":  "2026-08-31T18:16:13.7525630Z",
                           "SurpriseScore":  15,
                           "DriftPct":  1.9,
+                          "DirectionalHit":  false,
+                          "Directional":  true
+                      },
+                      {
+                          "Symbol":  "ISBTR",
+                          "ReportDate":  "2026-08-03",
+                          "CompletedAt":  "2026-09-01T18:16:06.7651743Z",
+                          "SurpriseScore":  77,
+                          "DriftPct":  1.55,
+                          "DirectionalHit":  true,
+                          "Directional":  true
+                      },
+                      {
+                          "Symbol":  "ISCTR",
+                          "ReportDate":  "2026-08-03",
+                          "CompletedAt":  "2026-09-01T18:16:06.7651743Z",
+                          "SurpriseScore":  77,
+                          "DriftPct":  1.51,
+                          "DirectionalHit":  true,
+                          "Directional":  true
+                      },
+                      {
+                          "Symbol":  "OTKAR",
+                          "ReportDate":  "2026-07-31",
+                          "CompletedAt":  "2026-09-01T18:16:06.7651743Z",
+                          "SurpriseScore":  0,
+                          "DriftPct":  7.8,
                           "DirectionalHit":  false,
                           "Directional":  true
                       }
