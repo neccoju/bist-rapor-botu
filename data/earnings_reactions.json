@@ -1,20 +1,13 @@
 ﻿{
-    "UpdatedAt":  "2026-09-01T18:16:06.7651743Z",
+    "UpdatedAt":  "2026-09-02T18:16:05.4932852Z",
     "Summary":  {
-                    "TrackedCount":  9,
-                    "CompletedCount":  11,
-                    "DirectionalCount":  10,
-                    "PeadHitRatePct":  50,
-                    "AvgPositiveSurpriseDriftPct":  2.09
+                    "TrackedCount":  8,
+                    "CompletedCount":  12,
+                    "DirectionalCount":  11,
+                    "PeadHitRatePct":  45.5,
+                    "AvgPositiveSurpriseDriftPct":  1.15
                 },
     "Tracked":  [
-                    {
-                        "Symbol":  "FROTO",
-                        "ReportDate":  "2026-08-04",
-                        "DetectedAt":  "2026-08-05T18:16:09.2255938Z",
-                        "EntryPrice":  80.65,
-                        "SurpriseScore":  55
-                    },
                     {
                         "Symbol":  "ASELS",
                         "ReportDate":  "2026-08-04",
@@ -169,6 +162,15 @@
                           "CompletedAt":  "2026-09-01T18:16:06.7651743Z",
                           "SurpriseScore":  0,
                           "DriftPct":  7.8,
+                          "DirectionalHit":  false,
+                          "Directional":  true
+                      },
+                      {
+                          "Symbol":  "FROTO",
+                          "ReportDate":  "2026-08-04",
+                          "CompletedAt":  "2026-09-02T18:16:05.4932852Z",
+                          "SurpriseScore":  55,
+                          "DriftPct":  -5.46,
                           "DirectionalHit":  false,
                           "Directional":  true
                       }
