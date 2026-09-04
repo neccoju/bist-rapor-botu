@@ -1,62 +1,13 @@
 ﻿{
-    "UpdatedAt":  "2026-09-03T18:16:09.7489407Z",
+    "UpdatedAt":  "2026-09-04T18:16:11.4644824Z",
     "Summary":  {
-                    "TrackedCount":  8,
-                    "CompletedCount":  12,
-                    "DirectionalCount":  11,
-                    "PeadHitRatePct":  45.5,
-                    "AvgPositiveSurpriseDriftPct":  1.15
+                    "TrackedCount":  1,
+                    "CompletedCount":  19,
+                    "DirectionalCount":  18,
+                    "PeadHitRatePct":  55.6,
+                    "AvgPositiveSurpriseDriftPct":  1.91
                 },
     "Tracked":  [
-                    {
-                        "Symbol":  "ASELS",
-                        "ReportDate":  "2026-08-04",
-                        "DetectedAt":  "2026-08-07T18:16:03.2485392Z",
-                        "EntryPrice":  355,
-                        "SurpriseScore":  100
-                    },
-                    {
-                        "Symbol":  "THYAO",
-                        "ReportDate":  "2026-08-04",
-                        "DetectedAt":  "2026-08-07T18:16:03.2485392Z",
-                        "EntryPrice":  307,
-                        "SurpriseScore":  24
-                    },
-                    {
-                        "Symbol":  "EREGL",
-                        "ReportDate":  "2026-08-06",
-                        "DetectedAt":  "2026-08-07T18:16:03.2485392Z",
-                        "EntryPrice":  38.62,
-                        "SurpriseScore":  62
-                    },
-                    {
-                        "Symbol":  "TTKOM",
-                        "ReportDate":  "2026-08-05",
-                        "DetectedAt":  "2026-08-07T18:16:03.2485392Z",
-                        "EntryPrice":  54.3,
-                        "SurpriseScore":  82
-                    },
-                    {
-                        "Symbol":  "MPARK",
-                        "ReportDate":  "2026-08-05",
-                        "DetectedAt":  "2026-08-07T18:16:03.2485392Z",
-                        "EntryPrice":  426,
-                        "SurpriseScore":  87
-                    },
-                    {
-                        "Symbol":  "AYGAZ",
-                        "ReportDate":  "2026-08-04",
-                        "DetectedAt":  "2026-08-07T18:16:03.2485392Z",
-                        "EntryPrice":  283.5,
-                        "SurpriseScore":  100
-                    },
-                    {
-                        "Symbol":  "BRISA",
-                        "ReportDate":  "2026-08-05",
-                        "DetectedAt":  "2026-08-07T18:16:03.2485392Z",
-                        "EntryPrice":  78.35,
-                        "SurpriseScore":  38
-                    },
                     {
                         "Symbol":  "PETKM",
                         "ReportDate":  "2026-08-06",
@@ -172,6 +123,69 @@
                           "SurpriseScore":  55,
                           "DriftPct":  -5.46,
                           "DirectionalHit":  false,
+                          "Directional":  true
+                      },
+                      {
+                          "Symbol":  "ASELS",
+                          "ReportDate":  "2026-08-04",
+                          "CompletedAt":  "2026-09-04T18:16:11.4644824Z",
+                          "SurpriseScore":  100,
+                          "DriftPct":  9.3,
+                          "DirectionalHit":  true,
+                          "Directional":  true
+                      },
+                      {
+                          "Symbol":  "THYAO",
+                          "ReportDate":  "2026-08-04",
+                          "CompletedAt":  "2026-09-04T18:16:11.4644824Z",
+                          "SurpriseScore":  24,
+                          "DriftPct":  -3.58,
+                          "DirectionalHit":  true,
+                          "Directional":  true
+                      },
+                      {
+                          "Symbol":  "EREGL",
+                          "ReportDate":  "2026-08-06",
+                          "CompletedAt":  "2026-09-04T18:16:11.4644824Z",
+                          "SurpriseScore":  62,
+                          "DriftPct":  -3.78,
+                          "DirectionalHit":  false,
+                          "Directional":  true
+                      },
+                      {
+                          "Symbol":  "TTKOM",
+                          "ReportDate":  "2026-08-05",
+                          "CompletedAt":  "2026-09-04T18:16:11.4644824Z",
+                          "SurpriseScore":  82,
+                          "DriftPct":  -4.6,
+                          "DirectionalHit":  false,
+                          "Directional":  true
+                      },
+                      {
+                          "Symbol":  "MPARK",
+                          "ReportDate":  "2026-08-05",
+                          "CompletedAt":  "2026-09-04T18:16:11.4644824Z",
+                          "SurpriseScore":  87,
+                          "DriftPct":  0.06,
+                          "DirectionalHit":  true,
+                          "Directional":  true
+                      },
+                      {
+                          "Symbol":  "AYGAZ",
+                          "ReportDate":  "2026-08-04",
+                          "CompletedAt":  "2026-09-04T18:16:11.4644824Z",
+                          "SurpriseScore":  100,
+                          "DriftPct":  14.64,
+                          "DirectionalHit":  true,
+                          "Directional":  true
+                      },
+                      {
+                          "Symbol":  "BRISA",
+                          "ReportDate":  "2026-08-05",
+                          "CompletedAt":  "2026-09-04T18:16:11.4644824Z",
+                          "SurpriseScore":  38,
+                          "DriftPct":  -4.34,
+                          "DirectionalHit":  true,
                           "Directional":  true
                       }
                   ]
