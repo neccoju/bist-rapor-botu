@@ -1,9 +1,29 @@
 {
- "generatedAt": "2026-09-03T18:03:53.771457+00:00",
+ "generatedAt": "2026-09-04T17:47:59.821126+00:00",
  "source": "Google News RSS (TR) + kural tabanli siniflandirici",
  "note": "Baslik-kurali siniflandirmasi kabadir; rejim motoru bu olaylari dusuk guvenle ve sinirli sayida kullanir.",
- "count": 2,
+ "count": 3,
  "items": [
+  {
+   "id": "3bce57943abb",
+   "title": "Dev bankalardan TCMB için yeni faiz tahmini: İndirim için tarih öne çekildi - Dünya Gazetesi",
+   "source": "Dünya Gazetesi",
+   "date": "2026-09-04T07:56:00+00:00",
+   "engine": "rule",
+   "eventType": "interest_rate",
+   "direction": 1,
+   "confidence": 0.25
+  },
+  {
+   "id": "2ccc0df2a870",
+   "title": "Brent petrol 95,48 dolara geriledi - birgun.net",
+   "source": "birgun.net",
+   "date": "2026-09-04T07:09:00+00:00",
+   "engine": "rule",
+   "eventType": "commodity_oil",
+   "direction": 1,
+   "confidence": 0.35
+  },
   {
    "id": "87446e078dba",
    "title": "Türkiye’nin CDS’i 6,5 ayın en düşük seviyesine indi - Gölcük Postası Gazetesi",
@@ -12,16 +32,6 @@
    "engine": "rule",
    "eventType": "cds_risk",
    "direction": 1,
-   "confidence": 0.35
-  },
-  {
-   "id": "7b9409f20823",
-   "title": "Savaşın etkisi piyasalara vurdu! Brent petrol fiyatı 95 doların üzerine çıktı - Doğruhaber",
-   "source": "Doğruhaber",
-   "date": "2026-09-02T09:36:00+00:00",
-   "engine": "rule",
-   "eventType": "fx_pressure",
-   "direction": -1,
    "confidence": 0.35
   }
  ]
