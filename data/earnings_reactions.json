@@ -1,20 +1,14 @@
 ﻿{
-    "UpdatedAt":  "2026-09-04T18:16:11.4644824Z",
+    "UpdatedAt":  "2026-09-07T18:16:06.7758544Z",
     "Summary":  {
-                    "TrackedCount":  1,
-                    "CompletedCount":  19,
-                    "DirectionalCount":  18,
-                    "PeadHitRatePct":  55.6,
+                    "TrackedCount":  0,
+                    "CompletedCount":  20,
+                    "DirectionalCount":  19,
+                    "PeadHitRatePct":  52.6,
                     "AvgPositiveSurpriseDriftPct":  1.91
                 },
     "Tracked":  [
-                    {
-                        "Symbol":  "PETKM",
-                        "ReportDate":  "2026-08-06",
-                        "DetectedAt":  "2026-08-10T18:16:21.8735265Z",
-                        "EntryPrice":  18.9,
-                        "SurpriseScore":  0
-                    }
+
                 ],
     "Completed":  [
                       {
@@ -186,6 +180,15 @@
                           "SurpriseScore":  38,
                           "DriftPct":  -4.34,
                           "DirectionalHit":  true,
+                          "Directional":  true
+                      },
+                      {
+                          "Symbol":  "PETKM",
+                          "ReportDate":  "2026-08-06",
+                          "CompletedAt":  "2026-09-07T18:16:06.7758544Z",
+                          "SurpriseScore":  0,
+                          "DriftPct":  16.72,
+                          "DirectionalHit":  false,
                           "Directional":  true
                       }
                   ]
