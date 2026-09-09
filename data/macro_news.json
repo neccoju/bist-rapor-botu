@@ -1,9 +1,39 @@
 {
- "generatedAt": "2026-09-08T18:05:04.188639+00:00",
+ "generatedAt": "2026-09-09T17:59:28.817504+00:00",
  "source": "Google News RSS (TR) + kural tabanli siniflandirici",
  "note": "Baslik-kurali siniflandirmasi kabadir; rejim motoru bu olaylari dusuk guvenle ve sinirli sayida kullanir.",
- "count": 5,
+ "count": 4,
  "items": [
+  {
+   "id": "d21adf438ba5",
+   "title": "Petrol Fiyatları 6 Haftanın En Yüksek Seviyesine Çıktı - سانا",
+   "source": "سانا",
+   "date": "2026-09-09T11:50:14+00:00",
+   "engine": "rule",
+   "eventType": "commodity_oil",
+   "direction": -1,
+   "confidence": 0.35
+  },
+  {
+   "id": "a357fc3de094",
+   "title": "Brent petrolün varil fiyatı 100 doların üzerine çıktı - Gazete Oksijen",
+   "source": "Gazete Oksijen",
+   "date": "2026-09-09T09:52:03+00:00",
+   "engine": "rule",
+   "eventType": "fx_pressure",
+   "direction": -1,
+   "confidence": 0.35
+  },
+  {
+   "id": "bd3056024478",
+   "title": "Merkez Bankası faiz kararını açıklıyor: Masadaki indirim senaryoları - Sözcü Gazetesi",
+   "source": "Sözcü Gazetesi",
+   "date": "2026-09-09T06:01:00+00:00",
+   "engine": "rule",
+   "eventType": "interest_rate",
+   "direction": 1,
+   "confidence": 0.35
+  },
   {
    "id": "fa12bf2f0458",
    "title": "Piyasaların gözü Merkez Bankası'nda! Faiz indirimi olacak mı? İşte PPK öncesi masadaki tüm tahminler - Sabah",
@@ -13,46 +43,6 @@
    "eventType": "interest_rate",
    "direction": 1,
    "confidence": 0.25
-  },
-  {
-   "id": "3eab36b7b391",
-   "title": "TCMB faiz kararı öncesi kurumlardan kritik tahmin: İndirim ekime mi kaldı? - ekonomim.com",
-   "source": "ekonomim.com",
-   "date": "2026-09-07T07:20:00+00:00",
-   "engine": "rule",
-   "eventType": "interest_rate",
-   "direction": 1,
-   "confidence": 0.25
-  },
-  {
-   "id": "bcb4202052a1",
-   "title": "Brent petrol 97,82 dolara yükseldi - İlke Haber Ajansı",
-   "source": "İlke Haber Ajansı",
-   "date": "2026-09-07T06:54:08+00:00",
-   "engine": "rule",
-   "eventType": "fx_pressure",
-   "direction": -1,
-   "confidence": 0.35
-  },
-  {
-   "id": "d67af24f5924",
-   "title": "Hürmüz gerilimi ile petrol fiyatları yükseldi, altın fiyatları düştü - Güneydoğu Ekspres",
-   "source": "Güneydoğu Ekspres",
-   "date": "2026-09-07T06:46:00+00:00",
-   "engine": "rule",
-   "eventType": "commodity_oil",
-   "direction": -1,
-   "confidence": 0.35
-  },
-  {
-   "id": "3076901d2fe2",
-   "title": "Brent petrol 97,82 dolara yükseldi: Piyasaların gözü Orta Doğu'da - Yeniçağ Gazetesi",
-   "source": "Yeniçağ Gazetesi",
-   "date": "2026-09-07T06:31:51+00:00",
-   "engine": "rule",
-   "eventType": "fx_pressure",
-   "direction": -1,
-   "confidence": 0.35
   }
  ]
 }
