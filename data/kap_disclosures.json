@@ -1,45 +1,45 @@
 {
-  "generatedAt": "2026-09-25T14:32:39.261568+00:00",
+  "generatedAt": "2026-09-25T14:37:38.451347+00:00",
   "source": "borsapy 0.10.2",
   "universeSize": 809,
-  "rotationCursor": 334,
+  "rotationCursor": 434,
   "lastRun": {
     "priorityCount": 0,
     "prioritySymbols": [],
     "restSliceSize": 100,
-    "restSliceStart": 234,
+    "restSliceStart": 334,
     "restProcessed": 100,
     "processed": 100,
-    "fetchedOk": 96,
-    "newDisclosures": 60,
+    "fetchedOk": 99,
+    "newDisclosures": 47,
     "errors": 0,
     "cooldowns": 0,
-    "elapsedSec": 99
+    "elapsedSec": 112
   },
   "stocksWithNews": 791,
-  "totalDisclosures": 25824,
+  "totalDisclosures": 25844,
   "errors": 0,
   "categorySummary": {
-    "Piyasa/Teknik": 6633,
-    "Borclanma Araci": 4257,
+    "Piyasa/Teknik": 6635,
+    "Borclanma Araci": 4263,
     "Bilanco/Finansal": 2958,
-    "Diger": 2827,
-    "Ozel Durum (Genel)": 2733,
-    "Sirket Bilgi": 1153,
-    "Insider/Pay Bildirimi": 947,
+    "Diger": 2825,
+    "Ozel Durum (Genel)": 2736,
+    "Sirket Bilgi": 1154,
+    "Insider/Pay Bildirimi": 949,
     "Genel Kurul": 587,
-    "Geri Alim": 553,
-    "Sermaye Artirimi": 479,
-    "Kurumsal Yonetim": 463,
-    "Ihale/Sozlesme": 450,
+    "Geri Alim": 554,
+    "Sermaye Artirimi": 477,
+    "Kurumsal Yonetim": 464,
+    "Ihale/Sozlesme": 451,
     "Kredi Notu": 426,
     "Bagimsiz Denetim": 411,
-    "Halka Arz": 314,
+    "Halka Arz": 320,
     "Temettu": 268,
     "Varlik Alim/Satim": 153,
     "Hak Kullanimi": 140,
     "Hukuki/Dava": 39,
-    "Birlesme/Devralma": 33
+    "Birlesme/Devralma": 34
   },
   "stocks": {
     "ACSEL": [
@@ -82019,6 +82019,15 @@
     ],
     "GSDHO": [
       {
+        "date": "25.09.2026 09:09:50",
+        "title": "Pay Alım Satım Bildirimi",
+        "category": "Insider/Pay Bildirimi",
+        "importance": "insider",
+        "direction": "~",
+        "disclosureId": "1667981",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1667981"
+      },
+      {
         "date": "24.09.2026 09:32:52",
         "title": "Pay Alım Satım Bildirimi",
         "category": "Insider/Pay Bildirimi",
@@ -82368,15 +82377,6 @@
         "direction": "0",
         "disclosureId": "1616807",
         "url": "https://www.kap.org.tr/tr/Bildirim/1616807"
-      },
-      {
-        "date": "12.06.2026 10:09:59",
-        "title": "Pay Bazında Devre Kesici Bildirimi",
-        "category": "Piyasa/Teknik",
-        "importance": "noise",
-        "direction": "0",
-        "disclosureId": "1616586",
-        "url": "https://www.kap.org.tr/tr/Bildirim/1616586"
       }
     ],
     "GUBRF": [
@@ -82743,6 +82743,15 @@
     ],
     "GLRYH": [
       {
+        "date": "25.09.2026 13:05:42",
+        "title": "Pay Bazında Devre Kesici Bildirimi",
+        "category": "Piyasa/Teknik",
+        "importance": "noise",
+        "direction": "0",
+        "disclosureId": "1668107",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668107"
+      },
+      {
         "date": "24.09.2026 13:56:49",
         "title": "Pay Bazında Devre Kesici Bildirimi",
         "category": "Piyasa/Teknik",
@@ -83092,18 +83101,36 @@
         "direction": "0",
         "disclosureId": "1611389",
         "url": "https://www.kap.org.tr/tr/Bildirim/1611389"
-      },
-      {
-        "date": "13.05.2026 09:16:37",
-        "title": "Kamuyu Aydınlatma Platformu Duyurusu",
-        "category": "Diger",
-        "importance": "other",
-        "direction": "?",
-        "disclosureId": "1606535",
-        "url": "https://www.kap.org.tr/tr/Bildirim/1606535"
       }
     ],
     "GLRMK": [
+      {
+        "date": "25.09.2026 14:06:08",
+        "title": "Temerrüt İşlemi",
+        "category": "Diger",
+        "importance": "other",
+        "direction": "?",
+        "disclosureId": "1668118",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668118"
+      },
+      {
+        "date": "25.09.2026 12:26:26",
+        "title": "Temerrüt İşlemi",
+        "category": "Diger",
+        "importance": "other",
+        "direction": "?",
+        "disclosureId": "1668083",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668083"
+      },
+      {
+        "date": "24.09.2026 18:00:18",
+        "title": "Özel Durum Açıklaması (Genel)",
+        "category": "Ozel Durum (Genel)",
+        "importance": "high",
+        "direction": "?",
+        "disclosureId": "1667852",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1667852"
+      },
       {
         "date": "23.09.2026 18:40:57",
         "title": "Özel Durum Açıklaması (Genel)",
@@ -83720,6 +83747,15 @@
       }
     ],
     "GRSEL": [
+      {
+        "date": "24.09.2026 19:04:08",
+        "title": "Payların Geri Alınmasına İlişkin Bildirim",
+        "category": "Geri Alim",
+        "importance": "high",
+        "direction": "+",
+        "disclosureId": "1667927",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1667927"
+      },
       {
         "date": "23.09.2026 18:37:42",
         "title": "Payların Geri Alınmasına İlişkin Bildirim",
@@ -85288,6 +85324,24 @@
     ],
     "HALKI": [
       {
+        "date": "25.09.2026 17:07:17",
+        "title": "Borçlanma Araçları, Yatırım Fonları ve Varant İtfa/Kupon/Getiri/ Nakdi Uzlaşı Ödeme İşlemleri",
+        "category": "Borclanma Araci",
+        "importance": "debt",
+        "direction": "0",
+        "disclosureId": "1668221",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668221"
+      },
+      {
+        "date": "25.09.2026 15:46:40",
+        "title": "Pay Dışında Sermaye Piyasası Aracı İşlemlerine İlişkin Bildirim (Faiz İçeren)",
+        "category": "Borclanma Araci",
+        "importance": "debt",
+        "direction": "0",
+        "disclosureId": "1668179",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668179"
+      },
+      {
         "date": "18.09.2026 18:49:11",
         "title": "İhraç Tavanına İlişkin Bildirim",
         "category": "Borclanma Araci",
@@ -85628,28 +85682,28 @@
         "direction": "0",
         "disclosureId": "1634153",
         "url": "https://www.kap.org.tr/tr/Bildirim/1634153"
-      },
-      {
-        "date": "16.07.2026 14:38:08",
-        "title": "Pay Dışında Sermaye Piyasası Aracı İşlemlerine İlişkin Bildirim (Faiz İçeren)",
-        "category": "Borclanma Araci",
-        "importance": "debt",
-        "direction": "0",
-        "disclosureId": "1634062",
-        "url": "https://www.kap.org.tr/tr/Bildirim/1634062"
-      },
-      {
-        "date": "10.07.2026 01:02:58",
-        "title": "Halka Arz İşlemlerinde Sermaye Piyasası Aracının % 5 inden Fazlasını Satın Alanlara İlişkin Bildirim",
-        "category": "Halka Arz",
-        "importance": "high",
-        "direction": "~",
-        "disclosureId": "1631338",
-        "url": "https://www.kap.org.tr/tr/Bildirim/1631338"
       }
     ],
     "HLY": [
       {
+        "date": "25.09.2026 17:07:17",
+        "title": "Borçlanma Araçları, Yatırım Fonları ve Varant İtfa/Kupon/Getiri/ Nakdi Uzlaşı Ödeme İşlemleri",
+        "category": "Borclanma Araci",
+        "importance": "debt",
+        "direction": "0",
+        "disclosureId": "1668221",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668221"
+      },
+      {
+        "date": "25.09.2026 15:46:40",
+        "title": "Pay Dışında Sermaye Piyasası Aracı İşlemlerine İlişkin Bildirim (Faiz İçeren)",
+        "category": "Borclanma Araci",
+        "importance": "debt",
+        "direction": "0",
+        "disclosureId": "1668179",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668179"
+      },
+      {
         "date": "18.09.2026 18:49:11",
         "title": "İhraç Tavanına İlişkin Bildirim",
         "category": "Borclanma Araci",
@@ -85990,24 +86044,6 @@
         "direction": "0",
         "disclosureId": "1634153",
         "url": "https://www.kap.org.tr/tr/Bildirim/1634153"
-      },
-      {
-        "date": "16.07.2026 14:38:08",
-        "title": "Pay Dışında Sermaye Piyasası Aracı İşlemlerine İlişkin Bildirim (Faiz İçeren)",
-        "category": "Borclanma Araci",
-        "importance": "debt",
-        "direction": "0",
-        "disclosureId": "1634062",
-        "url": "https://www.kap.org.tr/tr/Bildirim/1634062"
-      },
-      {
-        "date": "10.07.2026 01:02:58",
-        "title": "Halka Arz İşlemlerinde Sermaye Piyasası Aracının % 5 inden Fazlasını Satın Alanlara İlişkin Bildirim",
-        "category": "Halka Arz",
-        "importance": "high",
-        "direction": "~",
-        "disclosureId": "1631338",
-        "url": "https://www.kap.org.tr/tr/Bildirim/1631338"
       }
     ],
     "HRKET": [
@@ -86373,6 +86409,15 @@
       }
     ],
     "HATEK": [
+      {
+        "date": "25.09.2026 10:11:07",
+        "title": "Pay Bazında Devre Kesici Bildirimi",
+        "category": "Piyasa/Teknik",
+        "importance": "noise",
+        "direction": "0",
+        "disclosureId": "1668027",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668027"
+      },
       {
         "date": "24.09.2026 15:20:39",
         "title": "Özel Durum Açıklaması (Genel)",
@@ -88719,6 +88764,33 @@
     ],
     "HDFYB": [
       {
+        "date": "25.09.2026 17:07:17",
+        "title": "Borçlanma Araçları, Yatırım Fonları ve Varant İtfa/Kupon/Getiri/ Nakdi Uzlaşı Ödeme İşlemleri",
+        "category": "Borclanma Araci",
+        "importance": "debt",
+        "direction": "0",
+        "disclosureId": "1668221",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668221"
+      },
+      {
+        "date": "25.09.2026 14:39:02",
+        "title": "Pay Dışında Sermaye Piyasası Aracı İşlemlerine İlişkin Bildirim (Faiz İçeren)",
+        "category": "Borclanma Araci",
+        "importance": "debt",
+        "direction": "0",
+        "disclosureId": "1668141",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668141"
+      },
+      {
+        "date": "25.09.2026 11:20:58",
+        "title": "Pay Dışında Sermaye Piyasası Aracı İşlemlerine İlişkin Bildirim (Faiz İçeren)",
+        "category": "Borclanma Araci",
+        "importance": "debt",
+        "direction": "0",
+        "disclosureId": "1668051",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668051"
+      },
+      {
         "date": "23.09.2026 18:58:09",
         "title": "Kredi Derecelendirmesi",
         "category": "Kredi Notu",
@@ -89044,6 +89116,33 @@
       }
     ],
     "HYB": [
+      {
+        "date": "25.09.2026 17:07:17",
+        "title": "Borçlanma Araçları, Yatırım Fonları ve Varant İtfa/Kupon/Getiri/ Nakdi Uzlaşı Ödeme İşlemleri",
+        "category": "Borclanma Araci",
+        "importance": "debt",
+        "direction": "0",
+        "disclosureId": "1668221",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668221"
+      },
+      {
+        "date": "25.09.2026 14:39:02",
+        "title": "Pay Dışında Sermaye Piyasası Aracı İşlemlerine İlişkin Bildirim (Faiz İçeren)",
+        "category": "Borclanma Araci",
+        "importance": "debt",
+        "direction": "0",
+        "disclosureId": "1668141",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668141"
+      },
+      {
+        "date": "25.09.2026 11:20:58",
+        "title": "Pay Dışında Sermaye Piyasası Aracı İşlemlerine İlişkin Bildirim (Faiz İçeren)",
+        "category": "Borclanma Araci",
+        "importance": "debt",
+        "direction": "0",
+        "disclosureId": "1668051",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668051"
+      },
       {
         "date": "23.09.2026 18:58:09",
         "title": "Kredi Derecelendirmesi",
@@ -101785,6 +101884,15 @@
     ],
     "ENTRA": [
       {
+        "date": "25.09.2026 09:10:04",
+        "title": "Pay Alım Satım Bildirimi",
+        "category": "Insider/Pay Bildirimi",
+        "importance": "insider",
+        "direction": "~",
+        "disclosureId": "1667982",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1667982"
+      },
+      {
         "date": "23.09.2026 15:18:07",
         "title": "Pay Alım Satım Bildirimi",
         "category": "Insider/Pay Bildirimi",
@@ -102134,15 +102242,6 @@
         "direction": "?",
         "disclosureId": "1617540",
         "url": "https://www.kap.org.tr/tr/Bildirim/1617540"
-      },
-      {
-        "date": "16.06.2026 09:21:49",
-        "title": "Sermaye Artırımı - Azaltımı İşlemlerine İlişkin Bildirim",
-        "category": "Sermaye Artirimi",
-        "importance": "high",
-        "direction": "~",
-        "disclosureId": "1617530",
-        "url": "https://www.kap.org.tr/tr/Bildirim/1617530"
       }
     ],
     "ICB": [
@@ -102781,6 +102880,24 @@
     ],
     "ICUGS": [
       {
+        "date": "25.09.2026 13:59:28",
+        "title": "Temerrüt İşlemi",
+        "category": "Diger",
+        "importance": "other",
+        "direction": "?",
+        "disclosureId": "1668115",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668115"
+      },
+      {
+        "date": "25.09.2026 12:29:19",
+        "title": "Temerrüt İşlemi",
+        "category": "Diger",
+        "importance": "other",
+        "direction": "?",
+        "disclosureId": "1668088",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668088"
+      },
+      {
         "date": "24.09.2026 16:39:21",
         "title": "Pay Alım Satım Bildirimi",
         "category": "Insider/Pay Bildirimi",
@@ -103121,24 +103238,6 @@
         "direction": "0",
         "disclosureId": "1646912",
         "url": "https://www.kap.org.tr/tr/Bildirim/1646912"
-      },
-      {
-        "date": "03.08.2026 11:09:05",
-        "title": "Pay Bazında Devre Kesici Bildirimi",
-        "category": "Piyasa/Teknik",
-        "importance": "noise",
-        "direction": "0",
-        "disclosureId": "1641931",
-        "url": "https://www.kap.org.tr/tr/Bildirim/1641931"
-      },
-      {
-        "date": "31.07.2026 10:40:53",
-        "title": "Pay Bazında Devre Kesici Bildirimi",
-        "category": "Piyasa/Teknik",
-        "importance": "noise",
-        "direction": "0",
-        "disclosureId": "1640107",
-        "url": "https://www.kap.org.tr/tr/Bildirim/1640107"
       }
     ],
     "INGRM": [
@@ -103369,6 +103468,15 @@
       }
     ],
     "INVEO": [
+      {
+        "date": "25.09.2026 09:06:37",
+        "title": "Pay Alım Satım Bildirimi",
+        "category": "Insider/Pay Bildirimi",
+        "importance": "insider",
+        "direction": "~",
+        "disclosureId": "1667977",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1667977"
+      },
       {
         "date": "24.09.2026 09:19:34",
         "title": "Pay Alım Satım Bildirimi",
@@ -108383,6 +108491,15 @@
     ],
     "ISDMR": [
       {
+        "date": "25.09.2026 12:13:30",
+        "title": "Pay Bazında Devre Kesici Bildirimi",
+        "category": "Piyasa/Teknik",
+        "importance": "noise",
+        "direction": "0",
+        "disclosureId": "1668074",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668074"
+      },
+      {
         "date": "21.09.2026 22:09:24",
         "title": "BIST Pay Endeksleri",
         "category": "Piyasa/Teknik",
@@ -110197,6 +110314,51 @@
     ],
     "ISMEN": [
       {
+        "date": "25.09.2026 17:07:17",
+        "title": "Borçlanma Araçları, Yatırım Fonları ve Varant İtfa/Kupon/Getiri/ Nakdi Uzlaşı Ödeme İşlemleri",
+        "category": "Borclanma Araci",
+        "importance": "debt",
+        "direction": "0",
+        "disclosureId": "1668221",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668221"
+      },
+      {
+        "date": "25.09.2026 15:43:40",
+        "title": "İzahname-Sermaye Piyasası Aracı Notu (SPK Tarafından Onaylanan)",
+        "category": "Halka Arz",
+        "importance": "high",
+        "direction": "~",
+        "disclosureId": "1668177",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668177"
+      },
+      {
+        "date": "25.09.2026 15:42:49",
+        "title": "İzahname-Sermaye Piyasası Aracı Notu (SPK Tarafından Onaylanan)",
+        "category": "Halka Arz",
+        "importance": "high",
+        "direction": "~",
+        "disclosureId": "1668175",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668175"
+      },
+      {
+        "date": "25.09.2026 15:39:28",
+        "title": "İzahname-Özet (SPK Tarafından Onaylanan)",
+        "category": "Halka Arz",
+        "importance": "high",
+        "direction": "~",
+        "disclosureId": "1668167",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668167"
+      },
+      {
+        "date": "25.09.2026 15:38:52",
+        "title": "İzahname-İhraççı Bİlgi Dokümanı (SPK Tarafından Onaylanan)",
+        "category": "Halka Arz",
+        "importance": "high",
+        "direction": "~",
+        "disclosureId": "1668166",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668166"
+      },
+      {
         "date": "24.09.2026 18:26:06",
         "title": "Pay Dışında Sermaye Piyasası Aracı İşlemlerine İlişkin Bildirim (Faiz İçeren)",
         "category": "Borclanma Araci",
@@ -110510,55 +110672,55 @@
         "direction": "0",
         "disclosureId": "1664871",
         "url": "https://www.kap.org.tr/tr/Bildirim/1664871"
-      },
-      {
-        "date": "17.09.2026 17:16:17",
-        "title": "Borçlanma Araçları, Yatırım Fonları ve Varant İtfa/Kupon/Getiri/ Nakdi Uzlaşı Ödeme İşlemleri",
-        "category": "Borclanma Araci",
-        "importance": "debt",
-        "direction": "0",
-        "disclosureId": "1664763",
-        "url": "https://www.kap.org.tr/tr/Bildirim/1664763"
-      },
-      {
-        "date": "17.09.2026 16:17:41",
-        "title": "Yatırım Kuruluşu Varant - Sertifika - Senetlerine İlişkin Bildirim",
-        "category": "Borclanma Araci",
-        "importance": "debt",
-        "direction": "0",
-        "disclosureId": "1664691",
-        "url": "https://www.kap.org.tr/tr/Bildirim/1664691"
-      },
-      {
-        "date": "17.09.2026 16:12:39",
-        "title": "Piyasa Yapıcılığı Kapsamında Gerçekleştirilen İşlemler Bildirimi",
-        "category": "Diger",
-        "importance": "other",
-        "direction": "?",
-        "disclosureId": "1664689",
-        "url": "https://www.kap.org.tr/tr/Bildirim/1664689"
-      },
-      {
-        "date": "17.09.2026 16:10:54",
-        "title": "Piyasa Yapıcılığı Kapsamında Gerçekleştirilen İşlemler Bildirimi",
-        "category": "Diger",
-        "importance": "other",
-        "direction": "?",
-        "disclosureId": "1664688",
-        "url": "https://www.kap.org.tr/tr/Bildirim/1664688"
-      },
-      {
-        "date": "17.09.2026 16:09:58",
-        "title": "Piyasa Yapıcılığı Kapsamında Gerçekleştirilen İşlemler Bildirimi",
-        "category": "Diger",
-        "importance": "other",
-        "direction": "?",
-        "disclosureId": "1664687",
-        "url": "https://www.kap.org.tr/tr/Bildirim/1664687"
       }
     ],
     "IYM": [
       {
+        "date": "25.09.2026 17:07:17",
+        "title": "Borçlanma Araçları, Yatırım Fonları ve Varant İtfa/Kupon/Getiri/ Nakdi Uzlaşı Ödeme İşlemleri",
+        "category": "Borclanma Araci",
+        "importance": "debt",
+        "direction": "0",
+        "disclosureId": "1668221",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668221"
+      },
+      {
+        "date": "25.09.2026 15:43:40",
+        "title": "İzahname-Sermaye Piyasası Aracı Notu (SPK Tarafından Onaylanan)",
+        "category": "Halka Arz",
+        "importance": "high",
+        "direction": "~",
+        "disclosureId": "1668177",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668177"
+      },
+      {
+        "date": "25.09.2026 15:42:49",
+        "title": "İzahname-Sermaye Piyasası Aracı Notu (SPK Tarafından Onaylanan)",
+        "category": "Halka Arz",
+        "importance": "high",
+        "direction": "~",
+        "disclosureId": "1668175",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668175"
+      },
+      {
+        "date": "25.09.2026 15:39:28",
+        "title": "İzahname-Özet (SPK Tarafından Onaylanan)",
+        "category": "Halka Arz",
+        "importance": "high",
+        "direction": "~",
+        "disclosureId": "1668167",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668167"
+      },
+      {
+        "date": "25.09.2026 15:38:52",
+        "title": "İzahname-İhraççı Bİlgi Dokümanı (SPK Tarafından Onaylanan)",
+        "category": "Halka Arz",
+        "importance": "high",
+        "direction": "~",
+        "disclosureId": "1668166",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668166"
+      },
+      {
         "date": "24.09.2026 18:26:06",
         "title": "Pay Dışında Sermaye Piyasası Aracı İşlemlerine İlişkin Bildirim (Faiz İçeren)",
         "category": "Borclanma Araci",
@@ -110872,51 +111034,6 @@
         "direction": "0",
         "disclosureId": "1664871",
         "url": "https://www.kap.org.tr/tr/Bildirim/1664871"
-      },
-      {
-        "date": "17.09.2026 17:16:17",
-        "title": "Borçlanma Araçları, Yatırım Fonları ve Varant İtfa/Kupon/Getiri/ Nakdi Uzlaşı Ödeme İşlemleri",
-        "category": "Borclanma Araci",
-        "importance": "debt",
-        "direction": "0",
-        "disclosureId": "1664763",
-        "url": "https://www.kap.org.tr/tr/Bildirim/1664763"
-      },
-      {
-        "date": "17.09.2026 16:17:41",
-        "title": "Yatırım Kuruluşu Varant - Sertifika - Senetlerine İlişkin Bildirim",
-        "category": "Borclanma Araci",
-        "importance": "debt",
-        "direction": "0",
-        "disclosureId": "1664691",
-        "url": "https://www.kap.org.tr/tr/Bildirim/1664691"
-      },
-      {
-        "date": "17.09.2026 16:12:39",
-        "title": "Piyasa Yapıcılığı Kapsamında Gerçekleştirilen İşlemler Bildirimi",
-        "category": "Diger",
-        "importance": "other",
-        "direction": "?",
-        "disclosureId": "1664689",
-        "url": "https://www.kap.org.tr/tr/Bildirim/1664689"
-      },
-      {
-        "date": "17.09.2026 16:10:54",
-        "title": "Piyasa Yapıcılığı Kapsamında Gerçekleştirilen İşlemler Bildirimi",
-        "category": "Diger",
-        "importance": "other",
-        "direction": "?",
-        "disclosureId": "1664688",
-        "url": "https://www.kap.org.tr/tr/Bildirim/1664688"
-      },
-      {
-        "date": "17.09.2026 16:09:58",
-        "title": "Piyasa Yapıcılığı Kapsamında Gerçekleştirilen İşlemler Bildirimi",
-        "category": "Diger",
-        "importance": "other",
-        "direction": "?",
-        "disclosureId": "1664687",
-        "url": "https://www.kap.org.tr/tr/Bildirim/1664687"
       }
     ],
     "ISYAT": [
@@ -111228,6 +111345,15 @@
       }
     ],
     "ISBIR": [
+      {
+        "date": "25.09.2026 17:35:11",
+        "title": "Borsada İşlem Gören Tipe Dönüşüm Duyurusu",
+        "category": "Piyasa/Teknik",
+        "importance": "noise",
+        "direction": "0",
+        "disclosureId": "1668251",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668251"
+      },
       {
         "date": "22.09.2026 17:09:26",
         "title": "Borsada İşlem Gören Tipe Dönüşüm Duyurusu",
@@ -111545,6 +111671,24 @@
       }
     ],
     "ISSEN": [
+      {
+        "date": "25.09.2026 11:41:44",
+        "title": "Esas Sözleşme",
+        "category": "Ihale/Sozlesme",
+        "importance": "high",
+        "direction": "+",
+        "disclosureId": "1668065",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668065"
+      },
+      {
+        "date": "25.09.2026 11:41:35",
+        "title": "Birleşme İşlemlerine İlişkin Bildirim",
+        "category": "Birlesme/Devralma",
+        "importance": "high",
+        "direction": "+",
+        "disclosureId": "1668064",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668064"
+      },
       {
         "date": "24.09.2026 16:08:59",
         "title": "Pay Bazında Devre Kesici Bildirimi",
@@ -117034,6 +117178,15 @@
     ],
     "KRTEK": [
       {
+        "date": "25.09.2026 10:01:27",
+        "title": "Pay Bazında Devre Kesici Bildirimi",
+        "category": "Piyasa/Teknik",
+        "importance": "noise",
+        "direction": "0",
+        "disclosureId": "1668017",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668017"
+      },
+      {
         "date": "21.09.2026 10:57:02",
         "title": "Pay Bazında Devre Kesici Bildirimi",
         "category": "Piyasa/Teknik",
@@ -117383,18 +117536,27 @@
         "direction": "~",
         "disclosureId": "1604226",
         "url": "https://www.kap.org.tr/tr/Bildirim/1604226"
-      },
-      {
-        "date": "11.05.2026 11:22:05",
-        "title": "Sermaye Artırımı - Azaltımı İşlemlerine İlişkin Bildirim",
-        "category": "Sermaye Artirimi",
-        "importance": "high",
-        "direction": "~",
-        "disclosureId": "1604225",
-        "url": "https://www.kap.org.tr/tr/Bildirim/1604225"
       }
     ],
     "KARTN": [
+      {
+        "date": "25.09.2026 15:45:34",
+        "title": "Şirket Merkezi Değişikliği",
+        "category": "Diger",
+        "importance": "other",
+        "direction": "?",
+        "disclosureId": "1668178",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668178"
+      },
+      {
+        "date": "25.09.2026 10:18:58",
+        "title": "Pay Bazında Devre Kesici Bildirimi",
+        "category": "Piyasa/Teknik",
+        "importance": "noise",
+        "direction": "0",
+        "disclosureId": "1668029",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668029"
+      },
       {
         "date": "24.09.2026 17:42:37",
         "title": "Pay Bazında Devre Kesici Bildirimi",
@@ -117736,24 +117898,6 @@
         "direction": "0",
         "disclosureId": "1643302",
         "url": "https://www.kap.org.tr/tr/Bildirim/1643302"
-      },
-      {
-        "date": "04.08.2026 13:42:18",
-        "title": "Pay Bazında Devre Kesici Bildirimi",
-        "category": "Piyasa/Teknik",
-        "importance": "noise",
-        "direction": "0",
-        "disclosureId": "1642673",
-        "url": "https://www.kap.org.tr/tr/Bildirim/1642673"
-      },
-      {
-        "date": "04.08.2026 11:16:41",
-        "title": "Pay Alım Satım Bildirimi",
-        "category": "Insider/Pay Bildirimi",
-        "importance": "insider",
-        "direction": "~",
-        "disclosureId": "1642639",
-        "url": "https://www.kap.org.tr/tr/Bildirim/1642639"
       }
     ],
     "KATVK": [
@@ -118120,6 +118264,33 @@
     ],
     "KTLEV": [
       {
+        "date": "25.09.2026 13:58:02",
+        "title": "Temerrüt İşlemi",
+        "category": "Diger",
+        "importance": "other",
+        "direction": "?",
+        "disclosureId": "1668113",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668113"
+      },
+      {
+        "date": "25.09.2026 12:28:30",
+        "title": "Temerrüt İşlemi",
+        "category": "Diger",
+        "importance": "other",
+        "direction": "?",
+        "disclosureId": "1668087",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668087"
+      },
+      {
+        "date": "25.09.2026 09:45:05",
+        "title": "Özel Durum Açıklaması (Genel)",
+        "category": "Ozel Durum (Genel)",
+        "importance": "high",
+        "direction": "?",
+        "disclosureId": "1668004",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668004"
+      },
+      {
         "date": "24.09.2026 14:36:25",
         "title": "Temerrüt İşlemi",
         "category": "Diger",
@@ -118451,36 +118622,36 @@
         "direction": "?",
         "disclosureId": "1659273",
         "url": "https://www.kap.org.tr/tr/Bildirim/1659273"
-      },
-      {
-        "date": "07.09.2026 09:10:14",
-        "title": "Kamuyu Aydınlatma Platformu Duyurusu",
-        "category": "Diger",
-        "importance": "other",
-        "direction": "?",
-        "disclosureId": "1659272",
-        "url": "https://www.kap.org.tr/tr/Bildirim/1659272"
-      },
-      {
-        "date": "04.09.2026 10:54:03",
-        "title": "Pay Alım Satım Bildirimi",
-        "category": "Insider/Pay Bildirimi",
-        "importance": "insider",
-        "direction": "~",
-        "disclosureId": "1658791",
-        "url": "https://www.kap.org.tr/tr/Bildirim/1658791"
-      },
-      {
-        "date": "04.09.2026 09:07:57",
-        "title": "Kamuyu Aydınlatma Platformu Duyurusu",
-        "category": "Diger",
-        "importance": "other",
-        "direction": "?",
-        "disclosureId": "1658705",
-        "url": "https://www.kap.org.tr/tr/Bildirim/1658705"
       }
     ],
     "KATMR": [
+      {
+        "date": "25.09.2026 16:23:55",
+        "title": "Kurumsal Yönetim Bilgi Formu (Güncelleme) - Yönetim Kurulu-2",
+        "category": "Kurumsal Yonetim",
+        "importance": "governance",
+        "direction": "0",
+        "disclosureId": "1668200",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668200"
+      },
+      {
+        "date": "25.09.2026 16:23:20",
+        "title": "Şirket Genel Bilgi Formu",
+        "category": "Sirket Bilgi",
+        "importance": "governance",
+        "direction": "0",
+        "disclosureId": "1668199",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668199"
+      },
+      {
+        "date": "25.09.2026 16:23:01",
+        "title": "Özel Durum Açıklaması (Genel)",
+        "category": "Ozel Durum (Genel)",
+        "importance": "high",
+        "direction": "?",
+        "disclosureId": "1668198",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668198"
+      },
       {
         "date": "23.09.2026 18:40:17",
         "title": "Kredi Derecelendirmesi",
@@ -118771,6 +118942,24 @@
       }
     ],
     "KFILO": [
+      {
+        "date": "25.09.2026 17:07:17",
+        "title": "Borçlanma Araçları, Yatırım Fonları ve Varant İtfa/Kupon/Getiri/ Nakdi Uzlaşı Ödeme İşlemleri",
+        "category": "Borclanma Araci",
+        "importance": "debt",
+        "direction": "0",
+        "disclosureId": "1668221",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668221"
+      },
+      {
+        "date": "25.09.2026 15:42:55",
+        "title": "Pay Dışında Sermaye Piyasası Aracı İşlemlerine İlişkin Bildirim (Faiz İçeren)",
+        "category": "Borclanma Araci",
+        "importance": "debt",
+        "direction": "0",
+        "disclosureId": "1668176",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1668176"
+      },
       {
         "date": "24.09.2026 17:43:33",
         "title": "Pay Dışında Sermaye Piyasası Aracı İşlemlerine İlişkin Bildirim (Faiz İçeren)",
@@ -119112,24 +119301,6 @@
         "direction": "0",
         "disclosureId": "1619403",
         "url": "https://www.kap.org.tr/tr/Bildirim/1619403"
-      },
-      {
-        "date": "22.06.2026 17:03:12",
-        "title": "Pay Dışında Sermaye Piyasası Aracı İşlemlerine İlişkin Bildirim (Faiz İçeren)",
-        "category": "Borclanma Araci",
-        "importance": "debt",
-        "direction": "0",
-        "disclosureId": "1619401",
-        "url": "https://www.kap.org.tr/tr/Bildirim/1619401"
-      },
-      {
-        "date": "15.06.2026 17:47:26",
-        "title": "Borçlanma Araçlarının / Kira Sertifikalarının İşlem Görmeye Başlaması",
-        "category": "Borclanma Araci",
-        "importance": "debt",
-        "direction": "0",
-        "disclosureId": "1617328",
-        "url": "https://www.kap.org.tr/tr/Bildirim/1617328"
       }
     ],
     "KAYSE": [
@@ -233210,6 +233381,15 @@
       }
     ],
     "INTET": [
+      {
+        "date": "25.09.2026 09:05:45",
+        "title": "Pay Alım Satım Bildirimi",
+        "category": "Insider/Pay Bildirimi",
+        "importance": "insider",
+        "direction": "~",
+        "disclosureId": "1667974",
+        "url": "https://www.kap.org.tr/tr/Bildirim/1667974"
+      },
       {
         "date": "24.09.2026 10:06:12",
         "title": "Pay Alım Satım Bildirimi",
