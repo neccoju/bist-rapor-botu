@@ -1,18 +1,38 @@
 {
- "generatedAt": "2026-09-25T18:52:34.701781+00:00",
+ "generatedAt": "2026-09-28T20:48:08.283517+00:00",
  "source": "Google News RSS (TR) + kural tabanli siniflandirici",
  "note": "Baslik-kurali siniflandirmasi kabadir; rejim motoru bu olaylari dusuk guvenle ve sinirli sayida kullanir.",
- "count": 1,
+ "count": 3,
  "items": [
   {
-   "id": "016e6f5623b5",
-   "title": "Brent petrol 103,65 dolara yükseldi, Hürmüz Boğazı belirsizliği fiyatı destekliyor - Haberler",
-   "source": "Haberler",
-   "date": "2026-09-24T07:12:38+00:00",
+   "id": "89522d235818",
+   "title": "New York borsası güne düşüşle başladı, Brent petrol 106,81 dolara yükseldi - Son Dakika",
+   "source": "Son Dakika",
+   "date": "2026-09-28T14:07:18+00:00",
    "engine": "rule",
    "eventType": "fx_pressure",
    "direction": -1,
    "confidence": 0.35
+  },
+  {
+   "id": "fbd45e6eaf53",
+   "title": "Türkiye’nin CDS’inde fon etkisi: 4 ayın zirvesine çıktı - Paratic Haber",
+   "source": "Paratic Haber",
+   "date": "2026-09-28T10:33:24+00:00",
+   "engine": "rule",
+   "eventType": "cds_risk",
+   "direction": -1,
+   "confidence": 0.35
+  },
+  {
+   "id": "30b97bbf2e65",
+   "title": "Brent petrol ateşkes beklentilerinin zayıflamasıyla yükseldi - Uzmanpara",
+   "source": "Uzmanpara",
+   "date": "2026-09-28T06:58:04+00:00",
+   "engine": "rule",
+   "eventType": "commodity_oil",
+   "direction": -1,
+   "confidence": 0.25
   }
  ]
 }
