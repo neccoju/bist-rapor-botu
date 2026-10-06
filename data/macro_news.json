@@ -1,9 +1,19 @@
 {
- "generatedAt": "2026-10-05T21:37:55.338948+00:00",
+ "generatedAt": "2026-10-06T19:49:11.538017+00:00",
  "source": "Google News RSS (TR) + kural tabanli siniflandirici",
  "note": "Baslik-kurali siniflandirmasi kabadir; rejim motoru bu olaylari dusuk guvenle ve sinirli sayida kullanir.",
- "count": 4,
+ "count": 6,
  "items": [
+  {
+   "id": "ee73214245d3",
+   "title": "Brent petrol yeniden 100 doların üzerine çıktı - Rudaw",
+   "source": "Rudaw",
+   "date": "2026-10-06T08:50:27+00:00",
+   "engine": "rule",
+   "eventType": "fx_pressure",
+   "direction": -1,
+   "confidence": 0.35
+  },
   {
    "id": "b7f861d299cb",
    "title": "Faiz indirimi beklentisi güçlendi: Gözler 22 Ekim'de Merkez Bankası kararında - 24saatgazetesi.com",
@@ -19,6 +29,16 @@
    "title": "Enflasyonda 5 yıl sonra bir ilk: TÜİK'e göre fiyatlar yüzde 29,73 arttı - dw.com",
    "source": "dw.com",
    "date": "2026-10-05T08:04:18+00:00",
+   "engine": "rule",
+   "eventType": "inflation",
+   "direction": -1,
+   "confidence": 0.35
+  },
+  {
+   "id": "d469aa9e4353",
+   "title": "Enflasyonda 5 yıl sonra bir ilk: TÜİK'e göre fiyatlar yüzde 29,73 arttı - DW.com",
+   "source": "DW.com",
+   "date": "2026-10-05T08:02:49+00:00",
    "engine": "rule",
    "eventType": "inflation",
    "direction": -1,
