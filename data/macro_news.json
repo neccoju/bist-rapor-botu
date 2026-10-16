@@ -1,9 +1,29 @@
 {
- "generatedAt": "2026-10-15T18:39:05.129005+00:00",
+ "generatedAt": "2026-10-16T18:20:39.983409+00:00",
  "source": "Google News RSS (TR) + kural tabanli siniflandirici",
  "note": "Baslik-kurali siniflandirmasi kabadir; rejim motoru bu olaylari dusuk guvenle ve sinirli sayida kullanir.",
- "count": 7,
+ "count": 8,
  "items": [
+  {
+   "id": "4b824a6c3855",
+   "title": "Brent petrol 110 dolara yükseldi - Son Dakika",
+   "source": "Son Dakika",
+   "date": "2026-10-16T17:17:44+00:00",
+   "engine": "rule",
+   "eventType": "fx_pressure",
+   "direction": -1,
+   "confidence": 0.35
+  },
+  {
+   "id": "25718fca68c2",
+   "title": "TCMB faiz kararı öncesi beklenti değişti: İndirim sinyali - Kamudanhaber",
+   "source": "Kamudanhaber",
+   "date": "2026-10-16T12:15:00+00:00",
+   "engine": "rule",
+   "eventType": "interest_rate",
+   "direction": 1,
+   "confidence": 0.25
+  },
   {
    "id": "1b2a22133e35",
    "title": "Petrol fiyatları 1 doların üzerinde geriledi: Brent 104,47 dolara düştü - Rudaw",
@@ -63,16 +83,6 @@
    "eventType": "interest_rate",
    "direction": 1,
    "confidence": 0.35
-  },
-  {
-   "id": "88c8d42a1cae",
-   "title": "TCMB Ekim 2026 faiz kararı: 100 baz puan indirim beklentisi - Investing.com Türkiye",
-   "source": "Investing.com Türkiye",
-   "date": "2026-10-14T08:19:19+00:00",
-   "engine": "rule",
-   "eventType": "interest_rate",
-   "direction": 1,
-   "confidence": 0.25
   }
  ]
 }
