@@ -1,9 +1,59 @@
 {
- "generatedAt": "2026-10-21T18:54:37.981880+00:00",
+ "generatedAt": "2026-10-22T18:48:31.740569+00:00",
  "source": "Google News RSS (TR) + kural tabanli siniflandirici",
  "note": "Baslik-kurali siniflandirmasi kabadir; rejim motoru bu olaylari dusuk guvenle ve sinirli sayida kullanir.",
- "count": 3,
+ "count": 7,
  "items": [
+  {
+   "id": "2a44e4d4b07e",
+   "title": "TCMB MERKEZ BANKASI FAİZ KARARI EKİM 2026! Merkez Bankası faiz kararı ne oldu, yüzde kaç açıklandı? TCMB faiz kararını sabit mi tuttu, indirdi mi? - Uzmanpara",
+   "source": "Uzmanpara",
+   "date": "2026-10-22T14:43:41+00:00",
+   "engine": "rule",
+   "eventType": "interest_rate",
+   "direction": 1,
+   "confidence": 0.35
+  },
+  {
+   "id": "2b3b116ccb0d",
+   "title": "TCMB faiz kararını açıkladı: Ocaktan bu yana ilk faiz indirimi - Euronews.com",
+   "source": "Euronews.com",
+   "date": "2026-10-22T11:12:20+00:00",
+   "engine": "rule",
+   "eventType": "interest_rate",
+   "direction": 1,
+   "confidence": 0.35
+  },
+  {
+   "id": "ca9908a442bf",
+   "title": "Brent petrol fiyatı, Mayıs’tan bu yana ilk kez 112 doların üzerine çıktı - OGÜN Haber",
+   "source": "OGÜN Haber",
+   "date": "2026-10-22T10:26:20+00:00",
+   "engine": "rule",
+   "eventType": "fx_pressure",
+   "direction": -1,
+   "confidence": 0.35
+  },
+  {
+   "id": "fa57b130fae1",
+   "title": "Brent petrol Orta Doğu'daki gerilimle yeniden 111 doların üzerine çıktı - Forbes Türkiye",
+   "source": "Forbes Türkiye",
+   "date": "2026-10-22T06:45:00+00:00",
+   "engine": "rule",
+   "eventType": "fx_pressure",
+   "direction": -1,
+   "confidence": 0.35
+  },
+  {
+   "id": "802727a31c1e",
+   "title": "Petrol fiyatları yükseldi: Brent petrol 110 doları aştı! - Kibris Gerçek",
+   "source": "Kibris Gerçek",
+   "date": "2026-10-22T05:33:00+00:00",
+   "engine": "rule",
+   "eventType": "commodity_oil",
+   "direction": -1,
+   "confidence": 0.35
+  },
   {
    "id": "a8de304d1719",
    "title": "Brent petrol 2 dolardan fazla yükseldi - Foreks.com",
@@ -21,16 +71,6 @@
    "date": "2026-10-21T07:22:38+00:00",
    "engine": "rule",
    "eventType": "fx_pressure",
-   "direction": -1,
-   "confidence": 0.35
-  },
-  {
-   "id": "c524b0866542",
-   "title": "Brent petrol beş ayın zirvesine çıktı - Gazete Oksijen",
-   "source": "Gazete Oksijen",
-   "date": "2026-10-20T14:01:00+00:00",
-   "engine": "rule",
-   "eventType": "commodity_oil",
    "direction": -1,
    "confidence": 0.35
   }
