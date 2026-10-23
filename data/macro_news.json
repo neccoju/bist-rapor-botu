@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-22T18:48:31.740569+00:00",
+ "generatedAt": "2026-10-23T18:42:34.933443+00:00",
  "source": "Google News RSS (TR) + kural tabanli siniflandirici",
  "note": "Baslik-kurali siniflandirmasi kabadir; rejim motoru bu olaylari dusuk guvenle ve sinirli sayida kullanir.",
- "count": 7,
+ "count": 6,
  "items": [
   {
    "id": "2a44e4d4b07e",
@@ -18,6 +18,16 @@
    "id": "2b3b116ccb0d",
    "title": "TCMB faiz kararını açıkladı: Ocaktan bu yana ilk faiz indirimi - Euronews.com",
    "source": "Euronews.com",
+   "date": "2026-10-22T11:12:20+00:00",
+   "engine": "rule",
+   "eventType": "interest_rate",
+   "direction": 1,
+   "confidence": 0.35
+  },
+  {
+   "id": "726e340d5d3f",
+   "title": "TCMB faiz kararını açıkladı: Ocaktan bu yana ilk faiz indirimi - Euronews",
+   "source": "Euronews",
    "date": "2026-10-22T11:12:20+00:00",
    "engine": "rule",
    "eventType": "interest_rate",
@@ -51,26 +61,6 @@
    "date": "2026-10-22T05:33:00+00:00",
    "engine": "rule",
    "eventType": "commodity_oil",
-   "direction": -1,
-   "confidence": 0.35
-  },
-  {
-   "id": "a8de304d1719",
-   "title": "Brent petrol 2 dolardan fazla yükseldi - Foreks.com",
-   "source": "Foreks.com",
-   "date": "2026-10-21T10:27:52+00:00",
-   "engine": "rule",
-   "eventType": "fx_pressure",
-   "direction": -1,
-   "confidence": 0.35
-  },
-  {
-   "id": "1f70112041ca",
-   "title": "Petrol piyasasında arz endişesi: Brent 110 doların üzerine çıktı - Paratic Haber",
-   "source": "Paratic Haber",
-   "date": "2026-10-21T07:22:38+00:00",
-   "engine": "rule",
-   "eventType": "fx_pressure",
    "direction": -1,
    "confidence": 0.35
   }
