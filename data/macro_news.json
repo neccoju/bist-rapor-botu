@@ -1,9 +1,39 @@
 {
- "generatedAt": "2026-10-26T20:08:31.535513+00:00",
+ "generatedAt": "2026-10-27T19:37:44.276062+00:00",
  "source": "Google News RSS (TR) + kural tabanli siniflandirici",
  "note": "Baslik-kurali siniflandirmasi kabadir; rejim motoru bu olaylari dusuk guvenle ve sinirli sayida kullanir.",
- "count": 2,
+ "count": 6,
  "items": [
+  {
+   "id": "a8a21c7ad258",
+   "title": "Petrol fiyatları yeniden yükseldi: Brent 116 dolara çıktı - Paratic Haber",
+   "source": "Paratic Haber",
+   "date": "2026-10-27T09:43:09+00:00",
+   "engine": "rule",
+   "eventType": "fx_pressure",
+   "direction": -1,
+   "confidence": 0.35
+  },
+  {
+   "id": "16a8f502e841",
+   "title": "Brent petrol 110 doların altına indi - Dünya Gazetesi",
+   "source": "Dünya Gazetesi",
+   "date": "2026-10-27T04:06:00+00:00",
+   "engine": "rule",
+   "eventType": "commodity_oil",
+   "direction": 1,
+   "confidence": 0.35
+  },
+  {
+   "id": "083adf64f68d",
+   "title": "Petrol, barış umuduyla geriledi - Bloomberght",
+   "source": "Bloomberght",
+   "date": "2026-10-27T03:34:08+00:00",
+   "engine": "rule",
+   "eventType": "commodity_oil",
+   "direction": 1,
+   "confidence": 0.35
+  },
   {
    "id": "998040b33e2f",
    "title": "Petrol fiyatları geriledi, Brent 115 doların üzerinde kaldı - Paratic Haber",
@@ -19,6 +49,16 @@
    "title": "Petrol Fiyatları Yükselişin Ardından Geriledi, Brent 115 Doların Altına İndi - سانا",
    "source": "سانا",
    "date": "2026-10-26T06:37:07+00:00",
+   "engine": "rule",
+   "eventType": "commodity_oil",
+   "direction": 1,
+   "confidence": 0.35
+  },
+  {
+   "id": "9d4f9c34d893",
+   "title": "Petrol piyasasında ters köşe! Saldırılara rağmen fiyatlar geriledi - Ekonomim",
+   "source": "Ekonomim",
+   "date": "2026-10-26T04:09:00+00:00",
    "engine": "rule",
    "eventType": "commodity_oil",
    "direction": 1,
