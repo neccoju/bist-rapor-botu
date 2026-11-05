@@ -1,9 +1,39 @@
 {
- "generatedAt": "2026-11-04T20:55:41.599073+00:00",
+ "generatedAt": "2026-11-05T21:13:25.539402+00:00",
  "source": "Google News RSS (TR) + kural tabanli siniflandirici",
  "note": "Baslik-kurali siniflandirmasi kabadir; rejim motoru bu olaylari dusuk guvenle ve sinirli sayida kullanir.",
- "count": 5,
+ "count": 7,
  "items": [
+  {
+   "id": "0b4d45e83a30",
+   "title": "Depoyu dolduracaklar dikkat! Petrol çakıldı, indirim geliyor - Son Dakika",
+   "source": "Son Dakika",
+   "date": "2026-11-05T06:16:53+00:00",
+   "engine": "rule",
+   "eventType": "commodity_oil",
+   "direction": 1,
+   "confidence": 0.35
+  },
+  {
+   "id": "d9b1b2b624d5",
+   "title": "Petrol fiyatları sert düştü - Bigpara",
+   "source": "Bigpara",
+   "date": "2026-11-05T05:32:00+00:00",
+   "engine": "rule",
+   "eventType": "commodity_oil",
+   "direction": 1,
+   "confidence": 0.35
+  },
+  {
+   "id": "33a418f9333f",
+   "title": "Akaryakıta indirim gelecek mi? Petrol fiyatları ayın en düşük seviyesinde ve indirim bekleniyor - NTV Haber",
+   "source": "NTV Haber",
+   "date": "2026-11-05T04:31:12+00:00",
+   "engine": "rule",
+   "eventType": "commodity_oil",
+   "direction": 1,
+   "confidence": 0.35
+  },
   {
    "id": "311a632ac528",
    "title": "Brent petrol 2 ayın ardından ilk kez 94 doların altına düştü - İlke Haber Ajansı",
@@ -42,16 +72,6 @@
    "engine": "rule",
    "eventType": "commodity_oil",
    "direction": 1,
-   "confidence": 0.35
-  },
-  {
-   "id": "2df6417b627f",
-   "title": "Brent petrol 106 dolara yükseldi - Ensonhaber",
-   "source": "Ensonhaber",
-   "date": "2026-11-03T08:53:26+00:00",
-   "engine": "rule",
-   "eventType": "fx_pressure",
-   "direction": -1,
    "confidence": 0.35
   }
  ]
