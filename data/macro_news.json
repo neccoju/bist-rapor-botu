@@ -1,9 +1,39 @@
 {
- "generatedAt": "2026-11-25T23:17:53.174808+00:00",
+ "generatedAt": "2026-11-26T23:17:36.791097+00:00",
  "source": "Google News RSS (TR) + kural tabanli siniflandirici",
  "note": "Baslik-kurali siniflandirmasi kabadir; rejim motoru bu olaylari dusuk guvenle ve sinirli sayida kullanir.",
  "count": 9,
  "items": [
+  {
+   "id": "f66c42defe8c",
+   "title": "Piyasalarda gün sonu: Petrol yükseldi, altının kilogram fiyatı geriledi - Howl.Link",
+   "source": "Howl.Link",
+   "date": "2026-11-26T16:23:13+00:00",
+   "engine": "rule",
+   "eventType": "commodity_oil",
+   "direction": -1,
+   "confidence": 0.35
+  },
+  {
+   "id": "5cff22ab4447",
+   "title": "Petrol fiyatları yeniden yükselişe geçti, yüksek enerji maliyetleri faiz artırımı beklentilerini güçlendiriyor - Foreks.com",
+   "source": "Foreks.com",
+   "date": "2026-11-26T12:47:19+00:00",
+   "engine": "rule",
+   "eventType": "interest_rate",
+   "direction": -1,
+   "confidence": 0.25
+  },
+  {
+   "id": "3deadccce0e0",
+   "title": "TCMB'den faiz indirim beklentisi terse döndü - Bloomberght",
+   "source": "Bloomberght",
+   "date": "2026-11-26T07:25:59+00:00",
+   "engine": "rule",
+   "eventType": "interest_rate",
+   "direction": 1,
+   "confidence": 0.25
+  },
   {
    "id": "c9520c4f9e62",
    "title": "Türkiye’nin risk primi yedi ayın zirvesine çıktı - Borsa Gundem",
@@ -63,36 +93,6 @@
    "eventType": "commodity_oil",
    "direction": 1,
    "confidence": 0.35
-  },
-  {
-   "id": "c0042bf32e9f",
-   "title": "Merkez Bankası faiz toplantısı takvimi: 2026 Aralık ayı Merkez Bankası faiz kararı ne zaman açıklanacak, faiz indirimi ya da artışı olur mu? - Uzmanpara",
-   "source": "Uzmanpara",
-   "date": "2026-11-24T12:28:58+00:00",
-   "engine": "rule",
-   "eventType": "interest_rate",
-   "direction": 1,
-   "confidence": 0.35
-  },
-  {
-   "id": "a97cf73adef9",
-   "title": "TCMB'den kredi kartı faizlerine indirim: Yeni oranlar belli oldu - Cumhuriyet",
-   "source": "Cumhuriyet",
-   "date": "2026-11-24T09:05:00+00:00",
-   "engine": "rule",
-   "eventType": "interest_rate",
-   "direction": 1,
-   "confidence": 0.35
-  },
-  {
-   "id": "8f5303da2894",
-   "title": "Petrol fiyatları üç ayın dibine geriledi! BofA ve JPMorgan’dan dikkat çeken tahmin - Sabah",
-   "source": "Sabah",
-   "date": "2026-11-24T05:46:15+00:00",
-   "engine": "rule",
-   "eventType": "commodity_oil",
-   "direction": 1,
-   "confidence": 0.25
   }
  ]
 }
