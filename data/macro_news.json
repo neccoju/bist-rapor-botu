@@ -1,9 +1,29 @@
 {
- "generatedAt": "2026-11-26T23:17:36.791097+00:00",
+ "generatedAt": "2026-11-27T22:55:53.867066+00:00",
  "source": "Google News RSS (TR) + kural tabanli siniflandirici",
  "note": "Baslik-kurali siniflandirmasi kabadir; rejim motoru bu olaylari dusuk guvenle ve sinirli sayida kullanir.",
- "count": 9,
+ "count": 5,
  "items": [
+  {
+   "id": "4b038a4e4deb",
+   "title": "MERKEZ BANKASI FAİZ KARARI TARİHİ VE EKONOMİSTLERİN BEKLENTİSİ: Yılın son TCMB faiz toplantısı ne zaman, faiz indirimi bekleniyor mu? - Uzmanpara",
+   "source": "Uzmanpara",
+   "date": "2026-11-27T15:08:56+00:00",
+   "engine": "rule",
+   "eventType": "interest_rate",
+   "direction": 1,
+   "confidence": 0.25
+  },
+  {
+   "id": "7c8d967add9c",
+   "title": "Petrol fiyatlarında yükseliş hızlandı! Brent petrol 92 doları aştı: OPEC+ üretim kararı bekleniyor - Sabah",
+   "source": "Sabah",
+   "date": "2026-11-27T04:15:27+00:00",
+   "engine": "rule",
+   "eventType": "commodity_oil",
+   "direction": -1,
+   "confidence": 0.35
+  },
   {
    "id": "f66c42defe8c",
    "title": "Piyasalarda gün sonu: Petrol yükseldi, altının kilogram fiyatı geriledi - Howl.Link",
@@ -33,66 +53,6 @@
    "eventType": "interest_rate",
    "direction": 1,
    "confidence": 0.25
-  },
-  {
-   "id": "c9520c4f9e62",
-   "title": "Türkiye’nin risk primi yedi ayın zirvesine çıktı - Borsa Gundem",
-   "source": "Borsa Gundem",
-   "date": "2026-11-25T09:17:00+00:00",
-   "engine": "rule",
-   "eventType": "cds_risk",
-   "direction": -1,
-   "confidence": 0.35
-  },
-  {
-   "id": "8203278665d3",
-   "title": "Türkiye'nin kredi risk primi son 7 ayın zirvesine çıktı - Doviz.com",
-   "source": "Doviz.com",
-   "date": "2026-11-25T08:57:22+00:00",
-   "engine": "rule",
-   "eventType": "cds_risk",
-   "direction": -1,
-   "confidence": 0.35
-  },
-  {
-   "id": "70d71d45b2c7",
-   "title": "Türkiye'nin risk primi 7 ayın zirvesinde: CDS 274 baz puana çıktı - Sanayi Gazetesi",
-   "source": "Sanayi Gazetesi",
-   "date": "2026-11-25T08:18:19+00:00",
-   "engine": "rule",
-   "eventType": "cds_risk",
-   "direction": -1,
-   "confidence": 0.35
-  },
-  {
-   "id": "1508beb0bb6b",
-   "title": "Petrol fiyatları geriledi! Barclays'ten 2026 ve 2027 tahmini - CNN Türk Finans",
-   "source": "CNN Türk Finans",
-   "date": "2026-11-25T07:44:10+00:00",
-   "engine": "rule",
-   "eventType": "commodity_oil",
-   "direction": 1,
-   "confidence": 0.25
-  },
-  {
-   "id": "b99a31dc630d",
-   "title": "Petrol fiyatları yeniden geriledi: Brent petrol 90 dolar sınırında- Evrensel - Evrensel",
-   "source": "Evrensel",
-   "date": "2026-11-25T05:30:00+00:00",
-   "engine": "rule",
-   "eventType": "commodity_oil",
-   "direction": 1,
-   "confidence": 0.35
-  },
-  {
-   "id": "6c652c6b66ef",
-   "title": "Petrol fiyatları geriledi: IEA raporu piyasaları baskıladı - Memurlar.Net",
-   "source": "Memurlar.Net",
-   "date": "2026-11-25T04:54:00+00:00",
-   "engine": "rule",
-   "eventType": "commodity_oil",
-   "direction": 1,
-   "confidence": 0.35
   }
  ]
 }
